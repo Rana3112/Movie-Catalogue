@@ -10,7 +10,7 @@ export default function TimeSettingsModal({ onClose }) {
         setStatus('Saving...')
         try {
             const [hour, minute] = time.split(':')
-            const response = await fetch('http://localhost:5000/api/settings/schedule', {
+            const response = await fetch('https://movie-catalogue-api.onrender.com/api/settings/schedule', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ hour, minute })

@@ -28,7 +28,7 @@ export const useStore = create(persist((set, get) => ({
     // Fetch entries from Backend
     fetchEntries: async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/entries?t=${Date.now()}`)
+            const response = await fetch(`https://movie-catalogue-api.onrender.com=${Date.now()}`)
             const data = await response.json()
             set({ calendarEntries: data })
         } catch (error) {
@@ -50,7 +50,7 @@ export const useStore = create(persist((set, get) => ({
             }
             console.log("Adding Entry Payload:", payload)
 
-            const response = await fetch('http://localhost:5000/api/entries', {
+            const response = await fetch('https://movie-catalogue-api.onrender.com/api/entries', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -75,7 +75,7 @@ export const useStore = create(persist((set, get) => ({
     // Update entry in Backend
     updateEntry: async (id, date, updates) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/entries/${id}`, {
+            const response = await fetch(`https://movie-catalogue-api.onrender.com/api/entries/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates)
@@ -110,7 +110,7 @@ export const useStore = create(persist((set, get) => ({
                 }
             }))
 
-            const response = await fetch(`http://localhost:5000/api/entries/${id}`, {
+            const response = await fetch(`https://movie-catalogue-api.onrender.com/api/entries/${id}`, {
                 method: 'DELETE',
             })
 
@@ -135,7 +135,7 @@ export const useStore = create(persist((set, get) => ({
         try {
             const { user } = get()
             if (!user?.email) return
-            const res = await fetch(`http://localhost:5000/api/genres?email=${user.email}`)
+            const res = await fetch(`https://movie-catalogue-api.onrender.com/api/genres?email=${user.email}`)
             const data = await res.json()
             set({ customGenres: data })
         } catch (error) {
@@ -147,7 +147,7 @@ export const useStore = create(persist((set, get) => ({
         try {
             const { user } = get()
             const payload = { ...genreData, userEmail: user?.email }
-            const res = await fetch('http://localhost:5000/api/genres', {
+            const res = await fetch('https://movie-catalogue-api.onrender.com/api/genres', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -163,7 +163,7 @@ export const useStore = create(persist((set, get) => ({
 
     deleteCustomGenre: async (id) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/genres/${id}`, { method: 'DELETE' })
+            const res = await fetch(`https://movie-catalogue-api.onrender.com/api/genres/${id}`, { method: 'DELETE' })
             if (res.ok) {
                 set(state => ({
                     customGenres: state.customGenres.filter(g => g.id !== id),

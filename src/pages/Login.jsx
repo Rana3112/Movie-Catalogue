@@ -20,7 +20,7 @@ export default function Login() {
         setLoading(true)
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', {
+            const response = await fetch('https://movie-catalogue-api.onrender.com/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -53,7 +53,7 @@ export default function Login() {
                 const googleUser = await userInfoResponse.json();
 
                 // Send to my Backend
-                const response = await fetch('http://localhost:5000/api/auth/google', {
+                const response = await fetch('https://movie-catalogue-api.onrender.com/api/auth/google', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
