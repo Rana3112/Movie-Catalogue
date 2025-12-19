@@ -30,10 +30,21 @@ app.use((req, res, next) => {
     next();
 });
 
-// MongoDB Connection
+
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
+// mongoose.connect(process.env.MONGODB_URI, {
+//     useNewUrlParser: true,
+//     useUnifiedTopology: true,
+//     family: 4,                     // forces IPv4, REQUIRED FOR RENDER + ATLAS
+//     serverSelectionTimeoutMS: 10000
+// })
+// .then(() => console.log('✅ MongoDB Connected (IPv4 Forced)'))
+// .catch(err => {
+//     console.error('❌ MongoDB Connection Error:', err);
+//     process.exit(1);
+// });
 
 // --- AUTH ROUTES ---
 
