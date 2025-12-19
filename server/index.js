@@ -31,6 +31,8 @@ app.use((req, res, next) => {
 });
 
 // MongoDB Connection
+console.log("DEBUG: MONGODB_URI is:", process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@') : "UNDEFINED");
+
 mongoose.connect(process.env.MONGODB_URI, {
     family: 4 // Force IPv4 to avoid Render/Atlas IPv6 issues
 })
