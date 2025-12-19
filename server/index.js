@@ -12,8 +12,17 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_123'; // Fallback for dev
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['https://movie-catalogue-v1-iota.vercel.app', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
 app.use(express.json({ limit: '50mb' }));
+
+// Root Route (Health Check)
+app.get('/', (req, res) => {
+    res.send('Movie Catalogue API is Running 🚀');
+});
 
 // Debug Middleware: Log all requests
 app.use((req, res, next) => {
