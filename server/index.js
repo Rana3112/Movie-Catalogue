@@ -31,19 +31,7 @@ app.use((req, res, next) => {
 });
 
 // MongoDB Connection
-// console.log("DEBUG: MONGODB_URI is:", process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@') : "UNDEFINED");
-
-// MongoDB Connection
-// Reverting to Environment Variable for security
-const MONGO_URI = process.env.MONGODB_URI;
-
-// Debug: Check Public IP of the Render Server
-fetch('https://api64.ipify.org?format=json')
-    .then(res => res.json())
-    .then(data => console.log(`🌍 Server Public IP: ${data.ip}`))
-    .catch(err => console.error('❌ Failed to fetch IP:', err));
-
-mongoose.connect(MONGO_URI)
+mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
