@@ -33,11 +33,18 @@ app.use((req, res, next) => {
 // MongoDB Connection
 // console.log("DEBUG: MONGODB_URI is:", process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@') : "UNDEFINED");
 
-// Direct Connection String (Bypassing SRV Lookup)
-const HARDCODED_URI = "mongodb://utkarshrana40_db_user:render12345@ac-757bpcf-shard-00-00.tpbyi5g.mongodb.net:27017,ac-757bpcf-shard-00-01.tpbyi5g.mongodb.net:27017,ac-757bpcf-shard-00-02.tpbyi5g.mongodb.net:27017/?ssl=true&replicaSet=atlas-11wk81-shard-0&authSource=admin&retryWrites=true&w=majority";
+// MongoDB Connection
+// Reverting to Environment Variable for security
+const MONGO_URI = process.env.MONGODB_URI;
 
-mongoose.connect(HARDCODED_URI) // Removed family: 4 as we are using direct hosts
-    .then(() => console.log('✅ MongoDB Connected (DIRECT)'))
+// Debug: Check Public IP of the Render Server
+fetch('https://api64.ipify.org?format=json')
+    .then(res => res.json())
+    .then(data => console.log(`🌍 Server Public IP: ${data.ip}`))
+    .catch(err => console.error('❌ Failed to fetch IP:', err));
+
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // --- AUTH ROUTES ---
