@@ -33,12 +33,11 @@ app.use((req, res, next) => {
 // MongoDB Connection
 // console.log("DEBUG: MONGODB_URI is:", process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@') : "UNDEFINED");
 
-const HARDCODED_URI = "mongodb+srv://utkarshrana40_db_user:render12345@cluster0.tpbyi5g.mongodb.net/?appName=Cluster0";
+// Direct Connection String (Bypassing SRV Lookup)
+const HARDCODED_URI = "mongodb://utkarshrana40_db_user:render12345@ac-757bpcf-shard-00-00.tpbyi5g.mongodb.net:27017,ac-757bpcf-shard-00-01.tpbyi5g.mongodb.net:27017,ac-757bpcf-shard-00-02.tpbyi5g.mongodb.net:27017/?ssl=true&replicaSet=atlas-11wk81-shard-0&authSource=admin&retryWrites=true&w=majority";
 
-mongoose.connect(HARDCODED_URI, {
-    family: 4 // Force IPv4 to avoid Render/Atlas IPv6 issues
-})
-    .then(() => console.log('✅ MongoDB Connected (HARDCODED)'))
+mongoose.connect(HARDCODED_URI) // Removed family: 4 as we are using direct hosts
+    .then(() => console.log('✅ MongoDB Connected (DIRECT)'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // --- AUTH ROUTES ---
