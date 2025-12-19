@@ -31,12 +31,14 @@ app.use((req, res, next) => {
 });
 
 // MongoDB Connection
-console.log("DEBUG: MONGODB_URI is:", process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@') : "UNDEFINED");
+// console.log("DEBUG: MONGODB_URI is:", process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@') : "UNDEFINED");
 
-mongoose.connect(process.env.MONGODB_URI, {
+const HARDCODED_URI = "mongodb+srv://utkarshrana40_db_user:render12345@cluster0.tpbyi5g.mongodb.net/?appName=Cluster0";
+
+mongoose.connect(HARDCODED_URI, {
     family: 4 // Force IPv4 to avoid Render/Atlas IPv6 issues
 })
-    .then(() => console.log('✅ MongoDB Connected'))
+    .then(() => console.log('✅ MongoDB Connected (HARDCODED)'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // --- AUTH ROUTES ---
