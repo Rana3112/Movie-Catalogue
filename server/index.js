@@ -166,12 +166,19 @@ app.post('/api/auth/google', async (req, res) => {
 // Routes
 
 // Get all entries
+// Get all entries for a specific user
 app.get('/api/entries', async (req, res) => {
     try {
-        const entries = await Entry.find().sort({ createdAt: -1 });
+        const { userEmail } = req.query;
+        if (!userEmail) return res.json({}); // Return empty if no user
+
+        console.log(`Fetching entries for: ${userEmail}`);
+
+        // Find entries where userEmail matches OR userEmail is null (legacy/public? maybe unsafe)
+        // Strict privacy: Only match userEmail.
+        const entries = await Entry.find({ userEmail }).sort({ createdAt: -1 });
 
         // Group by date for frontend compatibility
-        // Format: { "YYYY-MM-DD": [ ...entries ] }
         const entriesByDate = entries.reduce((acc, entry) => {
             if (!acc[entry.date]) acc[entry.date] = [];
             acc[entry.date].push(entry);
@@ -180,6 +187,7 @@ app.get('/api/entries', async (req, res) => {
 
         res.json(entriesByDate);
     } catch (err) {
+        console.error("Fetch Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

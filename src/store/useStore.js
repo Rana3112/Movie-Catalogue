@@ -27,8 +27,11 @@ export const useStore = create(persist((set, get) => ({
 
     // Fetch entries from Backend
     fetchEntries: async () => {
+        const { user } = get()
+        if (!user?.email) return // Don't fetch if no user
+
         try {
-            const response = await fetch(`https://movie-catalogue-api.onrender.com/api/entries?t=${Date.now()}`)
+            const response = await fetch(`https://movie-catalogue-api.onrender.com/api/entries?userEmail=${user.email}&t=${Date.now()}`)
             const data = await response.json()
             set({ calendarEntries: data })
         } catch (error) {
