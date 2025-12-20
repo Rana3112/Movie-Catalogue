@@ -260,6 +260,10 @@ export default function Calendar() {
                                                             <span className={`text-[8px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ${entry.status === 'watched' ? 'text-green-400 bg-green-500/10' : 'text-yellow-400 bg-yellow-500/10'}`}>
                                                                 {entry.status}
                                                             </span>
+                                                            {/* Category Tag */}
+                                                            <span className="text-[8px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                                                {entry.category || 'Movies'}
+                                                            </span>
                                                             <div className="flex">
                                                                 {Array.from({ length: entry.rating || 0 }).map((_, i) => (
                                                                     <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
