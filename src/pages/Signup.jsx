@@ -19,7 +19,8 @@ export default function Signup() {
         setLoading(true)
 
         try {
-            const response = await fetch('https://movie-catalogue-api.onrender.com/api/auth/signup', {
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const response = await fetch(`${API_URL}/api/auth/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password })

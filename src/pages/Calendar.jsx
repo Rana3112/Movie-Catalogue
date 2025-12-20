@@ -14,6 +14,7 @@ const GENRES = ["Action", "Adventure", "Animation", "Comedy", "Crime", "Document
 
 export default function Calendar() {
     const { selectedYear, selectedCategory, selectedGenres, calendarEntries, addEntry, removeEntry, updateEntry, setYear, fetchEntries } = useStore()
+    const isReadOnly = !selectedCategory // Read-Only if viewing "My Calendar (All)"
     const [currentMonthIndex, setCurrentMonthIndex] = useState(0)
 
     useEffect(() => {
@@ -87,9 +88,9 @@ export default function Calendar() {
         setIsFetching(true)
 
         try {
-            let posterUrl = null
-
             // Strategy 1: Try to extract IMDb ID and use the Suggestion API (lighter, less blocked)
+            let newTitle = null
+            let posterUrl = null
             const imdbIdMatch = link.match(/tt\d+/)
             if (imdbIdMatch) {
                 const imdbId = imdbIdMatch[0]
@@ -104,6 +105,7 @@ export default function Calendar() {
                         const result = data.d?.find(item => item.id === imdbId)
                         if (result?.i?.imageUrl) {
                             posterUrl = result.i.imageUrl
+                            newTitle = result.l
                         }
                     }
                 } catch (e) {
@@ -121,10 +123,15 @@ export default function Calendar() {
                 const parser = new DOMParser()
                 const doc = parser.parseFromString(html, 'text/html')
                 posterUrl = doc.querySelector('meta[property="og:image"]')?.content
+                newTitle = doc.querySelector('meta[property="og:title"]')?.content?.replace(' - IMDb', '') || doc.title.replace(' - IMDb', '')
             }
 
             if (posterUrl) {
-                setFormData(prev => ({ ...prev, poster: posterUrl }))
+                setFormData(prev => ({
+                    ...prev,
+                    poster: posterUrl,
+                    title: newTitle || prev.title // Only overwrite if new title found
+                }))
             } else {
                 alert('Could not find a poster image. IMDb may be blocking access.')
             }
@@ -207,69 +214,82 @@ export default function Calendar() {
             days.push(
                 <div
                     key={day}
-                    onClick={() => handleDateClick(day)}
+                    onClick={() => !isReadOnly && handleDateClick(day)} // Disable click if Read Only
                     className={`
-                        aspect-[3/4] rounded-lg relative overflow-hidden group transition-all duration-300 cursor-pointer
-                        ${hasEntry ? 'border-blue-500/50' : 'bg-white/5 border border-white/10 hover:bg-white/10'}
+                        aspect-[3/4] rounded-lg relative overflow-hidden group transition-all duration-300 ${!isReadOnly ? 'cursor-pointer' : ''}
+                        ${hasEntry ? 'border-blue-500/50' : isReadOnly ? 'bg-white/5 border border-white/10' : 'bg-white/5 border border-white/10 hover:bg-white/10'}
                     `}
                 >
-                    {/* Background Poster if exists */}
+                    {/* Poster + Overlay UI */}
                     {posterEntry ? (
                         <>
                             <div className="absolute inset-0">
                                 <img
                                     src={posterEntry.poster}
                                     alt="Poster"
-                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                             </div>
 
-                            {/* Grid Delete Button */}
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    console.log("Grid Click Delete. ID:", posterEntry._id, "Title:", posterEntry.title)
-                                    if (!posterEntry._id) {
-                                        alert("Error: This entry has no ID. Try refreshing the page.")
-                                        return
-                                    }
-                                    console.log("Grid Click Delete. ID:", posterEntry._id, "Title:", posterEntry.title)
-                                    if (!posterEntry._id) {
-                                        alert("Error: This entry has no ID. Try refreshing the page.")
-                                        return
-                                    }
-                                    if (confirm(`Delete "${posterEntry.title}" (Category: ${posterEntry.category})?`)) {
-                                        removeEntry(posterEntry._id, dateStr)
-                                    }
-                                }}
-                                className="absolute top-1 right-1 p-1.5 bg-black/50 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all z-20"
-                                title="Delete Entry"
-                            >
-                                <Trash size={12} />
-                            </button>
+                            {/* Content Details (Visible) */}
+                            <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col gap-1">
+                                <h4 className="font-bold text-sm text-white leading-tight line-clamp-2 drop-shadow-md">
+                                    {posterEntry.title}
+                                </h4>
+
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                    {/* Category Pill */}
+                                    <span className="text-[10px] uppercase font-bold tracking-wider bg-white/20 px-1.5 py-0.5 rounded text-white/90 backdrop-blur-sm border border-white/10">
+                                        {posterEntry.category || 'Movie'}
+                                    </span>
+                                    {/* Genre Pill */}
+                                    <span className="text-[10px] bg-blue-500/30 px-1.5 py-0.5 rounded text-blue-200 border border-blue-500/20 truncate max-w-[80px]">
+                                        {posterEntry.genre || 'General'}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between mt-1">
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${posterEntry.status === 'watched' ? 'text-green-400 bg-green-500/10' : 'text-yellow-400 bg-yellow-500/10'}`}>
+                                        {posterEntry.status === 'watched' ? 'Watched' : 'Upcoming'}
+                                    </span>
+                                    <div className="flex">
+                                        {Array.from({ length: posterEntry.rating || 0 }).map((_, i) => (
+                                            <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Delete Button (Hover) - Hide if Read Only */}
+                            {!isReadOnly && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        if (confirm(`Delete "${posterEntry.title}"?`)) {
+                                            removeEntry(posterEntry._id, dateStr)
+                                        }
+                                    }}
+                                    className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-20"
+                                >
+                                    <Trash size={12} />
+                                </button>
+                            )}
                         </>
                     ) : (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <CalIcon className="text-white/20 w-8 h-8" />
-                        </div>
+                        // Show "Add Entry" icon ONLY if NOT Read Only
+                        !isReadOnly && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <CalIcon className="text-white/20 w-8 h-8 mb-1" />
+                                <span className="text-[10px] text-white/30 uppercase tracking-widest">Add Entry</span>
+                            </div>
+                        )
                     )}
 
-                    {/* Date Number */}
+                    {/* Date Number - Restored */}
                     <span className={`absolute top-2 left-3 font-bold text-lg z-10 ${posterEntry ? 'text-white drop-shadow-md' : 'text-white/70'}`}>
                         {day}
                     </span>
-
-                    {/* Content Count / Indicator */}
-                    {hasEntry && !posterEntry && (
-                        <div className="absolute bottom-3 right-3 w-2 h-2 bg-blue-500 rounded-full" />
-                    )}
-
-                    {posterEntry && (
-                        <div className="absolute bottom-0 left-0 right-0 p-2 text-xs text-left truncate text-white/90 font-medium">
-                            {posterEntry.title}
-                        </div>
-                    )}
                 </div>
             )
         }
@@ -286,9 +306,7 @@ export default function Calendar() {
                 <div className="container mx-auto flex items-center justify-between">
                     <div>
                         <h1 className="text-4xl font-serif text-[#ffd700] tracking-wide flex items-center gap-3">
-                            {MONTHS[currentMonthIndex]} {selectedYear}
-
-
+                            {selectedCategory ? `${selectedCategory} Calendar - ` : "My Calendar - "} {MONTHS[currentMonthIndex]} {selectedYear}
 
                             {selectedGenres.length > 0 && selectedGenres.map(g => (
                                 <span key={g} className="text-sm bg-white/10 px-3 py-1 rounded-full text-white/70 border border-white/20">

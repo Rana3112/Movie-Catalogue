@@ -31,7 +31,8 @@ export const useStore = create(persist((set, get) => ({
         if (!user?.email) return // Don't fetch if no user
 
         try {
-            const response = await fetch(`https://movie-catalogue-api.onrender.com/api/entries?userEmail=${user.email}&t=${Date.now()}`)
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const response = await fetch(`${API_URL}/api/entries?userEmail=${user.email}&t=${Date.now()}`)
             const data = await response.json()
             set({ calendarEntries: data })
         } catch (error) {
@@ -53,7 +54,8 @@ export const useStore = create(persist((set, get) => ({
             }
             console.log("Adding Entry Payload:", payload)
 
-            const response = await fetch('https://movie-catalogue-api.onrender.com/api/entries', {
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const response = await fetch(`${API_URL}/api/entries`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -78,7 +80,8 @@ export const useStore = create(persist((set, get) => ({
     // Update entry in Backend
     updateEntry: async (id, date, updates) => {
         try {
-            const response = await fetch(`https://movie-catalogue-api.onrender.com/api/entries/${id}`, {
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const response = await fetch(`${API_URL}/api/entries/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates)
@@ -113,7 +116,8 @@ export const useStore = create(persist((set, get) => ({
                 }
             }))
 
-            const response = await fetch(`https://movie-catalogue-api.onrender.com/api/entries/${id}`, {
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const response = await fetch(`${API_URL}/api/entries/${id}`, {
                 method: 'DELETE',
             })
 
@@ -138,7 +142,8 @@ export const useStore = create(persist((set, get) => ({
         try {
             const { user } = get()
             if (!user?.email) return
-            const res = await fetch(`https://movie-catalogue-api.onrender.com/api/genres?email=${user.email}`)
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const res = await fetch(`${API_URL}/api/genres?email=${user.email}`)
             const data = await res.json()
             set({ customGenres: data })
         } catch (error) {
@@ -150,7 +155,8 @@ export const useStore = create(persist((set, get) => ({
         try {
             const { user } = get()
             const payload = { ...genreData, userEmail: user?.email }
-            const res = await fetch('https://movie-catalogue-api.onrender.com/api/genres', {
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const res = await fetch(`${API_URL}/api/genres`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -166,10 +172,11 @@ export const useStore = create(persist((set, get) => ({
 
     deleteCustomGenre: async (id) => {
         try {
-            const res = await fetch(`https://movie-catalogue-api.onrender.com/api/genres/${id}`, { method: 'DELETE' })
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const res = await fetch(`${API_URL}/api/genres/${id}`, { method: 'DELETE' })
             if (res.ok) {
                 set(state => ({
-                    customGenres: state.customGenres.filter(g => g.id !== id),
+                    customGenres: state.customGenres.filter(g => g._id !== id), // Changed g.id to g._id to match typical MongoDB _id
                     // Also deselect if selected
                     selectedGenres: state.selectedGenres.filter(g => g !== id)
                 }))
