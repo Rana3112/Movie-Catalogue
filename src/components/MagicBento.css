@@ -1,0 +1,136 @@
+/* MagicBento.css */
+:root {
+    --hue: 27;
+    --sat: 69%;
+    --white: hsl(0, 0%, 100%);
+    --purple-primary: rgba(132, 0, 255, 1);
+    --purple-glow: rgba(132, 0, 255, 0.2);
+    --purple-border: rgba(132, 0, 255, 0.8);
+    --border-color: #392e4e;
+    --background-dark: #060010;
+    color-scheme: light dark;
+}
+
+.card-grid {
+    display: grid;
+    gap: 1.5em;
+    /* Increased gap for better spacing */
+    width: 100%;
+}
+
+.magic-bento-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    /* aspect-ratio: 4/3;  Removed to handle varied content */
+    min-height: 200px;
+    width: 100%;
+    max-width: 100%;
+    padding: 1.5em;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--background-dark);
+    font-weight: 300;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+
+    --glow-x: 50%;
+    --glow-y: 50%;
+    --glow-intensity: 0;
+    --glow-radius: 200px;
+}
+
+.magic-bento-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.magic-bento-card__header,
+.magic-bento-card__content {
+    display: flex;
+    position: relative;
+    color: var(--white);
+    z-index: 2;
+    /* Ensure content is above particles */
+}
+
+.magic-bento-card__header {
+    gap: 0.75em;
+    justify-content: space-between;
+}
+
+.magic-bento-card__content {
+    flex-direction: column;
+}
+
+.magic-bento-card__label {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.7;
+}
+
+.magic-bento-card__title {
+    font-weight: 600;
+    font-size: 24px;
+    margin: 0 0 0.5em;
+    font-family: 'Cinzel', serif;
+    /* Inherit global font preference eventually */
+}
+
+.magic-bento-card__description {
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0.8;
+}
+
+/* Selected State Override */
+.magic-bento-card.selected {
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.magic-bento-card.selected .magic-bento-card__title {
+    color: #ffd700;
+}
+
+
+/* Border glow effect */
+.magic-bento-card--border-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 2px;
+    /* Thinner border for cleaner look */
+    background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+            rgba(132, 0, 255, calc(var(--glow-intensity) * 0.8)) 0%,
+            rgba(132, 0, 255, calc(var(--glow-intensity) * 0.4)) 30%,
+            transparent 60%);
+    border-radius: inherit;
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.particle-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.particle {
+    /* Style injected by JS mostly, but base styles here */
+    border-radius: 50%;
+    pointer-events: none;
+    position: absolute;
+}

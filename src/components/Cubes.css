@@ -1,0 +1,71 @@
+/* Cubes.css */
+:root {
+    --cube-size: 20px;
+    /* Default, overridden by JS */
+    --face-color: #050816;
+    --border-style: 1px solid rgba(255, 255, 255, 0.08);
+    --shadow-color: rgba(0, 0, 0, 0.7);
+}
+
+.default-animation {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+}
+
+.default-animation--scene {
+    display: grid;
+    transform-style: preserve-3d;
+    /* Grid template columns/rows will be set inline */
+}
+
+.cube {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+}
+
+.cube-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: var(--face-color);
+    border: var(--border-style);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-color);
+    backface-visibility: hidden;
+    /* Optional, depending on look */
+}
+
+/* Face Transforms */
+.cube-face--front {
+    transform: rotateY(0deg) translateZ(calc(var(--cube-size) / 2));
+}
+
+.cube-face--back {
+    transform: rotateY(180deg) translateZ(calc(var(--cube-size) / 2));
+}
+
+.cube-face--right {
+    transform: rotateY(90deg) translateZ(calc(var(--cube-size) / 2));
+}
+
+.cube-face--left {
+    transform: rotateY(-90deg) translateZ(calc(var(--cube-size) / 2));
+}
+
+.cube-face--top {
+    transform: rotateX(90deg) translateZ(calc(var(--cube-size) / 2));
+}
+
+.cube-face--bottom {
+    transform: rotateX(-90deg) translateZ(calc(var(--cube-size) / 2));
+}

@@ -305,28 +305,32 @@ export default function Calendar() {
             <header className="px-8 py-6 border-b border-white/10 backdrop-blur-md sticky top-0 z-20 bg-black/50">
                 <div className="container mx-auto flex items-center justify-between">
                     <div>
-                        <h1 className="text-4xl font-serif text-[#ffd700] tracking-wide flex items-center gap-3">
-                            {selectedCategory ? `${selectedCategory} Calendar - ` : "My Calendar - "} {MONTHS[currentMonthIndex]} {selectedYear}
-
-                            {selectedGenres.length > 0 && selectedGenres.map(g => (
-                                <span key={g} className="text-sm bg-white/10 px-3 py-1 rounded-full text-white/70 border border-white/20">
-                                    {g}
-                                </span>
-                            ))}
+                        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600 tracking-wide flex items-center gap-3 uppercase">
+                            {selectedCategory ? `${selectedCategory}` : "My Calendar"}
+                            <span className="text-white/50 text-2xl font-light"> | {MONTHS[currentMonthIndex]} {selectedYear}</span>
                         </h1>
+                        {selectedGenres.length > 0 && (
+                            <div className="flex gap-2 mt-2">
+                                {selectedGenres.map(g => (
+                                    <span key={g} className="text-xs bg-white/10 px-3 py-1 rounded-full text-white/70 border border-white/20 uppercase tracking-wider">
+                                        {g}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => changeMonth('prev')}
                             disabled={currentMonthIndex === 0}
-                            className="flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 rounded-lg text-sm font-medium transition-colors border border-white/10"
+                            className="flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 rounded-full text-sm font-medium transition-colors border border-white/10 backdrop-blur-sm"
                         >
                             <ChevronLeft size={16} className="mr-1" /> Prev
                         </button>
                         <button
                             onClick={() => changeMonth('next')}
                             disabled={currentMonthIndex === 11}
-                            className="flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 rounded-lg text-sm font-medium transition-colors border border-white/10"
+                            className="flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 rounded-full text-sm font-medium transition-colors border border-white/10 backdrop-blur-sm"
                         >
                             Next <ChevronRight size={16} className="ml-1" />
                         </button>
@@ -335,11 +339,11 @@ export default function Calendar() {
             </header>
 
             <main className="p-8 pb-20 container mx-auto">
-                <div className="bg-[#1e1e1e]/80 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
+                <div className="bg-black/40 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                     {/* Weekday Headers */}
-                    <div className="grid grid-cols-7 mb-4">
+                    <div className="grid grid-cols-7 mb-4 border-b border-white/5 pb-4">
                         {DAYS_OF_WEEK.map(day => (
-                            <div key={day} className="text-center text-white/40 font-medium uppercase text-sm py-2">
+                            <div key={day} className="text-center text-blue-400/70 font-bold uppercase text-xs tracking-widest py-2">
                                 {day}
                             </div>
                         ))}

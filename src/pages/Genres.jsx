@@ -29,7 +29,12 @@ export default function Genres() {
         fetchCustomGenres()
     }, [fetchCustomGenres])
 
-    const allGenres = [...DEFAULT_GENRES, ...customGenres]
+    // Filter Custom Genres by Selected Category
+    const categoryCustomGenres = customGenres.filter(
+        g => g.category === selectedCategory || (!g.category && selectedCategory === 'Movies') // Handle legacy/missing category as Movies
+    )
+
+    const allGenres = [...DEFAULT_GENRES, ...categoryCustomGenres]
 
     const handleAddCustom = () => {
         if (!customGenreName.trim()) return
@@ -58,23 +63,24 @@ export default function Genres() {
             <Background3D />
 
             {/* Header */}
-            <header className="p-8 pb-4 border-b border-white/10 backdrop-blur-md flex justify-between items-end">
+            <header className="p-8 pb-4 border-b border-white/10 backdrop-blur-md sticky top-0 z-20 bg-black/50 flex justify-between items-end">
                 <div>
-                    <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+                    <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600 uppercase tracking-tight">
                         {selectedYear}
+                        <span className="text-white/50 font-light ml-4 text-3xl">| {selectedCategory}</span>
                     </h1>
-                    <h2 className="text-2xl text-white/70 uppercase tracking-widest mt-1">{selectedCategory}</h2>
+                    <p className="text-white/40 text-sm mt-2 uppercase tracking-widest pl-1">Select your favorite genres</p>
                 </div>
                 <button
                     onClick={() => navigate('/calendar')}
-                    className="px-8 py-3 bg-white text-black font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors rounded-full"
+                    className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold uppercase tracking-wider border border-white/20 backdrop-blur-md transition-all rounded-full hover:scale-105 active:scale-95"
                 >
                     {selectedGenres.length > 0 ? `Continue (${selectedGenres.length})` : 'Skip'}
                 </button>
             </header>
 
             {/* Grid */}
-            <main className="p-8 container mx-auto">
+            <main className="p-8 container mx-auto pb-32">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {allGenres.map((g) => {
                         const isSelected = selectedGenres.includes(g.id)
@@ -83,27 +89,29 @@ export default function Genres() {
                         return (
                             <motion.button
                                 key={g.id}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => {
                                     toggleGenre(g.id)
                                 }}
                                 className={`
-                    relative group h-40 rounded-2xl border border-white/10 overflow-hidden flex flex-col items-center justify-center p-4 transition-all duration-300
-                    ${isSelected ? 'bg-white/20 border-white/50 shadow-[0_0_30px_rgba(255,255,255,0.2)]' : 'bg-black/40 hover:bg-white/10'}
+                    relative group h-40 rounded-2xl border overflow-hidden flex flex-col items-center justify-center p-4 transition-all duration-300 backdrop-blur-md
+                    ${isSelected
+                                        ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.3)]'
+                                        : 'bg-black/40 border-white/10 hover:bg-white/5 hover:border-white/30'}
                  `}
                             >
                                 {/* Glow effect */}
-                                <div className={`absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity`} />
+                                <div className={`absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity`} />
 
-                                <span className="text-2xl font-bold z-10">{g.label}</span>
-                                <span className="text-xs text-white/50 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 max-w-[80%] text-center">
+                                <span className={`text-2xl font-bold z-10 transition-colors ${isSelected ? 'text-white' : 'text-white/80 group-hover:text-white'}`}>{g.label}</span>
+                                <span className="text-xs text-white/50 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 max-w-[90%] text-center">
                                     {g.desc}
                                 </span>
 
                                 {isSelected && (
-                                    <div className="absolute top-4 right-4 text-green-400">
-                                        <Check size={20} />
+                                    <div className="absolute top-3 right-3 text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]">
+                                        <Check size={20} className="stroke-[3]" />
                                     </div>
                                 )}
 
@@ -111,10 +119,10 @@ export default function Genres() {
                                 {isCustom && (
                                     <div
                                         onClick={(e) => handleDeleteCustom(e, g.id)}
-                                        className="absolute top-4 left-4 text-red-400/50 hover:text-red-400 transition-colors z-20"
+                                        className="absolute top-3 left-3 text-red-400/50 hover:text-red-400 transition-colors z-20 p-1 hover:bg-red-500/10 rounded-full"
                                         title="Delete Genre"
                                     >
-                                        <Trash size={16} />
+                                        <Trash size={14} />
                                     </div>
                                 )}
                             </motion.button>
@@ -166,7 +174,7 @@ export default function Genres() {
                             <div className="flex gap-4">
                                 <button
                                     onClick={handleAddCustom}
-                                    className="flex-1 bg-white text-black py-4 rounded-xl font-bold uppercase hover:bg-gray-200 transition-colors"
+                                    className="flex-1 bg-white hover:bg-gray-200 text-black py-4 rounded-xl font-bold uppercase transition-all transform hover:scale-[1.02]"
                                 >
                                     Add Genre
                                 </button>

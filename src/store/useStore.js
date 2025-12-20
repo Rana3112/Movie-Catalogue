@@ -153,8 +153,12 @@ export const useStore = create(persist((set, get) => ({
 
     addCustomGenre: async (genreData) => {
         try {
-            const { user } = get()
-            const payload = { ...genreData, userEmail: user?.email }
+            const { user, selectedCategory } = get()
+            const payload = {
+                ...genreData,
+                userEmail: user?.email,
+                category: selectedCategory || 'Movies' // Default to Movies if null
+            }
             const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
             const res = await fetch(`${API_URL}/api/genres`, {
                 method: 'POST',

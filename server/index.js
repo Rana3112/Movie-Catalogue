@@ -236,13 +236,13 @@ app.get('/api/genres', async (req, res) => {
 // Add a new custom genre
 app.post('/api/genres', async (req, res) => {
     try {
-        const { label, id, desc, userEmail } = req.body;
+        const { label, id, desc, userEmail, category } = req.body;
 
-        // Simple duplicate check
-        const existing = await CustomGenre.findOne({ id, userEmail });
-        if (existing) return res.status(400).json({ error: 'Genre already exists' });
+        // Simple duplicate check (per category)
+        const existing = await CustomGenre.findOne({ id, userEmail, category });
+        if (existing) return res.status(400).json({ error: 'Genre already exists in this category' });
 
-        const newGenre = new CustomGenre({ label, id, desc, userEmail });
+        const newGenre = new CustomGenre({ label, id, desc, userEmail, category });
         await newGenre.save();
         res.status(201).json(newGenre);
     } catch (error) {

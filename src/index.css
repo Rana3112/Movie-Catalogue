@@ -26,3 +26,13 @@ body {
   width: 100%;
   min-height: 100vh;
 }
+
+@keyframes slideLeft {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
