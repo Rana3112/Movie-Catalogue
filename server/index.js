@@ -13,7 +13,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_123'; // Fallback for d
 
 // Middleware
 app.use(cors({
-    origin: ['https://movie-catalogue-v1-iota.vercel.app', 'http://localhost:5173'],
+    origin: ['https://movie-catalogue-v1-iota.vercel.app', 'https://movie-catalogue-taupe.vercel.app', 'http://localhost:5173'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
