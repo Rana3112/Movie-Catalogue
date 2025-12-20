@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 export default function Category() {
     const year = useStore(state => state.selectedYear)
     const navigate = useNavigate()
+    console.log("Category Page Loaded - V2") // Deployment Verification Log
 
     return (
         <div className="h-screen w-full bg-black relative flex flex-col overflow-hidden">
