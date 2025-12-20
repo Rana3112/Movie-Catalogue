@@ -30,7 +30,7 @@ export default function Calendar() {
         status: 'watched', // watched, upcoming
         rating: 0,
         poster: null, // Base64 string
-        genre: selectedGenres.length === 1 ? selectedGenres[0] : 'General'
+        genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General'] // Default to selected genres or General
     })
 
     const [isFetching, setIsFetching] = useState(false)
@@ -52,7 +52,7 @@ export default function Calendar() {
             status: 'watched',
             rating: 0,
             poster: null,
-            genre: selectedGenres.length === 1 ? selectedGenres[0] : 'General'
+            genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
         })
         setIsFetching(false)
     }
@@ -64,7 +64,7 @@ export default function Calendar() {
             status: entry.status,
             rating: entry.rating || 0,
             poster: entry.poster,
-            genre: entry.genre || (selectedGenres.length === 1 ? selectedGenres[0] : 'General')
+            genres: entry.genres && entry.genres.length > 0 ? entry.genres : [entry.genre || 'General']
         })
     }
 
@@ -189,105 +189,167 @@ export default function Calendar() {
             let rawEntries = calendarEntries[dateStr] || []
             let dayEntries = [...rawEntries]
 
-            // Filter by Category (Movies vs Series vs Anime)
+            // Filter by Category
             if (selectedCategory) {
                 dayEntries = dayEntries.filter(e => e.category === selectedCategory)
             }
 
-
-            // Filter by Genre
+            // Filter by Genre (Overlap Check) - Show entry if it has ANY of the selected genres
             if (selectedGenres.length > 0) {
-                // Case-insensitive check to avoid "Action" vs "action" mismatches
-                // Filter by Genre (STRICT MATCH - Case Insensitive)
                 dayEntries = dayEntries.filter(e => {
                     const eGenres = e.genres || [e.genre || 'General']
-                    const sEntry = [...eGenres].map(g => g.toLowerCase()).sort()
-                    const sSelected = [...selectedGenres].map(g => g.toLowerCase()).sort()
-
-                    return sEntry.length === sSelected.length && sEntry.every((val, idx) => val === sSelected[idx])
+                    return selectedGenres.some(sg => eGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
                 })
             }
 
-            const hasEntry = dayEntries.length > 0
-            const posterEntry = dayEntries.find(e => e.poster)
+            const entryCount = dayEntries.length
+            const isMulti = entryCount > 1
+            const posterEntry = dayEntries.find(e => e.poster) // For single view fallback
 
             days.push(
                 <div
                     key={day}
-                    onClick={() => !isReadOnly && handleDateClick(day)} // Disable click if Read Only
+                    onClick={() => !isReadOnly && handleDateClick(day)}
                     className={`
-                        aspect-[3/4] rounded-lg relative overflow-hidden group transition-all duration-300 ${!isReadOnly ? 'cursor-pointer' : ''}
-                        ${hasEntry ? 'border-blue-500/50' : isReadOnly ? 'bg-white/5 border border-white/10' : 'bg-white/5 border border-white/10 hover:bg-white/10'}
+                        aspect-[3/4] rounded-lg relative group transition-all duration-300 ${!isReadOnly ? 'cursor-pointer' : 'cursor-default'}
+                        ${entryCount > 0 ? 'border-blue-500/50' : isReadOnly ? 'bg-white/5 border border-white/10' : 'bg-white/5 border border-white/10 hover:bg-white/10'}
                     `}
                 >
-                    {/* Poster + Overlay UI */}
-                    {posterEntry ? (
+                    {/* Render Content Based on Count */}
+                    {entryCount > 0 && (
                         <>
-                            <div className="absolute inset-0">
-                                <img
-                                    src={posterEntry.poster}
-                                    alt="Poster"
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                            </div>
-
-                            {/* Content Details (Visible) */}
-                            <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col gap-1">
-                                <h4 className="font-bold text-sm text-white leading-tight line-clamp-2 drop-shadow-md">
-                                    {posterEntry.title}
-                                </h4>
-
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                    {/* Category Pill */}
-                                    <span className="text-[10px] uppercase font-bold tracking-wider bg-white/20 px-1.5 py-0.5 rounded text-white/90 backdrop-blur-sm border border-white/10">
-                                        {posterEntry.category || 'Movie'}
-                                    </span>
-                                    {/* Genre Pill */}
-                                    <span className="text-[10px] bg-blue-500/30 px-1.5 py-0.5 rounded text-blue-200 border border-blue-500/20 truncate max-w-[80px]">
-                                        {posterEntry.genre || 'General'}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between mt-1">
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${posterEntry.status === 'watched' ? 'text-green-400 bg-green-500/10' : 'text-yellow-400 bg-yellow-500/10'}`}>
-                                        {posterEntry.status === 'watched' ? 'Watched' : 'Upcoming'}
-                                    </span>
-                                    <div className="flex">
-                                        {Array.from({ length: posterEntry.rating || 0 }).map((_, i) => (
-                                            <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
+                            {isMulti ? (
+                                // MULTI ENTRY VIEW
+                                <div className="absolute inset-0 flex flex-col pt-10 px-2 pb-2 bg-gradient-to-br from-gray-900 to-black rounded-lg">
+                                    <div className="flex-1 flex flex-col gap-1 overflow-hidden relative z-10">
+                                        {/* Partitioned View: List TITLES instead of genres for clarity */}
+                                        {dayEntries.slice(0, 3).map((entry, idx) => (
+                                            <div key={entry._id || idx} className="bg-white/10 px-2 py-1 rounded text-[10px] text-white/90 border border-white/5 truncate">
+                                                {entry.title}
+                                            </div>
                                         ))}
+                                        {dayEntries.length > 3 && (
+                                            <div className="text-[9px] text-white/40 pl-1">+{dayEntries.length - 3} more</div>
+                                        )}
+                                    </div>
+                                    <div className="mt-auto pt-2 border-t border-white/10">
+                                        <div className="text-xs text-center font-bold text-blue-400">{entryCount} Entries</div>
+                                    </div>
+
+                                    {/* HOVER POPOVER for Multi View */}
+                                    <div className="absolute left-full top-0 ml-2 w-72 bg-[#1a1a1a] border border-white/20 rounded-xl p-0 shadow-2xl z-[100] invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all flex flex-col max-h-[300px] overflow-hidden">
+                                        <h4 className="text-white font-bold p-3 border-b border-white/10 bg-[#1a1a1a] sticky top-0 z-10">{day} {MONTHS[currentMonthIndex]}</h4>
+                                        <div className="overflow-y-auto p-2 space-y-2">
+                                            {dayEntries.map((entry, idx) => (
+                                                <div key={idx} className={`flex gap-2 items-center p-2 rounded border border-transparent transition-colors ${!isReadOnly ? 'hover:bg-white/5 hover:border-white/10 cursor-pointer' : ''}`}
+                                                    onClick={(e) => {
+                                                        if (isReadOnly) return
+                                                        e.stopPropagation()
+                                                        handleEditClick(entry)
+                                                        setSelectedDate({ monthIndex: currentMonthIndex, day, dateStr })
+                                                        setShowModal(true)
+                                                    }}>
+                                                    {entry.poster ? (
+                                                        <img src={entry.poster} className="w-10 h-14 object-cover rounded shadow-sm" />
+                                                    ) : (
+                                                        <div className="w-10 h-14 bg-white/10 rounded flex items-center justify-center text-[8px] text-white/30">No IMG</div>
+                                                    )}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="text-sm font-bold truncate text-white">{entry.title}</div>
+                                                        <div className="flex gap-2 items-center mt-1">
+                                                            <span className={`text-[8px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ${entry.status === 'watched' ? 'text-green-400 bg-green-500/10' : 'text-yellow-400 bg-yellow-500/10'}`}>
+                                                                {entry.status}
+                                                            </span>
+                                                            <div className="flex">
+                                                                {Array.from({ length: entry.rating || 0 }).map((_, i) => (
+                                                                    <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {(entry.genres || [entry.genre]).map(g => (
+                                                                <span key={g} className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 rounded border border-blue-500/10 truncate max-w-[80px]">{g}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : (
+                                // SINGLE ENTRY VIEW (Enhanced)
+                                <>
+                                    <div className="absolute inset-0 overflow-hidden rounded-lg">
+                                        {posterEntry ? (
+                                            <>
+                                                <img
+                                                    src={posterEntry.poster}
+                                                    alt="Poster"
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                                            </>
+                                        ) : (
+                                            <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center text-white/20">
+                                                <CalIcon size={24} />
+                                            </div>
+                                        )}
+                                    </div>
 
-                            {/* Delete Button (Hover) - Hide if Read Only */}
-                            {!isReadOnly && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        if (confirm(`Delete "${posterEntry.title}"?`)) {
-                                            removeEntry(posterEntry._id, dateStr)
-                                        }
-                                    }}
-                                    className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-20"
-                                >
-                                    <Trash size={12} />
-                                </button>
+                                    <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col gap-1">
+                                        <h4 className="font-bold text-sm text-white leading-tight line-clamp-2 drop-shadow-md">
+                                            {dayEntries[0].title}
+                                        </h4>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {/* Show up to 2 genres */}
+                                            {(dayEntries[0].genres || [dayEntries[0].genre || 'General']).slice(0, 2).map(g => (
+                                                <span key={g} className="text-[10px] bg-blue-500/30 px-1.5 py-0.5 rounded text-blue-200 border border-blue-500/20 truncate max-w-[80px]">
+                                                    {g}
+                                                </span>
+                                            ))}
+                                            {(dayEntries[0].genres?.length > 2) && <span className="text-[9px] text-white/50">+{dayEntries[0].genres.length - 2}</span>}
+                                        </div>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <div className="flex">
+                                                {Array.from({ length: dayEntries[0].rating || 0 }).map((_, i) => (
+                                                    <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Delete/Edit Actions for Single View */}
+                                    {!isReadOnly && (
+                                        <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all z-20">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    if (confirm(`Delete "${dayEntries[0].title}"?`)) {
+                                                        removeEntry(dayEntries[0]._id, dateStr)
+                                                    }
+                                                }}
+                                                className="p-1.5 bg-black/60 text-white rounded-full hover:bg-red-500"
+                                            >
+                                                <Trash size={12} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </>
-                    ) : (
-                        // Show "Add Entry" icon ONLY if NOT Read Only
-                        !isReadOnly && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <CalIcon className="text-white/20 w-8 h-8 mb-1" />
-                                <span className="text-[10px] text-white/30 uppercase tracking-widest">Add Entry</span>
-                            </div>
-                        )
                     )}
 
-                    {/* Date Number - Restored */}
-                    <span className={`absolute top-2 left-3 font-bold text-lg z-10 ${posterEntry ? 'text-white drop-shadow-md' : 'text-white/70'}`}>
+                    {/* Empty State Add Icon */}
+                    {entryCount === 0 && !isReadOnly && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <CalIcon className="text-white/20 w-8 h-8 mb-1" />
+                            <span className="text-[10px] text-white/30 uppercase tracking-widest">Add Entry</span>
+                        </div>
+                    )}
+
+                    {/* Date Number */}
+                    <span className={`absolute top-2 left-3 font-bold text-lg z-[90] pointer-events-none ${entryCount > 0 ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-white/70'}`}>
                         {day}
                     </span>
                 </div>
@@ -378,23 +440,11 @@ export default function Calendar() {
                             <div className="space-y-4 mb-8">
                                 {(calendarEntries[selectedDate?.dateStr] || [])
                                     .filter(entry => {
-                                        // Filter by Category
                                         if (selectedCategory && entry.category !== selectedCategory) return false
-
-                                        // Filter by Genre (STRICT MATCH - Case Insensitive)
+                                        // Simplify filter for modal list: Show everything on this date if no genres selected, else overlapping
                                         if (selectedGenres.length === 0) return true
-
                                         const entryGenres = entry.genres || [entry.genre || 'General']
-
-                                        // Sort and Compare Arrays
-                                        const sortedEntry = [...entryGenres].map(g => g.toLowerCase()).sort()
-                                        const sortedSelected = [...selectedGenres].map(g => g.toLowerCase()).sort()
-
-                                        // Debug Log
-                                        // console.log(`Checking ${entry.title}: Entry=${JSON.stringify(sortedEntry)} vs Selected=${JSON.stringify(sortedSelected)}`)
-
-                                        if (sortedEntry.length !== sortedSelected.length) return false
-                                        return sortedEntry.every((val, index) => val === sortedSelected[index])
+                                        return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
                                     })
                                     .map((entry, i) => (
                                         <div key={i} className={`flex gap-4 p-4 rounded-xl border relative group ${editingId === entry._id ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/10'}`}>
@@ -406,18 +456,13 @@ export default function Calendar() {
                                                 }}
                                                 className="absolute top-2 right-10 p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
-                                                <Upload size={14} className="rotate-90" /> {/* Using Upload icon as 'Edit' proxy or just pencil if I had one. I'll use Upload rotated for now or import Pencil */}
+                                                <Upload size={14} className="rotate-90" />
                                             </button>
 
-                                            {/* Delete Button (moved right slightly) */}
+                                            {/* Delete Button */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation()
-                                                    console.log("Modal Click Delete. ID:", entry._id, "Title:", entry.title)
-                                                    if (!entry._id) {
-                                                        alert("Error: Entry missing ID. Refresh page.")
-                                                        return
-                                                    }
                                                     if (confirm('Delete this entry?')) {
                                                         removeEntry(entry._id, selectedDate.dateStr)
                                                     }
@@ -434,7 +479,14 @@ export default function Calendar() {
                                             )}
                                             <div>
                                                 <h4 className="font-bold text-lg pr-6">{entry.title}</h4>
-                                                <div className="flex items-center gap-2 text-sm text-white/70 mt-1">
+                                                <div className="flex flex-wrap gap-1 mt-1 mb-2">
+                                                    {(entry.genres || [entry.genre || 'General']).map(g => (
+                                                        <span key={g} className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-white/70 border border-white/20">
+                                                            {g}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm text-white/70">
                                                     <span className={`px-2 py-0.5 rounded text-xs ${entry.status === 'watched' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                                                         {entry.status}
                                                     </span>
@@ -461,7 +513,7 @@ export default function Calendar() {
                                                     status: 'watched',
                                                     rating: 0,
                                                     poster: null,
-                                                    genre: selectedGenres.length === 1 ? selectedGenres[0] : 'General'
+                                                    genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
                                                 })
                                             }}
                                             className="text-xs text-white/50 hover:text-white"
@@ -482,27 +534,32 @@ export default function Calendar() {
                                         />
                                     </div>
 
-                                    {/* Genre Section */}
+                                    {/* Genre Section (Multi-Select) */}
                                     <div>
-                                        <label className="block text-xs uppercase text-white/50 mb-1">Genre</label>
+                                        <label className="block text-xs uppercase text-white/50 mb-2">Genres</label>
                                         <div className="flex flex-wrap gap-2">
-                                            {selectedGenres.length > 0 ? (
-                                                selectedGenres.map(g => (
-                                                    <span key={g} className="text-xs bg-white/10 px-2 py-1 rounded-full text-white/70 border border-white/20">
+                                            {GENRES.map(g => {
+                                                const isSelected = formData.genres.includes(g)
+                                                return (
+                                                    <button
+                                                        key={g}
+                                                        onClick={() => {
+                                                            setFormData(annot => {
+                                                                const newGenres = isSelected
+                                                                    ? annot.genres.filter(bg => bg !== g)
+                                                                    : [...annot.genres, g]
+                                                                return { ...annot, genres: newGenres }
+                                                            })
+                                                        }}
+                                                        className={`text-xs px-3 py-1.5 rounded-full border transition-all ${isSelected
+                                                            ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/30 shadow-lg'
+                                                            : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
+                                                            }`}
+                                                    >
                                                         {g}
-                                                    </span>
-                                                ))
-                                            ) : (
-                                                <select
-                                                    value={formData.genre}
-                                                    onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                                                    className="w-full bg-black/50 border border-white/20 rounded-xl p-3 focus:outline-none focus:border-blue-500 text-sm appearance-none text-white"
-                                                >
-                                                    {GENRES.map(g => (
-                                                        <option key={g} value={g}>{g}</option>
-                                                    ))}
-                                                </select>
-                                            )}
+                                                    </button>
+                                                )
+                                            })}
                                         </div>
                                     </div>
 
