@@ -5,6 +5,7 @@ import Genres from './pages/Genres'
 import Calendar from './pages/Calendar'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import MySpace from './pages/MySpace'
 import { useStore } from './store/useStore'
 
 // Protected Route Component
@@ -42,6 +43,11 @@ function App() {
         <Route path="/calendar" element={
           <ProtectedRoute>
             <Calendar />
+          </ProtectedRoute>
+        } />
+        <Route path="/myspace" element={
+          <ProtectedRoute>
+            <MySpace />
           </ProtectedRoute>
         } />
       </Routes>

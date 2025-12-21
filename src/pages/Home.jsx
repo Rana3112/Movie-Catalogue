@@ -1,7 +1,7 @@
 import YearBarrel from '../components/canvas/YearBarrel'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, LayoutGrid } from 'lucide-react'
 import { useState } from 'react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import LightPillar from '../components/LightPillar'
@@ -75,6 +75,13 @@ export default function Home() {
             {/* Action Buttons */}
             <div className="absolute top-8 right-8 z-20 flex items-center gap-4">
 
+                <button
+                    onClick={() => navigate('/myspace')}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-full transition-all border border-white/5 hover:border-white/20 backdrop-blur-sm group"
+                >
+                    <LayoutGrid size={16} className="group-hover:text-purple-300 transition-colors" />
+                    <span className="text-xs uppercase tracking-wider font-medium">My Space</span>
+                </button>
 
                 <button
                     onClick={() => setShowSettings(true)}
