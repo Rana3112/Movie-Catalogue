@@ -190,7 +190,10 @@ function Timeline() {
             state.current.isDragging = active
             state.current.velocity -= (dx + dy) * 0.01
         }
-    }, { pointerEvents: true })
+    }, {
+        drag: { filterTaps: true },
+        wheel: { eventOptions: { passive: false } }
+    })
 
     useFrame(() => {
         const s = state.current

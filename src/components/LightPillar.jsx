@@ -295,6 +295,7 @@ const LightPillar = ({
 
         // Cleanup
         return () => {
+            if (resizeTimeout) clearTimeout(resizeTimeout);
             window.removeEventListener('resize', handleResize);
             if (interactive) {
                 container.removeEventListener('mousemove', handleMouseMove);
@@ -305,8 +306,9 @@ const LightPillar = ({
             if (rendererRef.current) {
                 rendererRef.current.dispose();
                 rendererRef.current.forceContextLoss();
-                if (container.contains(rendererRef.current.domElement)) {
-                    container.removeChild(rendererRef.current.domElement);
+                const canvas = rendererRef.current.domElement;
+                if (container && container.contains(canvas)) {
+                    container.removeChild(canvas);
                 }
             }
             if (materialRef.current) {
