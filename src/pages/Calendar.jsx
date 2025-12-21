@@ -13,13 +13,30 @@ const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const GENRES = ["Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery", "Romance", "Sci-Fi", "TV Movie", "Thriller", "War", "Western", "General"]
 
 export default function Calendar() {
-    const { selectedYear, selectedCategory, selectedGenres, calendarEntries, addEntry, removeEntry, updateEntry, setYear, fetchEntries } = useStore()
+    const { selectedYear, selectedCategory, selectedGenres, calendarEntries, addEntry, removeEntry, updateEntry, setYear, fetchEntries, customGenres, fetchCustomGenres } = useStore()
     const isReadOnly = !selectedCategory // Read-Only if viewing "My Calendar (All)"
     const [currentMonthIndex, setCurrentMonthIndex] = useState(0)
 
     useEffect(() => {
         fetchEntries()
-    }, [fetchEntries])
+        fetchCustomGenres()
+    }, [fetchEntries, fetchCustomGenres])
+
+    // helper to get all unique genres (Case-Insensitive Deduplication, preferring Title Case)
+    const allUniqueGenres = (() => {
+        const uniqueMap = new Map();
+        const sources = [...GENRES, ...(Array.isArray(customGenres) ? customGenres : []).map(cg => cg?.name).filter(n => typeof n === 'string'), ...selectedGenres];
+
+        sources.forEach(g => {
+            const lower = g.toLowerCase();
+            // If not present, or if current is exactly one of the standard GENRES (Capitalized), overwrite
+            if (!uniqueMap.has(lower) || GENRES.includes(g)) {
+                uniqueMap.set(lower, g);
+            }
+        });
+        return Array.from(uniqueMap.values());
+    })();
+
     const [selectedDate, setSelectedDate] = useState(null) // { monthIndex, day }
     const [showModal, setShowModal] = useState(false)
     const [editingId, setEditingId] = useState(null) // New: Track which ID is being edited
@@ -101,11 +118,16 @@ export default function Calendar() {
                     const apiRes = await fetch(proxyUrl)
                     if (apiRes.ok) {
                         const data = await apiRes.json()
-                        // Ensure it matches the ID and has an image
+                        // Ensure it matches the ID
                         const result = data.d?.find(item => item.id === imdbId)
-                        if (result?.i?.imageUrl) {
-                            posterUrl = result.i.imageUrl
-                            newTitle = result.l
+
+                        if (result) {
+                            if (result.i?.imageUrl) {
+                                posterUrl = result.i.imageUrl
+                            }
+                            if (result.l) {
+                                newTitle = result.l
+                            }
                         }
                     }
                 } catch (e) {
@@ -113,8 +135,8 @@ export default function Calendar() {
                 }
             }
 
-            // Strategy 2: Fallback to scraping the page for og:image
-            if (!posterUrl) {
+            // Strategy 2: Fallback to scraping only if we are missing bits
+            if (!posterUrl && !newTitle) {
                 const scrapeProxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`
                 const response = await fetch(scrapeProxyUrl)
                 if (!response.ok) throw new Error('Proxy error')
@@ -126,14 +148,17 @@ export default function Calendar() {
                 newTitle = doc.querySelector('meta[property="og:title"]')?.content?.replace(' - IMDb', '') || doc.title.replace(' - IMDb', '')
             }
 
-            if (posterUrl) {
+            if (posterUrl || newTitle) {
                 setFormData(prev => ({
                     ...prev,
-                    poster: posterUrl,
-                    title: newTitle || prev.title // Only overwrite if new title found
+                    poster: posterUrl || null, // Allow null if only title found
+                    title: newTitle || prev.title
                 }))
+                if (!posterUrl) {
+                    alert('Poster not found, but Title extracted. Entry will use blank background.')
+                }
             } else {
-                alert('Could not find a poster image. IMDb may be blocking access.')
+                alert('Could not find a poster image or title. IMDb may be blocking access.')
             }
         } catch (error) {
             console.error(error)
@@ -194,11 +219,29 @@ export default function Calendar() {
                 dayEntries = dayEntries.filter(e => e.category === selectedCategory)
             }
 
-            // Filter by Genre (Overlap Check) - Show entry if it has ANY of the selected genres
+            // Filter by Genre (Strict Unique View Logic)
             if (selectedGenres.length > 0) {
                 dayEntries = dayEntries.filter(e => {
-                    const eGenres = e.genres || [e.genre || 'General']
-                    return selectedGenres.some(sg => eGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
+                    const eGenres = (e.genres || [e.genre || 'General']).map(g => g.toLowerCase())
+                    const sGenres = selectedGenres.map(g => g.toLowerCase())
+
+                    // Identify if we should enforce "Unique Workspace" (Exact Match)
+                    // Triggered if: More than 1 genre selected, OR any custom genre is selected
+                    const standardGenresList = GENRES.map(g => g.toLowerCase())
+                    const hasCustom = sGenres.some(g => !standardGenresList.includes(g))
+                    const isMulti = sGenres.length > 1
+                    const isUniqueMode = isMulti || hasCustom
+
+                    if (isUniqueMode) {
+                        // EXACT MATCH Logic: Entry must have exactly the same genres as selected
+                        // 1. Lengths must match
+                        if (eGenres.length !== sGenres.length) return false
+                        // 2. All selected genres must be present (sort-independent check)
+                        return sGenres.every(sg => eGenres.includes(sg))
+                    } else {
+                        // STANDARD Mode (Single Standard Genre): Show everything containing this genre
+                        return sGenres.some(sg => eGenres.includes(sg))
+                    }
                 })
             }
 
@@ -306,13 +349,13 @@ export default function Calendar() {
                                             {dayEntries[0].title}
                                         </h4>
                                         <div className="flex flex-wrap gap-1 mt-1">
-                                            {/* Show up to 2 genres */}
-                                            {(dayEntries[0].genres || [dayEntries[0].genre || 'General']).slice(0, 2).map(g => (
+                                            {/* Show up to 4 genres */}
+                                            {(dayEntries[0].genres || [dayEntries[0].genre || 'General']).slice(0, 4).map(g => (
                                                 <span key={g} className="text-[10px] bg-blue-500/30 px-1.5 py-0.5 rounded text-blue-200 border border-blue-500/20 truncate max-w-[80px]">
                                                     {g}
                                                 </span>
                                             ))}
-                                            {(dayEntries[0].genres?.length > 2) && <span className="text-[9px] text-white/50">+{dayEntries[0].genres.length - 2}</span>}
+                                            {(dayEntries[0].genres?.length > 4) && <span className="text-[9px] text-white/50">+{dayEntries[0].genres.length - 4}</span>}
                                         </div>
                                         <div className="flex items-center gap-1 mt-1">
                                             <div className="flex">
@@ -320,6 +363,26 @@ export default function Calendar() {
                                                     <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
                                                 ))}
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Single Entry Hover Popover (New Request) */}
+                                    <div className="absolute left-full top-0 ml-2 w-64 bg-[#1a1a1a] border border-white/20 rounded-xl p-3 shadow-2xl z-[100] invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all flex flex-col pointer-events-none">
+                                        <h4 className="text-white font-bold text-sm mb-2 border-b border-white/10 pb-1">{dayEntries[0].title}</h4>
+                                        <div className="flex flex-wrap gap-1 mb-2">
+                                            {(dayEntries[0].genres || [dayEntries[0].genre || 'General']).map(g => (
+                                                <span key={g} className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 rounded border border-blue-500/10">
+                                                    {g}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ${dayEntries[0].status === 'watched' ? 'text-green-400 bg-green-500/10' : 'text-yellow-400 bg-yellow-500/10'}`}>
+                                                {dayEntries[0].status}
+                                            </span>
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                                {dayEntries[0].category || 'Movies'}
+                                            </span>
                                         </div>
                                     </div>
 
@@ -386,6 +449,7 @@ export default function Calendar() {
                         )}
                     </div>
                     <div className="flex items-center gap-4">
+
                         <button
                             onClick={() => changeMonth('prev')}
                             disabled={currentMonthIndex === 0}
@@ -421,6 +485,7 @@ export default function Calendar() {
                     <div className="grid grid-cols-7 gap-4">
                         {renderCalendarGrid()}
                     </div>
+
                 </div>
             </main>
 
@@ -542,15 +607,16 @@ export default function Calendar() {
                                     <div>
                                         <label className="block text-xs uppercase text-white/50 mb-2">Genres</label>
                                         <div className="flex flex-wrap gap-2">
-                                            {GENRES.map(g => {
-                                                const isSelected = formData.genres.includes(g)
+                                            {allUniqueGenres.map(g => {
+                                                const isSelected = formData.genres.some(fg => fg.toLowerCase() === g.toLowerCase())
                                                 return (
                                                     <button
                                                         key={g}
                                                         onClick={() => {
                                                             setFormData(annot => {
-                                                                const newGenres = isSelected
-                                                                    ? annot.genres.filter(bg => bg !== g)
+                                                                const currentlySelected = annot.genres.some(fg => fg.toLowerCase() === g.toLowerCase())
+                                                                const newGenres = currentlySelected
+                                                                    ? annot.genres.filter(bg => bg.toLowerCase() !== g.toLowerCase())
                                                                     : [...annot.genres, g]
                                                                 return { ...annot, genres: newGenres }
                                                             })
