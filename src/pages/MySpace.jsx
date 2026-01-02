@@ -104,7 +104,8 @@ export default function MySpace() {
 
         try {
             // Fetch from backend scraper
-            const res = await fetch(`http://localhost:5000/api/trailer?q=${encodeURIComponent(entry.title)}`)
+            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+            const res = await fetch(`${API_URL}/api/trailer?q=${encodeURIComponent(entry.title)}`)
             const data = await res.json()
             if (data.videoId) {
                 setTrailerVideoId(data.videoId)
