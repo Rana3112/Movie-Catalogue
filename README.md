@@ -97,4 +97,6 @@ The core idea was to make the *act of discovery* feel like part of the movie exp
 This project is optimized for deployment on **Vercel** (Frontend) and **Render/Vercel** (Backend).
 
 ---
+[live website](https://movie-catalogue-taupe.vercel.app/)
+
 *Built with ❤️ by [Your Name] & Antigravity (Google DeepMind).*
