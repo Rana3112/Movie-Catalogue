@@ -13,9 +13,31 @@ const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const GENRES = ["Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery", "Romance", "Sci-Fi", "TV Movie", "Thriller", "War", "Western", "General"]
 
 export default function Calendar() {
-    const { selectedYear, selectedCategory, selectedGenres, calendarEntries, addEntry, removeEntry, updateEntry, setYear, fetchEntries, customGenres, fetchCustomGenres } = useStore()
+    // Helper for Score Colors
+    const getScoreColor = (score) => {
+        if (!score) return ''
+        const val = String(score).replace(/[^0-9.]/g, '')
+        const num = Number(val)
+        // Green if > 50, Red if <= 50
+        return num > 50
+            ? 'text-green-400 bg-green-500/10 border-green-500/20'
+            : 'text-red-400 bg-red-500/10 border-red-500/20'
+    }
+
+    const { selectedYear, selectedCategory, selectedGenres, calendarEntries, addEntry, removeEntry, updateEntry, setYear, fetchEntries, customGenres, fetchCustomGenres, selectedMonth, setSelectedMonth } = useStore()
     const isReadOnly = !selectedCategory // Read-Only if viewing "My Calendar (All)"
-    const [currentMonthIndex, setCurrentMonthIndex] = useState(0)
+    // Initialize with selectedMonth if valid (0-11), else 0
+    const [currentMonthIndex, setCurrentMonthIndex] = useState((selectedMonth !== null && selectedMonth >= 0 && selectedMonth <= 11) ? selectedMonth : 0)
+
+    // Effect to sync store -> local state (for navigation from MySpace)
+    useEffect(() => {
+        if (selectedMonth !== null && selectedMonth >= 0 && selectedMonth <= 11) {
+            setCurrentMonthIndex(selectedMonth)
+            // Optional: reset target month after navigating so user can browse freely?
+            // Actually, if we keep it, it stays on that month on refresh.
+            // Let's keep it but update it when user changes month manually? No, just sync one way.
+        }
+    }, [selectedMonth])
 
     useEffect(() => {
         fetchEntries()
@@ -46,6 +68,8 @@ export default function Calendar() {
         title: '',
         status: 'watched', // watched, upcoming
         rating: 0,
+        rtCriticScore: '',
+        rtAudienceScore: '',
         poster: null, // Base64 string
         genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General'] // Default to selected genres or General
     })
@@ -68,6 +92,8 @@ export default function Calendar() {
             title: '',
             status: 'watched',
             rating: 0,
+            rtCriticScore: '',
+            rtAudienceScore: '',
             poster: null,
             genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
         })
@@ -80,6 +106,8 @@ export default function Calendar() {
             title: entry.title,
             status: entry.status,
             rating: entry.rating || 0,
+            rtCriticScore: entry.rtCriticScore || entry.rottenTomatoesScore || '',
+            rtAudienceScore: entry.rtAudienceScore || '',
             poster: entry.poster,
             genres: entry.genres && entry.genres.length > 0 ? entry.genres : [entry.genre || 'General']
         })
@@ -130,6 +158,48 @@ export default function Calendar() {
                             }
                         }
                     }
+
+                    // --- NEW: Fetch Scores from OMDB ---
+                    const omdbKey = import.meta.env.VITE_OMDB_API_KEY;
+                    if (omdbKey && imdbId) {
+                        try {
+                            const omdbRes = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${omdbKey}`);
+                            const omdbData = await omdbRes.json();
+                            if (omdbData.Ratings) {
+                                const rt = omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes");
+                                if (rt) {
+                                    // Set Critic Score (OMDB usually only has Critic)
+                                    setFormData(prev => ({ ...prev, rtCriticScore: rt.Value.replace('%', '') }));
+                                }
+
+                                // --- NEW: Scrape Audience Score from Rotten Tomatoes ---
+                                // Guess URL slug from title: "X-Men: Apocalypse" -> "x_men_apocalypse"
+                                if (omdbData.Title) {
+                                    try {
+                                        const slug = omdbData.Title.toLowerCase()
+                                            .replace(/[^a-z0-9\s-]/g, '') // remove special chars
+                                            .replace(/\s+/g, '_');         // spaces to underscores
+
+                                        const rtUrl = `https://www.rottentomatoes.com/m/${slug}`;
+                                        const rtProxy = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rtUrl)}`;
+
+                                        // Async fetch without blocking the main thread too much
+                                        fetch(rtProxy).then(res => res.text()).then(html => {
+                                            const audMatch = html.match(/audience-score="(\d+)"/);
+                                            if (audMatch && audMatch[1]) {
+                                                setFormData(prev => ({ ...prev, rtAudienceScore: audMatch[1] }));
+                                            }
+                                        }).catch(e => console.log("RT Scrape background check failed", e));
+                                    } catch (e) {
+                                        console.log("RT URL generation failed", e);
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.warn("OMDB Fetch failed", err);
+                        }
+                    }
+
                 } catch (e) {
                     console.warn("API fetch failed, falling back to scraping", e)
                 }
@@ -189,11 +259,15 @@ export default function Calendar() {
     const changeMonth = (direction) => {
         if (direction === 'prev') {
             if (currentMonthIndex > 0) {
-                setCurrentMonthIndex(currentMonthIndex - 1)
+                const newIndex = currentMonthIndex - 1
+                setCurrentMonthIndex(newIndex)
+                setSelectedMonth(newIndex) // Sync back to store to keep it persistent
             }
         } else {
             if (currentMonthIndex < 11) {
-                setCurrentMonthIndex(currentMonthIndex + 1)
+                const newIndex = currentMonthIndex + 1
+                setCurrentMonthIndex(newIndex)
+                setSelectedMonth(newIndex)
             }
         }
     }
@@ -312,6 +386,19 @@ export default function Calendar() {
                                                                     <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
                                                                 ))}
                                                             </div>
+                                                            {/* RT Score Badges */}
+                                                            <div className="flex gap-1 mt-1">
+                                                                {entry.rtCriticScore && (
+                                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold border ${getScoreColor(entry.rtCriticScore)}`}>
+                                                                        🍅 {entry.rtCriticScore}%
+                                                                    </span>
+                                                                )}
+                                                                {entry.rtAudienceScore && (
+                                                                    <span className="text-[8px] px-1.5 py-0.5 rounded font-bold bg-orange-600/20 text-orange-400 border border-orange-600/30">
+                                                                        🍿 {entry.rtAudienceScore}%
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <div className="flex flex-wrap gap-1 mt-1">
                                                             {(entry.genres || [entry.genre]).map(g => (
@@ -363,6 +450,11 @@ export default function Calendar() {
                                                     <Star key={i} size={8} className="fill-yellow-400 text-yellow-400" />
                                                 ))}
                                             </div>
+                                            {dayEntries[0].rtCriticScore && (
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ml-auto ${getScoreColor(dayEntries[0].rtCriticScore)}`}>
+                                                    🍅 {dayEntries[0].rtCriticScore}%
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -383,6 +475,16 @@ export default function Calendar() {
                                             <span className="text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20">
                                                 {dayEntries[0].category || 'Movies'}
                                             </span>
+                                            {dayEntries[0].rtCriticScore && (
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${getScoreColor(dayEntries[0].rtCriticScore)}`}>
+                                                    🍅 {dayEntries[0].rtCriticScore}%
+                                                </span>
+                                            )}
+                                            {dayEntries[0].rtAudienceScore && (
+                                                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-orange-600/20 text-orange-400 border border-orange-600/30">
+                                                    🍿 {dayEntries[0].rtAudienceScore}%
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -516,19 +618,25 @@ export default function Calendar() {
                                         return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
                                     })
                                     .map((entry, i) => (
-                                        <div key={i} className={`flex gap-4 p-4 rounded-xl border relative group ${editingId === entry._id ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/10'}`}>
-                                            {/* Edit Button */}
+                                        <div
+                                            key={entry._id}
+                                            className="bg-white/5 p-4 rounded-xl flex gap-4 hover:bg-white/10 transition-colors cursor-pointer group relative"
+                                            onClick={() => handleEditClick(entry)}
+                                        >
+                                            {/* (Removed top-right badge as per request) */}
+
+                                            {/* Edit Button (Restored) */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation()
                                                     handleEditClick(entry)
                                                 }}
-                                                className="absolute top-2 right-10 p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute top-2 right-10 p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30"
                                             >
                                                 <Upload size={14} className="rotate-90" />
                                             </button>
 
-                                            {/* Delete Button */}
+                                            {/* Delete Button (Restored) */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation()
@@ -536,7 +644,7 @@ export default function Calendar() {
                                                         removeEntry(entry._id, selectedDate.dateStr)
                                                     }
                                                 }}
-                                                className="absolute top-2 right-2 p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute top-2 right-2 p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30"
                                             >
                                                 <Trash size={14} />
                                             </button>
@@ -565,6 +673,19 @@ export default function Calendar() {
                                                         ))}
                                                     </div>
                                                 </div>
+                                                {/* Inline Score Display (Visible always if space permits, or just rely on hover?) */}
+                                                <div className="flex mt-2 gap-3">
+                                                    {(entry.rtCriticScore || entry.rottenTomatoesScore) && (
+                                                        <span className={`text-[10px] flex items-center gap-1 font-bold px-1.5 py-0.5 rounded border ${getScoreColor(entry.rtCriticScore || entry.rottenTomatoesScore)}`}>
+                                                            🍅 {entry.rtCriticScore || entry.rottenTomatoesScore}%
+                                                        </span>
+                                                    )}
+                                                    {entry.rtAudienceScore && (
+                                                        <span className="text-[10px] flex items-center gap-1 text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20 font-bold">
+                                                            🍿 {entry.rtAudienceScore}%
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -581,6 +702,8 @@ export default function Calendar() {
                                                     title: '',
                                                     status: 'watched',
                                                     rating: 0,
+                                                    rtCriticScore: '',
+                                                    rtAudienceScore: '',
                                                     poster: null,
                                                     genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
                                                 })
@@ -596,7 +719,7 @@ export default function Calendar() {
                                     <div>
                                         <label className="block text-xs uppercase text-white/50 mb-1">Title</label>
                                         <input
-                                            className="w-full bg-black/50 border border-white/20 rounded-xl p-3 focus:outline-none focus:border-blue-500"
+                                            className="w-full bg-black/50 border border-white/20 rounded-xl p-3 focus:outline-none focus:border-blue-500 text-white"
                                             value={formData.title}
                                             onChange={e => setFormData({ ...formData, title: e.target.value })}
                                             placeholder="Movie or Series Name"
@@ -642,27 +765,50 @@ export default function Calendar() {
                                                 onChange={e => setFormData({ ...formData, status: e.target.value })}
                                             >
                                                 <option value="watched">Watched</option>
-                                                <option value="upcoming">Upcoming</option>
                                                 <option value="watching">Watching</option>
+                                                <option value="upcoming">Upcoming</option>
                                             </select>
                                         </div>
 
                                         <div>
                                             <label className="block text-xs uppercase text-white/50 mb-1">Rating</label>
-                                            <div className="flex gap-1 mt-2">
-                                                {[1, 2, 3, 4, 5].map(r => (
+                                            <div className="flex items-center gap-1 bg-black/50 border border-white/20 rounded-xl p-3">
+                                                {[1, 2, 3, 4, 5].map((_, i) => (
                                                     <button
-                                                        key={r}
-                                                        onClick={() => setFormData({ ...formData, rating: r })}
-                                                        className="group"
+                                                        key={i}
+                                                        onClick={() => setFormData({ ...formData, rating: i + 1 })}
+                                                        className="focus:outline-none"
                                                     >
                                                         <Star
-                                                            size={24}
-                                                            className={`${r <= formData.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-600 group-hover:text-yellow-400"}`}
+                                                            size={16}
+                                                            fill={i < formData.rating ? "currentColor" : "none"}
+                                                            className={i < formData.rating ? "text-yellow-400" : "text-gray-600 hover:text-gray-400"}
                                                         />
                                                     </button>
                                                 ))}
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Rotten Tomatoes Scores (Auto-Fetched) */}
+                                    <div>
+                                        <label className="block text-xs uppercase text-white/50 mb-2">Scores (Auto-Fetched)</label>
+                                        <div className="flex gap-4 p-3 bg-black/50 border border-white/20 rounded-xl min-h-[50px] items-center">
+                                            {formData.rtCriticScore ? (
+                                                <span className={`flex items-center gap-2 font-bold px-3 py-1 rounded border ${getScoreColor(formData.rtCriticScore)}`}>
+                                                    🍅 {formData.rtCriticScore}% (Critic)
+                                                </span>
+                                            ) : (
+                                                <span className="text-white/30 text-xs italic">No Critic Score</span>
+                                            )}
+
+                                            {formData.rtAudienceScore ? (
+                                                <span className="flex items-center gap-2 text-orange-400 font-bold bg-orange-500/10 px-3 py-1 rounded border border-orange-500/20">
+                                                    🍿 {formData.rtAudienceScore}% (Audience)
+                                                </span>
+                                            ) : (
+                                                <span className="text-white/30 text-xs italic">No Audience Score</span>
+                                            )}
                                         </div>
                                     </div>
 

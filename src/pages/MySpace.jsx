@@ -1,12 +1,22 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search, Filter, X, Check, Clock, Eye, Trash2 } from 'lucide-react'
+import { ArrowLeft, Search, Filter, X, Check, Clock, Eye, Trash2, CalendarDays } from 'lucide-react'
 import LightPillar from '../components/LightPillar'
 import UserBadge from '../components/ui/UserBadge'
 
 export default function MySpace() {
-    const { calendarEntries, user, removeEntry } = useStore()
+    // Helper
+    const getScoreColor = (score) => {
+        if (!score) return ''
+        const val = String(score).replace(/[^0-9.]/g, '')
+        const num = Number(val)
+        return num > 50
+            ? 'text-green-400 bg-green-500/10 border-green-500/20'
+            : 'text-red-400 bg-red-500/10 border-red-500/20'
+    }
+
+    const { calendarEntries, user, removeEntry, setYear, setCategory, setSelectedGenres: setGlobalSelectedGenres, setSelectedMonth } = useStore()
     const navigate = useNavigate()
 
     // -- State --
@@ -64,7 +74,7 @@ export default function MySpace() {
             if (stat !== filterStat) return false
         }
 
-        // 4. Genre Filter (Contains ANY selected)
+        // 4. Genre Filter
         if (selectedGenres.length > 0) {
             const entryGenres = entry.genres || [entry.genre] || []
             // Check if entry has AT LEAST ONE of the selected genres
@@ -80,6 +90,56 @@ export default function MySpace() {
         setSelectedGenres(prev =>
             prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
         )
+    }
+
+    // -- Trailer Logic --
+    const [selectedTrailerEntry, setSelectedTrailerEntry] = useState(null)
+    const [trailerVideoId, setTrailerVideoId] = useState(null)
+    const [isLoadingTrailer, setIsLoadingTrailer] = useState(false)
+
+    const handleEntryClick = async (entry) => {
+        setSelectedTrailerEntry(entry)
+        setTrailerVideoId(null)
+        setIsLoadingTrailer(true)
+
+        try {
+            // Fetch from backend scraper
+            const res = await fetch(`http://localhost:5000/api/trailer?q=${encodeURIComponent(entry.title)}`)
+            const data = await res.json()
+            if (data.videoId) {
+                setTrailerVideoId(data.videoId)
+            } else {
+                // Fallback: If scraper fails, maybe we let them search manually
+                console.warn("Trailer not found")
+            }
+        } catch (error) {
+            console.error("Failed to fetch trailer ID", error)
+        } finally {
+            setIsLoadingTrailer(false)
+        }
+    }
+
+    const closeTrailerModal = () => {
+        setSelectedTrailerEntry(null)
+        setTrailerVideoId(null)
+    }
+
+    const handleNavigateToCalendar = (e, entry) => {
+        e.stopPropagation()
+        setYear(entry.year)
+        setCategory(entry.category || 'Movies')
+        // Ensure genres is an array
+        const genres = entry.genres && entry.genres.length > 0 ? entry.genres : [entry.genre || 'General']
+        setGlobalSelectedGenres(genres)
+
+        if (entry.date) {
+            const parts = entry.date.split('-')
+            if (parts.length === 3) {
+                const monthIndex = parseInt(parts[1]) - 1 // 06 -> 5
+                setSelectedMonth(monthIndex)
+            }
+        }
+        navigate('/calendar')
     }
 
     return (
@@ -220,7 +280,8 @@ export default function MySpace() {
                             {filteredEntries.map((entry) => (
                                 <div
                                     key={entry._id + entry.date}
-                                    className="group relative aspect-[2/3] bg-white/5 rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10"
+                                    onClick={() => handleEntryClick(entry)}
+                                    className="group relative aspect-[2/3] bg-white/5 rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10 cursor-pointer"
                                 >
                                     {/* Poster */}
                                     {entry.poster ? (
@@ -236,6 +297,13 @@ export default function MySpace() {
 
                                     {/* Overlay Gradient */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+
+                                    {/* Play Icon Overlay (Centered & Transparent) - Moved here for correct stacking */}
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30 pointer-events-none">
+                                        <div className="p-4 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 shadow-lg transform transition-transform group-hover:scale-110">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/90 ml-1"><polygon points="6 3 20 12 6 21 6 3" /></svg>
+                                        </div>
+                                    </div>
 
                                     {/* Status Badge */}
                                     <div className="absolute top-3 right-3 flex items-center gap-2">
@@ -253,6 +321,14 @@ export default function MySpace() {
                                         >
                                             <Trash2 size={12} />
                                         </button>
+
+                                        <button
+                                            onClick={(e) => handleNavigateToCalendar(e, entry)}
+                                            className="bg-purple-500/20 text-purple-300 border border-purple-500/30 p-1.5 rounded-full hover:bg-purple-500/40 transition-colors z-20"
+                                            title="View in Calendar"
+                                        >
+                                            <CalendarDays size={12} />
+                                        </button>
                                     </div>
 
                                     {/* Content Info */}
@@ -266,9 +342,22 @@ export default function MySpace() {
                                                     ★ {entry.rating}
                                                 </span>
                                             )}
+                                            {entry.rtCriticScore && (
+                                                <span className={`text-[10px] flex items-center gap-1 ml-2 font-bold px-1.5 py-0.5 rounded border ${getScoreColor(entry.rtCriticScore)}`}>
+                                                    🍅 {entry.rtCriticScore}%
+                                                </span>
+                                            )}
+                                            {entry.rtAudienceScore && (
+                                                <span className="text-[10px] text-orange-400 flex items-center gap-1 ml-2 font-bold bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20">
+                                                    🍿 {entry.rtAudienceScore}%
+                                                </span>
+                                            )}
                                         </div>
 
                                         <h3 className="text-white font-bold leading-tight mb-2 line-clamp-2 drop-shadow-md">{entry.title}</h3>
+
+                                        {/* Play Icon Overlay (Centered & Transparent) */}
+
 
                                         <div className="flex flex-wrap gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity delay-75">
                                             {(entry.genres || []).slice(0, 3).map(g => (
@@ -284,6 +373,90 @@ export default function MySpace() {
                     )}
                 </div>
             </main>
+
+            {/* Trailer Modal */}
+            {selectedTrailerEntry && (
+                <div
+                    className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
+                    onClick={closeTrailerModal}
+                >
+                    <div
+                        className="bg-[#1a1a1a] border border-white/10 w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl relative flex flex-col"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
+                            <div>
+                                <h3 className="text-xl font-bold text-white max-w-md truncate">{selectedTrailerEntry.title}</h3>
+                                <p className="text-xs text-white/50 uppercase tracking-widest mt-1">
+                                    {isLoadingTrailer ? 'Fetching Trailer...' : 'Official Trailer'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={closeTrailerModal}
+                                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                            >
+                                <X size={24} className="text-white/70" />
+                            </button>
+                        </div>
+
+                        {/* Video Embed */}
+                        <div className="relative aspect-video w-full bg-black group flex items-center justify-center">
+                            {isLoadingTrailer ? (
+                                <div className="flex flex-col items-center">
+                                    <div className="w-10 h-10 border-4 border-white/20 border-t-blue-500 rounded-full animate-spin mb-4" />
+                                    <span className="text-sm text-white/50">Searching YouTube...</span>
+                                </div>
+                            ) : trailerVideoId ? (
+                                <iframe
+                                    className="absolute inset-0 w-full h-full"
+                                    src={`https://www.youtube.com/embed/${trailerVideoId}?autoplay=1&origin=${window.location.origin}`}
+                                    title="YouTube video player"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                ></iframe>
+                            ) : (
+                                <div className="text-center p-8">
+                                    <div className="text-4xl mb-4">😢</div>
+                                    <h4 className="text-lg font-bold text-white mb-2">Trailer Unavailable</h4>
+                                    <p className="text-white/50 text-sm mb-6">Could not automatically find an embeddable trailer.</p>
+                                    <a
+                                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedTrailerEntry.title + " official trailer")}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-full shadow-lg transition-transform hover:scale-105 inline-flex items-center gap-2"
+                                    >
+                                        Search on YouTube ↗
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Info */}
+                        <div className="p-4 bg-black/40 flex items-center justify-between border-t border-white/10">
+                            <div className="flex gap-4 text-sm text-white/60">
+                                <span>{selectedTrailerEntry.year}</span>
+                                <span>{selectedTrailerEntry.category || 'Movie'}</span>
+                            </div>
+                            {(selectedTrailerEntry.rtCriticScore || selectedTrailerEntry.rtAudienceScore) && (
+                                <div className="flex gap-3">
+                                    {selectedTrailerEntry.rtCriticScore && (
+                                        <span className={`text-xs px-2 py-0.5 rounded font-bold border ${getScoreColor(selectedTrailerEntry.rtCriticScore)}`}>
+                                            🍅 {selectedTrailerEntry.rtCriticScore}%
+                                        </span>
+                                    )}
+                                    {selectedTrailerEntry.rtAudienceScore && (
+                                        <span className="text-xs text-orange-400 font-bold px-2 py-0.5 rounded border border-orange-500/20 bg-orange-500/10">
+                                            🍿 {selectedTrailerEntry.rtAudienceScore}%
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

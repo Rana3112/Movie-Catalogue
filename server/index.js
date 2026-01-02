@@ -255,18 +255,51 @@ app.delete('/api/genres/:id', async (req, res) => {
     try {
         const { id } = req.params;
         await CustomGenre.findOneAndDelete({ id }); // Delete by ID string (slug)
-        // OR findOneAndDelete({ _id: id }) if passing MongoID. 
-        // Frontend passes "slug" ID usually for genres. I will support finding by 'id' field.
         res.json({ message: 'Genre deleted' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
+// Helper: Scrape YouTube Trailer
+app.get('/api/trailer', async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) return res.status(400).json({ error: 'Missing query' });
+
+        console.log(`[TRAILER] Searching for: ${q}`);
+
+        // Use native fetch (Node 18+)
+        const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(q + ' official trailer')}`;
+
+        const response = await fetch(searchUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+
+        const html = await response.text();
+
+        // Regex to find the first "videoId":"..."
+        const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+
+        if (match && match[1]) {
+            console.log(`[TRAILER] Found ID: ${match[1]}`);
+            return res.json({ videoId: match[1] });
+        } else {
+            console.log(`[TRAILER] No video found`);
+            return res.status(404).json({ error: 'Video not found' });
+        }
+    } catch (err) {
+        console.error("[TRAILER] Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Add new entry
 app.post('/api/entries', async (req, res) => {
     try {
-        const { date, title, status, rating, poster, genre, genres, category, userEmail } = req.body;
+        const { date, title, status, rating, poster, genre, genres, category, userEmail, rtCriticScore, rtAudienceScore, trailer } = req.body;
 
         // Ensure genres is an array
         const finalGenres = genres && Array.isArray(genres) ? genres : [genre || 'General'];
@@ -280,7 +313,10 @@ app.post('/api/entries', async (req, res) => {
             genre: finalGenres[0], // Keep sync
             genres: finalGenres,
             category,
-            userEmail // Save the email
+            userEmail, // Save the email
+            rtCriticScore,
+            rtAudienceScore,
+            trailer
         });
 
         const savedEntry = await newEntry.save();

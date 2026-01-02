@@ -39,12 +39,28 @@ const EntrySchema = new mongoose.Schema({
         max: 5,
         default: 0
     },
+    rtCriticScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: null
+    },
+    rtAudienceScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: null
+    },
     poster: {
         type: String, // URL or Base64
         default: null
     },
     userEmail: {
         type: String,
+        default: null
+    },
+    trailer: {
+        type: String, // URL
         default: null
     },
     createdAt: {

@@ -5,6 +5,7 @@ export const useStore = create(persist((set, get) => ({
     selectedYear: 2025,
     selectedCategory: null,
     selectedGenres: [],
+    selectedMonth: null, // Index 0-11
     calendarEntries: {}, // key: date string iso, value: array of entries
 
     // Auth State
@@ -24,6 +25,8 @@ export const useStore = create(persist((set, get) => ({
                 : [...state.selectedGenres, genre]
         }
     }),
+    setSelectedGenres: (genres) => set({ selectedGenres: genres }),
+    setSelectedMonth: (month) => set({ selectedMonth: month }),
 
     // Fetch entries from Backend
     fetchEntries: async () => {
@@ -195,6 +198,7 @@ export const useStore = create(persist((set, get) => ({
     partialize: (state) => ({
         selectedGenres: state.selectedGenres,
         selectedCategory: state.selectedCategory,
+        selectedMonth: state.selectedMonth,
         user: state.user,
         token: state.token
         // Don't persist customGenres in local storage, fetch them fresh on login/mount
