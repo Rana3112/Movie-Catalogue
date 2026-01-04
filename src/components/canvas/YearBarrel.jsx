@@ -81,6 +81,8 @@ function YearBranch({ year, xPos, isUp, onClick }) {
     const textRef = useRef()
     const borderRef = useRef()
     const [hovered, setHovered] = useState(false)
+    const { isGuest } = useStore()
+    const navigate = useNavigate()
 
     // Unique uniforms per instance
     const uniforms = useMemo(() => ({

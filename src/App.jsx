@@ -8,8 +8,20 @@ import Signup from './pages/Signup'
 import MySpace from './pages/MySpace'
 import { useStore } from './store/useStore'
 
+import Landing from './pages/Landing'
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
+  const { user, isGuest } = useStore()
+  // Allow access if logged in OR guest
+  if (!user && !isGuest) {
+    return <Navigate to="/" replace />
+  }
+  return children
+}
+
+// Strict Route (No Guests)
+const StrictRoute = ({ children }) => {
   const { user } = useStore()
   if (!user) {
     return <Navigate to="/login" replace />
@@ -18,14 +30,21 @@ const ProtectedRoute = ({ children }) => {
 }
 
 function App() {
+  const { user, isGuest } = useStore()
+
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Landing Page (Root) */}
+        <Route path="/" element={
+          (user || isGuest) ? <Navigate to="/home" replace /> : <Landing />
+        } />
+
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Protected Routes */}
-        <Route path="/" element={
+        {/* Protected Routes (Guests Allowed) */}
+        <Route path="/home" element={
           <ProtectedRoute>
             <Home />
           </ProtectedRoute>
@@ -45,10 +64,12 @@ function App() {
             <Calendar />
           </ProtectedRoute>
         } />
+
+        {/* Strict Routes (Auhenticated Only) */}
         <Route path="/myspace" element={
-          <ProtectedRoute>
+          <StrictRoute>
             <MySpace />
-          </ProtectedRoute>
+          </StrictRoute>
         } />
       </Routes>
     </BrowserRouter>

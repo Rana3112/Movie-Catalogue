@@ -24,7 +24,7 @@ export default function Calendar() {
             : 'text-red-400 bg-red-500/10 border-red-500/20'
     }
 
-    const { selectedYear, selectedCategory, selectedGenres, calendarEntries, addEntry, removeEntry, updateEntry, setYear, fetchEntries, customGenres, fetchCustomGenres, selectedMonth, setSelectedMonth } = useStore()
+    const { selectedYear, selectedCategory, selectedGenres, calendarEntries, addEntry, removeEntry, updateEntry, setYear, fetchEntries, customGenres, fetchCustomGenres, selectedMonth, setSelectedMonth, isGuest } = useStore()
     const isReadOnly = !selectedCategory // Read-Only if viewing "My Calendar (All)"
     // Initialize with selectedMonth if valid (0-11), else 0
     const [currentMonthIndex, setCurrentMonthIndex] = useState((selectedMonth !== null && selectedMonth >= 0 && selectedMonth <= 11) ? selectedMonth : 0)
@@ -84,6 +84,12 @@ export default function Calendar() {
     // ...
 
     const handleDateClick = (day) => {
+        if (isGuest) {
+            if (confirm("Sign up to build your own catalogue!")) {
+                navigate('/signup')
+            }
+            return
+        }
         const dateStr = `${selectedYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
         setSelectedDate({ monthIndex: currentMonthIndex, day, dateStr })
         setShowModal(true)
@@ -101,6 +107,10 @@ export default function Calendar() {
     }
 
     const handleEditClick = (entry) => {
+        if (isGuest) {
+            alert("Read Only Mode: Sign up to edit entries.")
+            return
+        }
         setEditingId(entry._id)
         setFormData({
             title: entry.title,

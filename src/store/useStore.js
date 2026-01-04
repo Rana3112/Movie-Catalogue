@@ -8,12 +8,29 @@ export const useStore = create(persist((set, get) => ({
     selectedMonth: null, // Index 0-11
     calendarEntries: {}, // key: date string iso, value: array of entries
 
-    // Auth State
-    user: null,
-    token: null,
+    user: JSON.parse(localStorage.getItem('user')) || null,
+    token: localStorage.getItem('token') || null,
+    isGuest: false, // New Guest State
 
-    setUser: (user, token) => set({ user, token }),
-    logout: () => set({ user: null, token: null }),
+    setUser: (user, token) => {
+        localStorage.setItem('user', JSON.stringify(user))
+        localStorage.setItem('token', token)
+        set({ user, token, isGuest: false })
+    },
+
+    loginAsGuest: () => {
+        set({
+            user: { name: 'Guest Explorer', _id: 'guest' },
+            token: null,
+            isGuest: true
+        })
+    },
+
+    logout: () => {
+        localStorage.removeItem('user')
+        localStorage.removeItem('token')
+        set({ user: null, token: null, isGuest: false })
+    },
 
     setYear: (year) => set({ selectedYear: year }),
     setCategory: (category) => set({ selectedCategory: category }),
