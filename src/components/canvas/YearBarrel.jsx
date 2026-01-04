@@ -77,9 +77,10 @@ const fragmentShader = `
   }
 `
 
-function YearBranch({ year, xPos, isUp, onClick }) {
+function YearBranch({ year, xPos, isUp, onClick, scrollRef }) {
     const textRef = useRef()
     const borderRef = useRef()
+    const groupRef = useRef()
     const [hovered, setHovered] = useState(false)
     const { isGuest } = useStore()
     const navigate = useNavigate()
@@ -104,6 +105,19 @@ function YearBranch({ year, xPos, isUp, onClick }) {
     ], [xPos, stringEndY])
 
     useFrame((state) => {
+        // CULLING LOGIC
+        // World X = local xPos + parent scroll position
+        const worldX = xPos + (scrollRef?.current || 0)
+
+        // Viewport cull range (approx +/- 22 units covers the screen with margin)
+        const isVisible = Math.abs(worldX) < 22
+
+        if (groupRef.current) {
+            groupRef.current.visible = isVisible
+        }
+
+        if (!isVisible) return // SKIP UPDATES for off-screen items
+
         const time = state.clock.elapsedTime
 
         // Update Shader logic
@@ -121,7 +135,7 @@ function YearBranch({ year, xPos, isUp, onClick }) {
     })
 
     return (
-        <group>
+        <group ref={groupRef}>
             {/* Thread/Line */}
             <Line
                 points={points}
@@ -173,6 +187,7 @@ function Timeline() {
     const { setYear, selectedYear } = useStore()
     const navigate = useNavigate()
     const groupRef = useRef()
+    const scrollRef = useRef(0) // Tracks the X scroll position for children to use
 
     // Physics State
     const state = useRef({ x: 0, velocity: 0, isDragging: false })
@@ -181,6 +196,7 @@ function Timeline() {
     useMemo(() => {
         const offset = (selectedYear - YEAR_START) * X_SPACING
         state.current.x = -offset
+        scrollRef.current = -offset
     }, [])
 
     const bind = useGesture({
@@ -208,6 +224,9 @@ function Timeline() {
         if (s.x < minX) { s.x = minX; s.velocity = 0; }
 
         if (groupRef.current) groupRef.current.position.x = s.x
+
+        // Update the shared ref for children (Culling)
+        scrollRef.current = s.x
     })
 
     const years = useMemo(() => {
@@ -236,6 +255,7 @@ function Timeline() {
                         year={year}
                         xPos={i * X_SPACING}
                         isUp={i % 2 === 0}
+                        scrollRef={scrollRef}
                         onClick={(y) => {
                             setYear(y)
                             navigate('/category')
