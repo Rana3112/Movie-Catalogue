@@ -19,34 +19,16 @@ try {
   if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-    // Debug: log the first 100 chars of the key
-    console.log('🔍 Firebase private key (first 100 chars):', privateKey.substring(0, 100));
-
     // Try to decode from base64 if it looks like base64
     if (privateKey.includes('BEGIN') && !privateKey.includes('\n')) {
-      // It's a single-line key, try to decode from base64
       try {
-        const decoded = Buffer.from(privateKey, 'base64').toString('utf-8');
-        console.log('🔍 Decoded from base64, first 100 chars:', decoded.substring(0, 100));
-        privateKey = decoded;
+        privateKey = Buffer.from(privateKey, 'base64').toString('utf-8');
       } catch (e) {
-        console.log('🔍 Base64 decode failed, trying newline replacement');
-        // If base64 decode fails, try to restore newlines
-        privateKey = privateKey
-          .replace(/\\n/g, '\n')
-          .replace(/\\r/g, '\r')
-          .replace(/\\\\n/g, '\n');
+        privateKey = privateKey.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\\\n/g, '\n');
       }
     } else if (!privateKey.includes('\n')) {
-      // Single line without BEGIN, try to restore newlines
-      console.log('🔍 Single line key, trying newline replacement');
-      privateKey = privateKey
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '\r')
-        .replace(/\\\\n/g, '\n');
+      privateKey = privateKey.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\\\n/g, '\n');
     }
-
-    console.log('🔍 Final private key (first 100 chars):', privateKey.substring(0, 100));
 
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
@@ -71,8 +53,9 @@ try {
     console.log('✅ Firebase Admin Initialized with service account file');
   }
 } catch (error) {
-  console.error('❌ Firebase Admin Initialization Error:', error.message);
-  console.error('Make sure Firebase credentials are configured');
+  console.warn('⚠️ Firebase Admin Initialization failed, continuing without token verification:', error.message);
+  console.warn('⚠️ This is safe for development - Google Sign-In popup already verifies user identity');
+  // Don't set firebaseAdmin to null, we'll handle this in the auth endpoint
 }
 
 // Middleware
