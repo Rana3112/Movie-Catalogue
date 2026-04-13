@@ -17,11 +17,27 @@ let firebaseAdmin = null;
 try {
   // Try to use service account from environment variables first
   if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-    // Replace escaped newlines with actual newlines
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\\\n/g, '\n');
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+    // Try to decode from base64 if it looks like base64
+    if (privateKey.includes('BEGIN') && !privateKey.includes('\n')) {
+      // It's a single-line key, try to decode from base64
+      try {
+        privateKey = Buffer.from(privateKey, 'base64').toString('utf-8');
+      } catch (e) {
+        // If base64 decode fails, try to restore newlines
+        privateKey = privateKey
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\\\n/g, '\n');
+      }
+    } else if (!privateKey.includes('\n')) {
+      // Single line without BEGIN, try to restore newlines
+      privateKey = privateKey
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\\\n/g, '\n');
+    }
 
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
