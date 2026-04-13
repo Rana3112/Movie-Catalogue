@@ -15,17 +15,33 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_123'; // Fallback for d
 // Initialize Firebase Admin
 let firebaseAdmin = null;
 try {
-  const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './firebase-service-account.json';
-  const serviceAccount = require(serviceAccountPath);
+  // Try to use service account from environment variables first
+  if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    const serviceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    };
 
-  firebaseAdmin = admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: 'movie-catelogue'
-  });
-  console.log('✅ Firebase Admin Initialized with service account');
+    firebaseAdmin = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: 'movie-catelogue'
+    });
+    console.log('✅ Firebase Admin Initialized with environment variables');
+  } else {
+    // Fallback to file-based service account
+    const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './firebase-service-account.json';
+    const serviceAccount = require(serviceAccountPath);
+
+    firebaseAdmin = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: 'movie-catelogue'
+    });
+    console.log('✅ Firebase Admin Initialized with service account file');
+  }
 } catch (error) {
   console.error('❌ Firebase Admin Initialization Error:', error.message);
-  console.error('Make sure firebase-service-account.json exists and is valid');
+  console.error('Make sure Firebase credentials are configured');
 }
 
 // Middleware
