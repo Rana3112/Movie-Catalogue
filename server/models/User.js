@@ -12,13 +12,18 @@ const UserSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: function () { return !this.googleId; } // Password required if not Google Auth
+        required: function () { return !this.googleId && !this.firebaseUid; } // Password required if not Google/Firebase Auth
     },
     avatar: {
         type: String,
         default: ""
     },
     googleId: {
+        type: String,
+        unique: true,
+        sparse: true // Allow multiple nulls
+    },
+    firebaseUid: {
         type: String,
         unique: true,
         sparse: true // Allow multiple nulls
