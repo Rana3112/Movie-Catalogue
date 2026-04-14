@@ -19,15 +19,22 @@ try {
   if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-    // Try to decode from base64 if it looks like base64
-    if (privateKey.includes('BEGIN') && !privateKey.includes('\n')) {
-      try {
-        privateKey = Buffer.from(privateKey, 'base64').toString('utf-8');
-      } catch (e) {
-        privateKey = privateKey.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\\\n/g, '\n');
-      }
-    } else if (!privateKey.includes('\n')) {
-      privateKey = privateKey.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\\\n/g, '\n');
+    // Render (and many platforms) store the private key as a single-line string
+    // where real newlines become the literal two characters \ and n.
+    // Normalize all known variants:
+    //   1. Strip wrapping quotes some dashboards add
+    //   2. Unescape \\n -> \n (double-escaped)
+    //   3. Unescape \n  -> actual newline
+    //   4. Remove stray \r characters
+    privateKey = privateKey
+      .replace(/^"|"$/g, '')      // strip surrounding quotes
+      .replace(/\\\\n/g, '\n')   // double-escaped \\n -> real newline
+      .replace(/\\n/g, '\n')     // single-escaped \n  -> real newline
+      .replace(/\\r/g, '')        // remove stray \r
+      .trim();
+
+    if (!privateKey.includes('\n')) {
+      throw new Error('FIREBASE_PRIVATE_KEY still has no newlines after normalization. Copy the raw value from your service account JSON (keep \\n as-is).');
     }
 
     const serviceAccount = {
@@ -38,24 +45,24 @@ try {
 
     firebaseAdmin = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      projectId: 'movie-catelogue'
+      projectId: process.env.FIREBASE_PROJECT_ID
     });
-    console.log('✅ Firebase Admin Initialized with environment variables');
+    console.log('\u2705 Firebase Admin Initialized with environment variables');
   } else {
-    // Fallback to file-based service account
+    // Fallback to file-based service account (local dev only)
     const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './firebase-service-account.json';
     const serviceAccount = require(serviceAccountPath);
 
     firebaseAdmin = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      projectId: 'movie-catelogue'
+      projectId: serviceAccount.project_id
     });
-    console.log('✅ Firebase Admin Initialized with service account file');
+    console.log('\u2705 Firebase Admin Initialized with service account file');
   }
 } catch (error) {
-  console.warn('⚠️ Firebase Admin Initialization failed, continuing without token verification:', error.message);
-  console.warn('⚠️ This is safe for development - Google Sign-In popup already verifies user identity');
-  // Don't set firebaseAdmin to null, we'll handle this in the auth endpoint
+  firebaseAdmin = null;
+  console.warn('\u26a0\ufe0f Firebase Admin Initialization failed, continuing without token verification:', error.message);
+  console.warn('\u26a0\ufe0f Fix: In Render dashboard, paste the FIREBASE_PRIVATE_KEY value exactly as it appears in the service account JSON.');
 }
 
 // Middleware
