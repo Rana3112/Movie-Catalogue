@@ -60,7 +60,24 @@ try {
 
 // Middleware
 app.use(cors({
-    origin: ['https://utkarsh.sbs', 'https://www.utkarsh.sbs', 'https://movie-catalogue-v1-iota.vercel.app', 'https://movie-catalogue-taupe.vercel.app', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173', 'http://10.0.2.2:5000'],
+    origin: [
+        // Web deployments
+        'https://utkarsh.sbs',
+        'https://www.utkarsh.sbs',
+        'https://movie-catalogue-v1-iota.vercel.app',
+        'https://movie-catalogue-taupe.vercel.app',
+        // Local dev
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+        'http://127.0.0.1:5173',
+        'http://10.0.2.2:5000',
+        // Android WebView origins (Capacitor uses these)
+        'capacitor://localhost',
+        'http://localhost',
+        'ionic://localhost',
+        'https://localhost',
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
