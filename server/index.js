@@ -7,6 +7,7 @@ const User = require('./models/User'); // Import User Model
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
+const streamingRoutes = require('./routes/streaming');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -101,6 +102,8 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use('/api/streaming', streamingRoutes);
+
 
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB Connected'))
@@ -130,7 +133,6 @@ app.post('/api/auth/signup', async (req, res) => {
 
         // Hash password
         const salt = await bcrypt.genSalt(10);
-        const term = password; // Temp fix if password comes as different type, but it should be string
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = new User({
@@ -326,7 +328,7 @@ app.get('/api/entries', async (req, res) => {
 
         // Find entries where userEmail matches OR userEmail is null (legacy/public? maybe unsafe)
         // Strict privacy: Only match userEmail.
-        const entries = await Entry.find({ userEmail }).sort({ createdAt: -1 });
+        const entries = await Entry.find({ userEmail }).sort({ createdAt: -1 }).lean();
 
         // Group by date for frontend compatibility
         const entriesByDate = entries.reduce((acc, entry) => {
@@ -552,6 +554,7 @@ app.post('/api/movie-lookup', async (req, res) => {
             year: null,
             poster: null,
             genre: 'General',
+            genres: [],
             imdbLink: null,
             description: null,
             type: null
@@ -569,10 +572,15 @@ app.post('/api/movie-lookup', async (req, res) => {
             if (dateStr) movieInfo.releaseDate = dateStr;
 
             // Extract genre
-            if (kg.genre) {
-                movieInfo.genre = Array.isArray(kg.genre) ? kg.genre[0] : kg.genre;
-            } else if (kg.genres) {
-                movieInfo.genre = Array.isArray(kg.genres) ? kg.genres[0] : kg.genres;
+            if (kg.genre || kg.genres) {
+                const rawGenres = kg.genre || kg.genres;
+                if (Array.isArray(rawGenres)) {
+                    movieInfo.genres = rawGenres.map(g => g.trim());
+                    movieInfo.genre = movieInfo.genres[0] || 'General';
+                } else if (typeof rawGenres === 'string') {
+                    movieInfo.genres = rawGenres.split(',').map(g => g.trim());
+                    movieInfo.genre = movieInfo.genres[0] || 'General';
+                }
             }
 
             // Extract poster/thumbnail
@@ -591,6 +599,7 @@ app.post('/api/movie-lookup', async (req, res) => {
                     }
                     if (movieInfo.genre === 'General' && name.includes('genre')) {
                         movieInfo.genre = attr.value;
+                        movieInfo.genres = attr.value.split(',').map(g => g.trim());
                     }
                 }
             }
@@ -629,8 +638,8 @@ app.post('/api/movie-lookup', async (req, res) => {
                     // Look for patterns like "Release date: July 16, 2010" or "Release date · September 1, 2022"
                     const datePatterns = [
                         /(?:release(?:d|[\s_]date)?)[^\w\d]+([A-Z][a-z]+ \d{1,2},?\s*\d{4})/i,
-                        /(?:release(?:d|[\s_]date)?)[^\w\d]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
-                        /(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/,
+                        /(?:release(?:d|[\s_]date)?)[^\w\d]+(\d{1,2}[/-]\d{1,2}[/-]\d{4})/i,
+                        /(\d{4}[-/]\d{1,2}[-/]\d{1,2})/,
                         // Fallback just grab the year if 'release' is mentioned
                         /(?:release(?:d|[\s_]date)?).*?(19\d{2}|20\d{2})/i
                     ];
@@ -680,7 +689,7 @@ app.post('/api/movie-lookup', async (req, res) => {
                         movieInfo.releaseDate = `${yearMatch[1]}-01-01`;
                     }
                 }
-            } catch (e) {
+            } catch {
                 const yearMatch = movieInfo.releaseDate.match(/(\d{4})/);
                 if (yearMatch) {
                     movieInfo.year = parseInt(yearMatch[1]);
@@ -737,8 +746,9 @@ app.post('/api/movie-lookup', async (req, res) => {
                             if (!movieInfo.releaseDate) movieInfo.releaseDate = `${yearMatch[1]}-01-01`;
                         }
                     }
-                    if (movieInfo.genre === 'General' && omdbData.Genre && omdbData.Genre !== 'N/A') {
-                        movieInfo.genre = omdbData.Genre.split(',')[0].trim();
+                    if ((movieInfo.genre === 'General' || movieInfo.genres.length === 0) && omdbData.Genre && omdbData.Genre !== 'N/A') {
+                        movieInfo.genres = omdbData.Genre.split(',').map(g => g.trim());
+                        movieInfo.genre = movieInfo.genres[0] || 'General';
                     }
                     if (!movieInfo.description && omdbData.Plot && omdbData.Plot !== 'N/A') {
                         movieInfo.description = omdbData.Plot;
@@ -835,7 +845,7 @@ RULES:
                 'X-Title': 'Categloge CineBot'
             },
             body: JSON.stringify({
-                model: 'openai/gpt-4.1-nano',
+                model: 'openai/gpt-4o-mini',
                 messages,
                 max_tokens: 500,
                 temperature: 0.7
@@ -863,7 +873,7 @@ RULES:
                 for (const match of lookupMatches) {
                     try {
                         queries.push(JSON.parse(match[1]).query);
-                    } catch (e) { /* ignore single parse error */ }
+                    } catch { /* ignore single parse error */ }
                 }
 
                 if (queries.length > 0) {
