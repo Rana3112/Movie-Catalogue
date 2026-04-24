@@ -74,6 +74,7 @@ typings/
 .env.test
 .env.production
 .env.local
+server/.env
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -122,3 +123,15 @@ dist
 *.mp4
 *.avi
 *.mov
+*.apk
+
+# Local workspace / scratch files
+.claude/
+nul
+test_rt.cjs
+server/movie.json
+redesign UI/
+android/.idea/
+android/app/.project
+android/app/.settings/
+android/app/src/main/icon_backup_*/

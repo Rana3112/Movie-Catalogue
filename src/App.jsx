@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
 import Home from './pages/Home'
 import Category from './pages/Category'
 import Genres from './pages/Genres'
@@ -7,8 +9,42 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import MySpace from './pages/MySpace'
 import { useStore } from './store/useStore'
-
+import CineBot from './components/CineBot'
+import BottomNav from './components/ui/BottomNav'
+import { ToastProvider } from './components/ui/Toast'
 import Landing from './pages/Landing'
+import { StreamingRoutes } from './streaming'
+
+const isNative = Capacitor.isNativePlatform()
+
+// Use HashRouter for native (Capacitor) apps, BrowserRouter for web
+const Router = isNative ? HashRouter : BrowserRouter
+
+const NativeBackHandler = () => {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!isNative) return undefined
+
+    const handleNativeBack = () => {
+      const rootScreens = ['/', '/home']
+      if (rootScreens.includes(location.pathname)) return
+
+      if (window.history.length > 1) {
+        navigate(-1)
+        return
+      }
+
+      navigate('/home', { replace: true })
+    }
+
+    window.addEventListener('categloge:native-back', handleNativeBack)
+    return () => window.removeEventListener('categloge:native-back', handleNativeBack)
+  }, [location.pathname, navigate])
+
+  return null
+}
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -30,10 +66,18 @@ const StrictRoute = ({ children }) => {
 }
 
 function App() {
-  const { user, isGuest } = useStore()
+  const { user, isGuest, fetchEntries } = useStore()
+
+  useEffect(() => {
+    if (user?.email && !isGuest) {
+      fetchEntries().catch(() => {})
+    }
+  }, [fetchEntries, isGuest, user?.email])
 
   return (
-    <BrowserRouter>
+    <ToastProvider>
+      <Router>
+      <NativeBackHandler />
       <Routes>
         {/* Public Landing Page (Root) */}
         <Route path="/" element={
@@ -71,8 +115,16 @@ function App() {
             <MySpace />
           </StrictRoute>
         } />
+        
+        {/* Streaming Module Routes */}
+        {StreamingRoutes}
       </Routes>
-    </BrowserRouter>
+
+
+      {/* CineBot AI Assistant - visible when user is logged in or guest */}
+      {(user || isGuest) && <CineBot />}
+      </Router>
+    </ToastProvider>
   )
 }
 

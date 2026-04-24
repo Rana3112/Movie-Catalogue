@@ -1,0 +1,186 @@
+/* ============================================
+   MobileBackground.css
+   Lightweight CSS-only animated backgrounds
+   Replaces: LightPillar, FloatingLines, Background3D
+   ============================================ */
+
+/* --- Pillar Background (replaces LightPillar) --- */
+.mobile-pillar-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mobile-pillar-bg .pillar {
+  position: absolute;
+  width: 200px;
+  filter: blur(80px);
+  opacity: 0.3;
+  animation: pillarFloat 8s ease-in-out infinite;
+}
+
+.mobile-pillar-bg .pillar-1 {
+  left: 30%;
+  top: -20%;
+  height: 140%;
+  background: var(--pillar-color-1, #FFD700);
+  animation-delay: 0s;
+}
+
+.mobile-pillar-bg .pillar-2 {
+  left: 55%;
+  top: -10%;
+  height: 120%;
+  background: var(--pillar-color-2, #00E5FF);
+  animation-delay: -4s;
+}
+
+.mobile-pillar-bg .pillar-3 {
+  left: 42%;
+  top: -15%;
+  height: 130%;
+  background: var(--pillar-color-3, #ff00aa);
+  opacity: 0.15;
+  animation-delay: -2s;
+  width: 300px;
+  filter: blur(120px);
+}
+
+@keyframes pillarFloat {
+  0%, 100% {
+    transform: translateX(-30px) scaleY(1);
+    opacity: 0.25;
+  }
+  25% {
+    transform: translateX(20px) scaleY(1.05);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateX(-15px) scaleY(0.95);
+    opacity: 0.3;
+  }
+  75% {
+    transform: translateX(25px) scaleY(1.02);
+    opacity: 0.2;
+  }
+}
+
+/* --- Floating Lines Background (replaces FloatingLines shader) --- */
+.mobile-floating-lines {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #050510;
+}
+
+.mobile-floating-lines .line {
+  position: absolute;
+  width: 200%;
+  height: 2px;
+  left: -50%;
+  opacity: 0.15;
+  animation: lineFloat linear infinite;
+}
+
+.mobile-floating-lines .line-1 {
+  top: 20%;
+  background: linear-gradient(90deg, transparent, #8400ff, transparent);
+  animation-duration: 12s;
+}
+
+.mobile-floating-lines .line-2 {
+  top: 45%;
+  background: linear-gradient(90deg, transparent, #ff00aa, transparent);
+  animation-duration: 15s;
+  animation-delay: -3s;
+  height: 1px;
+}
+
+.mobile-floating-lines .line-3 {
+  top: 70%;
+  background: linear-gradient(90deg, transparent, #2f4ba2, transparent);
+  animation-duration: 10s;
+  animation-delay: -7s;
+}
+
+.mobile-floating-lines .line-4 {
+  top: 35%;
+  background: linear-gradient(90deg, transparent, #8400ff44, transparent);
+  animation-duration: 18s;
+  animation-delay: -5s;
+  height: 40px;
+  filter: blur(20px);
+}
+
+.mobile-floating-lines .line-5 {
+  top: 60%;
+  background: linear-gradient(90deg, transparent, #ff00aa33, transparent);
+  animation-duration: 20s;
+  animation-delay: -10s;
+  height: 30px;
+  filter: blur(15px);
+}
+
+@keyframes lineFloat {
+  0% {
+    transform: translateX(-25%) rotate(-2deg);
+  }
+  100% {
+    transform: translateX(25%) rotate(2deg);
+  }
+}
+
+/* --- Stars Background (replaces Background3D Stars) --- */
+.mobile-stars-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, #0a0a1a 0%, #050505 100%);
+  overflow: hidden;
+}
+
+.mobile-stars-bg .star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  animation: starTwinkle 3s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+}
+
+/* --- Landing-specific pillar (gold/cyan) --- */
+.mobile-landing-bg {
+  --pillar-color-1: #FFD700;
+  --pillar-color-2: #00E5FF;
+  --pillar-color-3: #FFD70088;
+}
+
+/* --- Home-specific pillar (white/silver for glass morphism) --- */
+.mobile-home-bg {
+  --pillar-color-1: rgba(255, 255, 255, 0.15);
+  --pillar-color-2: rgba(200, 210, 255, 0.1);
+  --pillar-color-3: rgba(255, 255, 255, 0.06);
+}
+
+/* --- Dark gradient background (replaces any 3D bg generically) --- */
+.mobile-dark-gradient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(30, 10, 60, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(10, 30, 60, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(60, 10, 30, 0.2) 0%, transparent 50%),
+    #0a0a0f;
+}

@@ -6,11 +6,11 @@ services:
     startCommand: cd server && npm start
     envVars:
       - key: MONGODB_URI
-        value: mongodb+srv://utkarshrana40_db_user:zrYQHcT4WjoCWQna@cluster0.tpbyi5g.mongodb.net/?appName=Cluster0
+        sync: false
       - key: PORT
         value: 5000
       - key: JWT_SECRET
-        value: secret_key_123
+        sync: false
       - key: HIANIME_API_BASE_URL
         sync: false
       - key: STREAM_PROXY_SECRET

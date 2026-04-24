@@ -1,14 +1,109 @@
 @import "tailwindcss";
 
+/* ============================================
+   Design Tokens - Movie Catalogue
+   Cinematic Dark Theme
+   Based on UI/UX Pro Max skill guidelines
+   ============================================ */
+
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* --- Color Tokens (Semantic) --- */
+  --color-bg-primary: #0a0a0f;
+  --color-bg-secondary: #121218;
+  --color-bg-surface: #1a1a24;
+  --color-bg-surface-elevated: #22222e;
+  --color-bg-surface-hover: #2a2a38;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: rgba(240, 240, 245, 0.65);
+  --color-text-tertiary: rgba(240, 240, 245, 0.4);
+  --color-text-disabled: rgba(240, 240, 245, 0.25);
 
+  --color-accent-gold: #FFD700;
+  --color-accent-gold-dim: rgba(255, 215, 0, 0.15);
+  --color-accent-cyan: #00E5FF;
+  --color-accent-cyan-dim: rgba(0, 229, 255, 0.12);
+  --color-accent-purple: #8B5CF6;
+  --color-accent-purple-dim: rgba(139, 92, 246, 0.15);
+  --color-accent-blue: #3B82F6;
+  --color-accent-blue-dim: rgba(59, 130, 246, 0.15);
+
+  --color-status-success: #22C55E;
+  --color-status-success-dim: rgba(34, 197, 94, 0.15);
+  --color-status-warning: #F59E0B;
+  --color-status-warning-dim: rgba(245, 158, 11, 0.15);
+  --color-status-error: #EF4444;
+  --color-status-error-dim: rgba(239, 68, 68, 0.15);
+
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-default: rgba(255, 255, 255, 0.1);
+  --color-border-strong: rgba(255, 255, 255, 0.2);
+
+  /* --- Spacing (8dp rhythm) --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* --- Typography Scale --- */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+  --text-5xl: 48px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.7;
+
+  /* --- Border Radius --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* --- Elevation (consistent shadow scale) --- */
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elevation-2: 0 4px 6px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --elevation-3: 0 10px 15px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.3);
+  --elevation-4: 0 20px 25px rgba(0, 0, 0, 0.5), 0 8px 10px rgba(0, 0, 0, 0.3);
+
+  /* --- Animation Tokens --- */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --easing-enter: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --easing-exit: cubic-bezier(0.4, 0.0, 1, 1);
+  --easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* --- Z-Index Scale --- */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-overlay: 40;
+  --z-modal: 100;
+  --z-toast: 200;
+  --z-tooltip: 300;
+
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -20,6 +115,10 @@ body {
   min-width: 320px;
   min-height: 100vh;
   width: 100%;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  line-height: var(--line-height-normal);
 }
 
 #root {
@@ -27,12 +126,76 @@ body {
   min-height: 100vh;
 }
 
-@keyframes slideLeft {
-  from {
-    background-position: 0 0;
-  }
+/* --- Global Mobile Touch --- */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
 
-  to {
-    background-position: -100% 0;
+/* --- Scrollbar Hidden --- */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* --- Selection --- */
+::selection {
+  background-color: var(--color-accent-purple-dim);
+  color: var(--color-text-primary);
+}
+
+/* --- Press Feedback --- */
+.pressable {
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 150ms ease,
+              background-color 150ms ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.pressable:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+/* For Neumorphic elements we want a subtler press */
+.press-inset:active {
+  transform: scale(0.98);
+  box-shadow: inset 2px 2px 5px rgba(180,190,210,0.4), inset -2px -2px 5px rgba(255,255,255,0.8) !important;
+}
+
+/* --- Skeleton Shimmer --- */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--color-bg-surface) 25%,
+    var(--color-bg-surface-elevated) 50%,
+    var(--color-bg-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+/* --- Slide Animation (for category bg) --- */
+@keyframes slideLeft {
+  from { background-position: 0 0; }
+  to { background-position: -100% 0; }
+}
+
+/* --- Fade In Up --- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s var(--easing-enter) both;
 }

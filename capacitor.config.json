@@ -15,8 +15,20 @@
       "https://www.rottentomatoes.com",
       "https://openrouter.ai",
       "https://www.youtube.com",
-      "https://accounts.google.com"
+      "https://accounts.google.com",
+      "*.vidzee.wtf",
+      "*.vidrush.net",
+      "*.vidnest.fun",
+      "*.aniwatch.to",
+      "*.themoviedb.org",
+      "*.tmdb.org",
+      "*.hianimez.to"
     ]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
   },
   "plugins": {
     "SplashScreen": {

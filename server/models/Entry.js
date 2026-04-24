@@ -17,9 +17,6 @@ const EntrySchema = new mongoose.Schema({
     year: {
         type: Number
     },
-    poster: {
-        type: String // URL or Base64
-    },
     genre: { // Legacy field, keeping for safety
         type: String,
         default: 'General'
@@ -68,5 +65,7 @@ const EntrySchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+EntrySchema.index({ userEmail: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Entry', EntrySchema);

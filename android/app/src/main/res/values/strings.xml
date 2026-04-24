@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Movie Catalogue</string>
+    <string name="title_activity_main">Movie Catalogue</string>
+    <string name="package_name">com.moviecatalogue.app</string>
+    <string name="custom_url_scheme">com.moviecatalogue.app</string>
+</resources>
