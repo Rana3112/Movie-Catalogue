@@ -12,22 +12,8 @@ services:
       - key: JWT_SECRET
         value: secret_key_123
       - key: HIANIME_API_BASE_URL
-        fromService:
-          type: web
-          name: categloge-hianime-api
-          property: hostport
+        sync: false
       - key: STREAM_PROXY_SECRET
         generateValue: true
       - key: GOOGLE_APPLICATION_CREDENTIALS
         value: ./firebase-service-account.json
-  - type: web
-    name: categloge-hianime-api
-    runtime: image
-    plan: free
-    image:
-      url: ghcr.io/ghoshritesh12/aniwatch:latest
-    envVars:
-      - key: ANIWATCH_API_PORT
-        value: 10000
-      - key: ANIWATCH_API_DEPLOYMENT_ENV
-        value: render
