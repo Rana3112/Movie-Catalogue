@@ -1,8 +1,8 @@
 import { useStore } from '../../store/useStore'
 import { User } from 'lucide-react'
-import { Capacitor } from '@capacitor/core'
+import { shouldUseNeumorphicLayout } from '../../lib/platform'
 
-const isNative = Capacitor.isNativePlatform()
+const isNative = shouldUseNeumorphicLayout()
 
 export default function UserBadge({ className = "" }) {
     const user = useStore(state => state.user)

@@ -1,13 +1,13 @@
 import { lazy, Suspense, useState, useEffect } from 'react'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { Capacitor } from '@capacitor/core'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, Trash2, LayoutGrid, Settings, ChevronRight, ChevronLeft } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
+import { shouldUseNeumorphicLayout } from '../lib/platform'
 
-const isNative = Capacitor.isNativePlatform()
+const isNative = shouldUseNeumorphicLayout()
 
 // Lazy load 3D component - only fetched on web
 const Background3D = lazy(() => import('../components/canvas/Background3D'))
@@ -26,7 +26,7 @@ const DEFAULT_GENRES = [
 // ──────────────────────────────────────────────
 // Shared font injection (Montserrat)
 // ──────────────────────────────────────────────
-const montserratLink = typeof document !== 'undefined' && (() => {
+if (typeof document !== 'undefined') {
   if (!document.getElementById('montserrat-font')) {
     const link = document.createElement('link')
     link.id = 'montserrat-font'
@@ -34,13 +34,12 @@ const montserratLink = typeof document !== 'undefined' && (() => {
     link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap'
     document.head.appendChild(link)
   }
-})()
+}
 
 export default function Genres() {
     const {
         selectedYear, selectedCategory, selectedGenres, toggleGenre,
         customGenres, fetchCustomGenres, addCustomGenre, deleteCustomGenre,
-        logout, isGuest
     } = useStore()
     const navigate = useNavigate()
     const [showSettings, setShowSettings] = useState(false)
@@ -73,21 +72,6 @@ export default function Genres() {
         e.stopPropagation()
         if (confirm('Delete this custom genre?')) {
             deleteCustomGenre(id)
-        }
-    }
-
-    const handleLogout = () => {
-        logout()
-        navigate('/')
-    }
-
-    const handleMySpace = () => {
-        if (isGuest) {
-            if (confirm("Create an account to save your personal space!")) {
-                navigate('/signup')
-            }
-        } else {
-            navigate('/myspace')
         }
     }
 
@@ -168,7 +152,7 @@ export default function Genres() {
                             const isCustom = !DEFAULT_GENRES.some(dg => dg.id === g.id)
 
                             return (
-                                <motion.div
+                                <Motion.div
                                     key={g.id}
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -226,19 +210,19 @@ export default function Genres() {
                                     >
                                         {g.label}
                                     </span>
-                                </motion.div>
+                                </Motion.div>
                             )
                         })}
 
                         {/* Add Custom Button */}
-                        <motion.button
+                        <Motion.button
                             onClick={() => setShowCustomModal(true)}
                             className="pressable relative flex flex-col items-center justify-center p-5 gap-2 border-2 border-dashed border-slate-300 rounded-3xl opacity-60"
                             style={{ minHeight: 130 }}
                         >
                             <span className="material-icons-outlined text-slate-400" style={{ fontSize: 32 }}>add</span>
                             <span className="text-xs font-medium text-slate-500 uppercase tracking-widest">Custom</span>
-                        </motion.button>
+                        </Motion.button>
                     </div>
 
                     {/* ── Continue Button (Embedded) ── */}
@@ -278,13 +262,13 @@ export default function Genres() {
                 {/* ── Custom Genre Modal — Redesigned for light theme ── */}
                 <AnimatePresence>
                     {showCustomModal && (
-                        <motion.div
+                        <Motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 backdrop-blur-sm px-4 pb-12"
                         >
-                            <motion.div
+                            <Motion.div
                                 initial={{ y: 300, scale: 0.95 }}
                                 animate={{ y: 0, scale: 1 }}
                                 exit={{ y: 300, scale: 0.95 }}
@@ -312,8 +296,8 @@ export default function Genres() {
                                 >
                                     Add Genre
                                 </button>
-                            </motion.div>
-                        </motion.div>
+                            </Motion.div>
+                        </Motion.div>
                     )}
                 </AnimatePresence>
             </div>
@@ -349,10 +333,8 @@ export default function Genres() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mx-auto max-w-7xl">
                     {allGenres.map((g, idx) => {
                         const isSelected = selectedGenres.includes(g.id)
-                        const isCustom = !DEFAULT_GENRES.some(dg => dg.id === g.id)
-
                         return (
-                            <motion.div
+                            <Motion.div
                                 key={g.id}
                                 initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -365,7 +347,7 @@ export default function Genres() {
                                 </div>
                                 <span className="material-icons-outlined text-[32px] text-white/60">{g.icon || 'star_border'}</span>
                                 <span className="font-medium tracking-wide text-white/90">{g.label}</span>
-                            </motion.div>
+                            </Motion.div>
                         )
                     })}
                 </div>

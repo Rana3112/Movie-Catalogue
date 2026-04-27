@@ -1,13 +1,13 @@
 import { lazy, Suspense, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
-import { Capacitor } from '@capacitor/core'
 import { LayoutGrid, Settings, ChevronLeft } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import MobileCategoryBarrel from '../components/mobile/MobileCategoryBarrel'
+import { shouldUseNeumorphicLayout } from '../lib/platform'
 
-const isNative = Capacitor.isNativePlatform()
+const isNative = shouldUseNeumorphicLayout()
 
 // Lazy load 3D components - only fetched on web
 const CategoryBarrelCanvas = lazy(() => import('../components/canvas/CategoryBarrel'))
@@ -16,7 +16,7 @@ const FloatingLines = lazy(() => import('../components/FloatingLines'))
 // ──────────────────────────────────────────────
 // Shared font injection (Montserrat)
 // ──────────────────────────────────────────────
-const montserratLink = typeof document !== 'undefined' && (() => {
+if (typeof document !== 'undefined') {
   if (!document.getElementById('montserrat-font')) {
     const link = document.createElement('link')
     link.id = 'montserrat-font'
@@ -24,29 +24,13 @@ const montserratLink = typeof document !== 'undefined' && (() => {
     link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap'
     document.head.appendChild(link)
   }
-})()
+}
 
 export default function Category() {
   const year = useStore(state => state.selectedYear)
-  const { logout, isGuest } = useStore()
   const navigate = useNavigate()
   const [showSettings, setShowSettings] = useState(false)
   const [hoveredCategory, setHoveredCategory] = useState(null)
-
-  const handleLogout = () => {
-    logout()
-    navigate('/')
-  }
-
-  const handleMySpace = () => {
-    if (isGuest) {
-      if (confirm("Create an account to save your personal space!")) {
-        navigate('/signup')
-      }
-    } else {
-      navigate('/myspace')
-    }
-  }
 
   // ── Native (Android) — Light Neumorphic Layout ──
   if (isNative) {

@@ -1,14 +1,14 @@
 import { lazy, Suspense } from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../store/useStore'
-import { Capacitor } from '@capacitor/core'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { X, Star, Upload, Calendar as CalIcon, ChevronLeft, ChevronRight, Trash, LayoutGrid, Settings, LogOut } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import { useNavigate } from 'react-router-dom'
+import { shouldUseNeumorphicLayout } from '../lib/platform'
 
-const isNative = Capacitor.isNativePlatform()
+const isNative = shouldUseNeumorphicLayout()
 
 // Lazy import - only fetched on web
 const Background3D = lazy(() => import('../components/canvas/Background3D'))
@@ -24,7 +24,7 @@ const GENRES = ["Action", "Adventure", "Animation", "Comedy", "Crime", "Document
 // ──────────────────────────────────────────────
 // Shared font injection (Montserrat)
 // ──────────────────────────────────────────────
-const montserratLink = typeof document !== 'undefined' && (() => {
+if (typeof document !== 'undefined') {
   if (!document.getElementById('montserrat-font')) {
     const link = document.createElement('link')
     link.id = 'montserrat-font'
@@ -32,7 +32,7 @@ const montserratLink = typeof document !== 'undefined' && (() => {
     link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap'
     document.head.appendChild(link)
   }
-})()
+}
 
 export default function Calendar() {
     const getScoreColor = (score) => {
@@ -46,9 +46,9 @@ export default function Calendar() {
 
     const { 
         selectedYear, selectedCategory, selectedGenres, calendarEntries, 
-        addEntry, removeEntry, updateEntry, setYear, fetchEntries, 
-        customGenres, fetchCustomGenres, selectedMonth, setSelectedMonth, 
-        isGuest, cineBotPendingEntry, clearCineBotPendingEntry, logout 
+        addEntry, removeEntry, updateEntry, fetchEntries,
+        customGenres, fetchCustomGenres, selectedMonth, setSelectedMonth,
+        isGuest, cineBotPendingEntry, clearCineBotPendingEntry,
     } = useStore()
 
     const navigate = useNavigate()
@@ -130,7 +130,7 @@ export default function Calendar() {
             }
             clearCineBotPendingEntry()
         }
-    }, [cineBotPendingEntry])
+    }, [cineBotPendingEntry, clearCineBotPendingEntry, selectedGenres, setSelectedMonth])
 
     const [selectedDate, setSelectedDate] = useState(null)
     const [showModal, setShowModal] = useState(false)
@@ -762,7 +762,7 @@ export default function Calendar() {
                 <AnimatePresence>
                     {showModal && (
                         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] p-0 sm:p-4">
-                            <motion.div
+                            <Motion.div
                                 initial={{ y: "100%" }}
                                 animate={{ y: 0 }}
                                 exit={{ y: "100%" }}
@@ -792,7 +792,7 @@ export default function Calendar() {
                                             const entryGenres = entry.genres || [entry.genre || 'General']
                                             return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
                                         })
-                                        .map((entry, i) => (
+                                        .map((entry) => (
                                             <div
                                                 key={entry._id}
                                                 className="p-4 rounded-[32px] flex gap-4 transition-all active:scale-[0.98] group relative"
@@ -1020,7 +1020,7 @@ export default function Calendar() {
                                         </div>
                                     </div>
                                 </div>
-                            </motion.div>
+                            </Motion.div>
                         </div>
                     )}
                 </AnimatePresence>
@@ -1119,7 +1119,7 @@ export default function Calendar() {
             <AnimatePresence>
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-                        <motion.div
+                        <Motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
@@ -1140,7 +1140,7 @@ export default function Calendar() {
                                         const entryGenres = entry.genres || [entry.genre || 'General']
                                         return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
                                     })
-                                    .map((entry, i) => (
+                                    .map((entry) => (
                                         <div
                                             key={entry._id}
                                             className="bg-white/5 p-4 rounded-xl flex gap-4 hover:bg-white/10 transition-colors cursor-pointer group relative"
@@ -1368,7 +1368,7 @@ export default function Calendar() {
                                     </button>
                                 </div>
                             </div>
-                        </motion.div>
+                        </Motion.div>
                     </div>
                 )}
             </AnimatePresence>
@@ -1383,7 +1383,7 @@ export default function Calendar() {
                             if (e.target === e.currentTarget) setLongPressData(null)
                         }}
                     >
-                        <motion.div 
+                        <Motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1430,7 +1430,7 @@ export default function Calendar() {
                                     </div>
                                 ))}
                             </div>
-                        </motion.div>
+                        </Motion.div>
                     </div>
                 )}
             </AnimatePresence>

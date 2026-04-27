@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion as Motion } from 'framer-motion'
 import { useStore } from '../store/useStore'
 import { Capacitor } from '@capacitor/core'
 import { ArrowRight, Code2, Film, Layers, Database, Lock } from 'lucide-react'
 import { useState } from 'react'
+import { shouldUseNeumorphicLayout } from '../lib/platform'
 
 const isNative = Capacitor.isNativePlatform()
+const useNeumorphicLayout = shouldUseNeumorphicLayout()
 
 export default function Landing() {
     const navigate = useNavigate()
@@ -24,6 +26,226 @@ export default function Landing() {
         { name: 'MongoDB Atlas', icon: <Database size={18} />, desc: 'Data Persistence' },
         { name: 'JWT Auth', icon: <Lock size={18} />, desc: 'Secure Authentication' },
     ]
+
+    if (useNeumorphicLayout) {
+        return (
+            <div
+                className="min-h-screen w-full relative overflow-hidden flex items-center justify-center p-6"
+                style={{
+                    background: '#ECEEF2',
+                    fontFamily: "'Montserrat', 'Raleway', sans-serif",
+                    paddingTop: 'env(safe-area-inset-top, 0px)',
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                }}
+            >
+                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+                    <div style={{
+                        position: 'absolute',
+                        top: '6%',
+                        left: '8%',
+                        width: 300,
+                        height: 300,
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(200,210,240,0.35) 0%, transparent 70%)',
+                        filter: 'blur(42px)',
+                    }} />
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '8%',
+                        right: '6%',
+                        width: 240,
+                        height: 240,
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(180,200,230,0.25) 0%, transparent 70%)',
+                        filter: 'blur(52px)',
+                    }} />
+                </div>
+
+                <main className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center">
+                    <section
+                        style={{
+                            background: '#E8EAED',
+                            borderRadius: 40,
+                            boxShadow: '8px 8px 18px rgba(180,190,210,0.5), -4px -4px 12px rgba(255,255,255,0.95)',
+                            border: '1px solid rgba(255,255,255,0.95)',
+                            padding: '42px 34px',
+                        }}
+                    >
+                        <Motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <div
+                                className="inline-flex items-center justify-center mb-8"
+                                style={{
+                                    width: 72,
+                                    height: 72,
+                                    borderRadius: '50%',
+                                    background: '#E8EAED',
+                                    boxShadow: 'inset 4px 4px 10px rgba(180,190,210,0.5), inset -2px -2px 6px rgba(255,255,255,0.95)',
+                                    border: '1px solid rgba(255,255,255,0.95)',
+                                }}
+                            >
+                                <Film size={30} style={{ color: '#4B5563' }} />
+                            </div>
+
+                            <h1
+                                style={{
+                                    fontSize: 'clamp(42px, 7vw, 82px)',
+                                    lineHeight: 0.95,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.08em',
+                                    color: '#2D3748',
+                                    textTransform: 'uppercase',
+                                    margin: 0,
+                                }}
+                            >
+                                Categ<br />loge
+                            </h1>
+
+                            <p
+                                style={{
+                                    marginTop: 20,
+                                    color: '#64748B',
+                                    fontSize: 16,
+                                    lineHeight: 1.8,
+                                    maxWidth: 460,
+                                    letterSpacing: '0.02em',
+                                }}
+                            >
+                                Your personal catalogue for cinematic discovery, watch planning, StreamZone browsing, and saved movie memories.
+                            </p>
+                        </Motion.div>
+
+                        <div className="mt-9 flex flex-col sm:flex-row gap-4">
+                            <button
+                                onClick={handleGuestEntry}
+                                className="pressable flex items-center justify-center gap-3"
+                                style={{
+                                    background: '#E8EAED',
+                                    borderRadius: 24,
+                                    boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
+                                    border: '1px solid rgba(255,255,255,0.95)',
+                                    padding: '16px 24px',
+                                    minHeight: 58,
+                                    color: '#1E293B',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.08em',
+                                    textTransform: 'uppercase',
+                                    flex: 1,
+                                }}
+                            >
+                                Explore Demo <ArrowRight size={18} />
+                            </button>
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="pressable"
+                                style={{
+                                    background: '#E8EAED',
+                                    borderRadius: 24,
+                                    boxShadow: 'inset 4px 4px 10px rgba(180,190,210,0.5), inset -2px -2px 6px rgba(255,255,255,0.95)',
+                                    border: '1px solid rgba(255,255,255,0.95)',
+                                    padding: '16px 24px',
+                                    minHeight: 58,
+                                    color: '#4B5563',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.08em',
+                                    textTransform: 'uppercase',
+                                    flex: 1,
+                                }}
+                            >
+                                Login
+                            </button>
+                            <button
+                                onClick={() => navigate('/signup')}
+                                className="pressable"
+                                style={{
+                                    background: '#1E293B',
+                                    borderRadius: 24,
+                                    boxShadow: '4px 4px 12px rgba(100,116,139,0.35), -2px -2px 6px rgba(255,255,255,0.95)',
+                                    border: '1px solid rgba(255,255,255,0.95)',
+                                    padding: '16px 24px',
+                                    minHeight: 58,
+                                    color: '#F8FAFC',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.08em',
+                                    textTransform: 'uppercase',
+                                    flex: 1,
+                                }}
+                            >
+                                Sign Up
+                            </button>
+                        </div>
+                    </section>
+
+                    <section
+                        style={{
+                            background: '#E8EAED',
+                            borderRadius: 32,
+                            boxShadow: '6px 6px 14px rgba(180,190,210,0.5), -3px -3px 8px rgba(255,255,255,0.95)',
+                            border: '1px solid rgba(255,255,255,0.95)',
+                            padding: 28,
+                        }}
+                    >
+                        <button
+                            onClick={() => setShowStack(!showStack)}
+                            className="pressable w-full flex items-center justify-between"
+                            style={{
+                                background: '#E8EAED',
+                                borderRadius: 24,
+                                boxShadow: 'inset 3px 3px 8px rgba(180,190,210,0.45), inset -2px -2px 6px rgba(255,255,255,0.95)',
+                                border: '1px solid rgba(255,255,255,0.95)',
+                                padding: '16px 18px',
+                                color: '#475569',
+                            }}
+                        >
+                            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+                                Engineering Breakdown
+                            </span>
+                            <Code2 size={20} />
+                        </button>
+
+                        <div className="mt-5 space-y-3">
+                            {(showStack ? techStack : techStack.slice(0, 3)).map((item) => (
+                                <div
+                                    key={item.name}
+                                    className="flex items-center gap-4"
+                                    style={{
+                                        background: '#E8EAED',
+                                        borderRadius: 22,
+                                        boxShadow: '4px 4px 10px rgba(180,190,210,0.45), -2px -2px 6px rgba(255,255,255,0.95)',
+                                        border: '1px solid rgba(255,255,255,0.95)',
+                                        padding: 16,
+                                    }}
+                                >
+                                    <div
+                                        className="flex items-center justify-center"
+                                        style={{
+                                            width: 42,
+                                            height: 42,
+                                            borderRadius: 16,
+                                            background: '#E8EAED',
+                                            boxShadow: 'inset 3px 3px 7px rgba(180,190,210,0.45), inset -2px -2px 5px rgba(255,255,255,0.95)',
+                                            color: '#4B5563',
+                                        }}
+                                    >
+                                        {item.icon}
+                                    </div>
+                                    <div>
+                                        <div style={{ color: '#1E293B', fontWeight: 700, fontSize: 14 }}>{item.name}</div>
+                                        <div style={{ color: '#94A3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>
+                                            {item.desc}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </main>
+            </div>
+        )
+    }
 
     return (
         <div className="h-screen w-full bg-black relative overflow-hidden flex flex-col items-center justify-center font-sans">
@@ -45,7 +267,7 @@ export default function Landing() {
             {/* Content Container */}
             <div className="relative z-10 w-full max-w-6xl px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center h-full">
                 <div className="flex flex-col gap-8 text-left">
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
@@ -76,9 +298,9 @@ export default function Landing() {
                             {isNative ? 'Your Personal Catalogue.' : '3D Interactive Catalogue.'} <br />
                             Personalized Watchlists.
                         </p>
-                    </motion.div>
+                    </Motion.div>
 
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 }}
@@ -105,11 +327,11 @@ export default function Landing() {
                                 Sign Up
                             </button>
                         </div>
-                    </motion.div>
+                    </Motion.div>
                 </div>
 
                 <div className="flex flex-col items-end justify-center pointer-events-none md:pointer-events-auto">
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.8 }}
@@ -123,7 +345,7 @@ export default function Landing() {
                             <Code2 size={24} className="transition-transform" />
                         </button>
                         {showStack && (
-                            <motion.div
+                            <Motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl w-80 text-left"
@@ -147,9 +369,9 @@ export default function Landing() {
                                 <div className="mt-6 pt-4 border-t border-white/10 text-xs text-white/40">
                                     Built by Utkarsh. Designed for immersion.
                                 </div>
-                            </motion.div>
+                            </Motion.div>
                         )}
-                    </motion.div>
+                    </Motion.div>
                 </div>
             </div>
 

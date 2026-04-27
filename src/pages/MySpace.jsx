@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { Capacitor } from '@capacitor/core'
 import { ArrowLeft, Search, Filter, X, Trash2, CalendarDays } from 'lucide-react'
 import UserBadge from '../components/ui/UserBadge'
 import '../components/mobile/MobileBackground.css'
+import { shouldUseNeumorphicLayout } from '../lib/platform'
 
-const isNative = Capacitor.isNativePlatform()
+const isNative = shouldUseNeumorphicLayout()
 const NATIVE_GRID_COLUMNS = 2
 const NATIVE_GRID_GAP = 16
 const NATIVE_GRID_OVERSCAN_ROWS = 3

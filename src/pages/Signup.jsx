@@ -7,8 +7,10 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 import { Capacitor } from '@capacitor/core'
 import { auth } from '../main'
+import { shouldUseNeumorphicLayout } from '../lib/platform'
 
 const isNative = Capacitor.isNativePlatform()
+const useNeumorphicLayout = shouldUseNeumorphicLayout()
 const MotionDiv = motion.div
 
 // Montserrat font injection
@@ -212,7 +214,7 @@ export default function Signup() {
   }
 
   // ── Native (Android) — Light Neumorphic Layout ──
-  if (isNative) {
+  if (useNeumorphicLayout) {
     return (
       <div
         className="min-h-screen w-full flex flex-col items-center justify-center p-6 relative"

@@ -1,9 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Home, CalendarDays, LayoutList, PlayCircle } from 'lucide-react'
-import { motion } from 'framer-motion'
-import { Capacitor } from '@capacitor/core'
+import { motion as Motion } from 'framer-motion'
+import { shouldUseNeumorphicLayout } from '../../lib/platform'
 
-const isNative = Capacitor.isNativePlatform()
+const isNative = shouldUseNeumorphicLayout()
 
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: Home },
@@ -74,7 +74,7 @@ export default function BottomNav() {
               >
                 {/* Active top indicator */}
                 {active && isNative && (
-                  <motion.div
+                  <Motion.div
                     layoutId="nav-indicator-light"
                     className="absolute -top-1 w-8 h-1 rounded-full"
                     style={{
@@ -85,7 +85,7 @@ export default function BottomNav() {
                   />
                 )}
                 {active && !isNative && (
-                  <motion.div
+                  <Motion.div
                     layoutId="nav-indicator-dark"
                     className="absolute -top-1 w-6 h-1 rounded-full"
                     style={{

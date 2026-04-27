@@ -3,12 +3,12 @@ import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
 import { LayoutGrid, Settings, Play } from 'lucide-react'
 import { useState } from 'react'
-import { Capacitor } from '@capacitor/core'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import MobileYearBarrel from '../components/mobile/MobileYearBarrel'
+import { shouldUseNeumorphicLayout } from '../lib/platform'
 
-const isNative = Capacitor.isNativePlatform()
+const isNative = shouldUseNeumorphicLayout()
 
 // Lazy load 3D components — only fetched on web platform
 const LightPillar = lazy(() => import('../components/LightPillar'))
@@ -17,7 +17,7 @@ const YearBarrel = lazy(() => import('../components/canvas/YearBarrel'))
 // ──────────────────────────────────────────────
 // Shared font injection (Montserrat from Google)
 // ──────────────────────────────────────────────
-const montserratLink = typeof document !== 'undefined' && (() => {
+if (typeof document !== 'undefined') {
   if (!document.getElementById('montserrat-font')) {
     const link = document.createElement('link')
     link.id = 'montserrat-font'
@@ -25,7 +25,7 @@ const montserratLink = typeof document !== 'undefined' && (() => {
     link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap'
     document.head.appendChild(link)
   }
-})()
+}
 
 export default function Home() {
   const { logout, isGuest } = useStore()
