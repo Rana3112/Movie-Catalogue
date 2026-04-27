@@ -3,12 +3,13 @@ import { motion } from 'framer-motion'
 import { useStore } from '../store/useStore'
 import { useNavigate, Link } from 'react-router-dom'
 import { UserPlus, ArrowLeft } from 'lucide-react'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 import { Capacitor } from '@capacitor/core'
 import { auth } from '../main'
 
 const isNative = Capacitor.isNativePlatform()
+const MotionDiv = motion.div
 
 // Montserrat font injection
 if (typeof document !== 'undefined' && !document.getElementById('montserrat-font')) {
@@ -35,20 +36,38 @@ export default function Signup() {
     setLoading(true)
 
     try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+
+      if (!isNative) {
+        const response = await fetch(`${API_URL}/api/auth/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Signup failed')
+        }
+
+        setUser(data.user, data.token)
+        navigate('/')
+        return
+      }
+
       // Firebase Email/Password Signup
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
 
       // Update display name
       if (name) {
-        await user.updateProfile({ displayName: name })
+        await updateProfile(user, { displayName: name })
       }
 
       // Get ID token
       const idToken = await user.getIdToken()
 
 // Send to backend with retry for cold starts
-    const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
     let response
 
     // Retry up to 5 times with 2 second delays for cold starts
@@ -66,7 +85,7 @@ export default function Signup() {
           })
         })
         break
-      } catch (fetchErr) {
+      } catch {
         if (attempt < 4) {
           await new Promise(r => setTimeout(r, 5000))
         }
@@ -93,6 +112,8 @@ export default function Signup() {
         setError('Invalid email address')
       } else if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters')
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Email/password signup is disabled in Firebase for Android auth. Web signup now uses the backend; refresh and try again.')
       } else {
         setError(err.message || 'Signup failed')
       }
@@ -178,6 +199,10 @@ export default function Signup() {
         setError('Google signup was cancelled')
       } else if (err.code === 'auth/popup-blocked') {
         setError('Popup was blocked. Please allow popups for this site.')
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('Google signup is blocked for this local URL. Open http://localhost:5173 instead of 127.0.0.1, or add this domain in Firebase Auth > Settings > Authorized domains.')
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Google signup is disabled in Firebase Authentication. Enable the Google provider in Firebase Console.')
       } else {
         setError(err.message || 'Google Signup failed')
       }
@@ -516,7 +541,7 @@ export default function Signup() {
         <div className="absolute -bottom-[20%] -right-[10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[100px]" />
       </div>
 
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-[#1e1e1e] border border-white/10 p-8 rounded-3xl w-full max-w-md relative z-10 shadow-2xl backdrop-blur-xl"
@@ -659,7 +684,7 @@ export default function Signup() {
             </Link>
           </p>
         </div>
-      </motion.div>
+      </MotionDiv>
     </div>
   )
 }

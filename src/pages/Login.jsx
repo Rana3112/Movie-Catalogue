@@ -9,6 +9,7 @@ import { Capacitor } from '@capacitor/core'
 import { auth } from '../main'
 
 const isNative = Capacitor.isNativePlatform()
+const MotionDiv = motion.div
 
 // Montserrat font injection
 if (typeof document !== 'undefined' && !document.getElementById('montserrat-font')) {
@@ -34,6 +35,25 @@ export default function Login() {
     setLoading(true)
 
     try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+
+      if (!isNative) {
+        const response = await fetch(`${API_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Login failed')
+        }
+
+        setUser(data.user, data.token)
+        navigate('/')
+        return
+      }
+
       // Firebase Email/Password Login
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
@@ -42,7 +62,6 @@ export default function Login() {
       const idToken = await user.getIdToken()
 
 // Send to backend with retry for cold starts
-    const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
     let response
 
     // Retry up to 5 times with 5 second delays for cold starts
@@ -60,7 +79,7 @@ export default function Login() {
           })
         })
         break
-      } catch (fetchErr) {
+      } catch {
         if (attempt < 4) {
           await new Promise(r => setTimeout(r, 5000))
         }
@@ -87,6 +106,8 @@ export default function Login() {
         setError('Incorrect password')
       } else if (err.code === 'auth/invalid-email') {
         setError('Invalid email address')
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Email/password login is disabled in Firebase for Android auth. Web login now uses the backend; refresh and try again.')
       } else {
         setError(err.message || 'Login failed')
       }
@@ -172,6 +193,10 @@ export default function Login() {
         setError('Google login was cancelled')
       } else if (err.code === 'auth/popup-blocked') {
         setError('Popup was blocked. Please allow popups for this site.')
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('Google login is blocked for this local URL. Open http://localhost:5173 instead of 127.0.0.1, or add this domain in Firebase Auth > Settings > Authorized domains.')
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Google login is disabled in Firebase Authentication. Enable the Google provider in Firebase Console.')
       } else {
         setError(err.message || 'Google Login failed')
       }
@@ -475,7 +500,7 @@ export default function Login() {
         <div className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-[#ffd700]/5 rounded-full blur-[100px]" />
       </div>
 
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-[#1e1e1e] border border-white/10 p-8 rounded-3xl w-full max-w-md relative z-10 shadow-2xl backdrop-blur-xl"
@@ -596,7 +621,7 @@ export default function Login() {
             </Link>
           </p>
         </div>
-      </motion.div>
+      </MotionDiv>
     </div>
   )
 }
