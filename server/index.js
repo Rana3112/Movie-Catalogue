@@ -773,13 +773,57 @@ app.post('/api/movie-lookup', async (req, res) => {
 });
 
 // POST /api/chat — AI Chat via OpenRouter
+const shouldFallbackToMovieLookup = (message = '') => {
+    const text = String(message || '').trim();
+    if (!text) return false;
+
+    const lower = text.toLowerCase();
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    const startsLikeQuestion =
+        lower.startsWith('how ') ||
+        lower.startsWith('why ') ||
+        lower.startsWith('what ') ||
+        lower.startsWith('who ') ||
+        lower.startsWith('when ') ||
+        lower.startsWith('where ') ||
+        lower.startsWith('recommend') ||
+        lower.startsWith('suggest') ||
+        lower.startsWith('list ');
+
+    return wordCount <= 8 && !text.includes('?') && !startsLikeQuestion;
+};
+
+const buildMovieLookupFallback = (message) => {
+    const query = String(message || '').trim();
+
+    return {
+        reply: 'The AI chat service is temporarily limited, but I can still look up that title for you.',
+        action: {
+            type: 'movie_lookup',
+            query,
+            queries: [query]
+        },
+        degraded: true
+    };
+};
+
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, userEmail, conversationHistory } = req.body;
         if (!message) return res.status(400).json({ error: 'Missing message' });
 
         const apiKey = process.env.OPENROUTER_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'OpenRouter API key not configured' });
+        if (!apiKey) {
+            if (shouldFallbackToMovieLookup(message)) {
+                return res.json(buildMovieLookupFallback(message));
+            }
+
+            return res.json({
+                reply: 'CineBot chat is not configured yet, but you can type a movie, series, or anime title and I will try to look it up.',
+                action: null,
+                degraded: true
+            });
+        }
 
         console.log(`[CINEBOT] Chat from ${userEmail || 'guest'}: "${message}"`);
 
@@ -847,7 +891,7 @@ RULES:
             body: JSON.stringify({
                 model: 'openai/gpt-4o-mini',
                 messages,
-                max_tokens: 500,
+                max_tokens: 280,
                 temperature: 0.7
             })
         });
@@ -856,7 +900,15 @@ RULES:
 
         if (!aiResponse.ok) {
             console.error('[CINEBOT] OpenRouter error:', aiData);
-            return res.status(500).json({ error: 'AI service error', details: aiData });
+            if (shouldFallbackToMovieLookup(message)) {
+                return res.json(buildMovieLookupFallback(message));
+            }
+
+            return res.json({
+                reply: 'CineBot chat is temporarily limited. Try typing a specific movie, series, or anime title so I can look it up directly.',
+                action: null,
+                degraded: true
+            });
         }
 
         const reply = aiData.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
@@ -897,7 +949,15 @@ RULES:
 
     } catch (err) {
         console.error('[CINEBOT] Chat error:', err);
-        res.status(500).json({ error: err.message });
+        if (shouldFallbackToMovieLookup(req.body?.message)) {
+            return res.json(buildMovieLookupFallback(req.body.message));
+        }
+
+        res.json({
+            reply: 'CineBot is temporarily unavailable. Try again in a moment, or type a specific title for direct lookup.',
+            action: null,
+            degraded: true
+        });
     }
 });
 

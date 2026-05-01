@@ -14,6 +14,20 @@ const isNative = Capacitor.isNativePlatform()
 const useNeumorphicLayout = shouldUseNeumorphicLayout()
 const MotionDiv = motion.div
 
+const getUnauthorizedDomainMessage = () => {
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : 'this domain'
+
+  if (hostname === '127.0.0.1') {
+    return 'Google login is blocked for 127.0.0.1. Open http://localhost:5173 instead, or add 127.0.0.1 in Firebase Auth > Settings > Authorized domains.'
+  }
+
+  const pairedDomain = hostname.startsWith('www.')
+    ? hostname.replace(/^www\./, '')
+    : `www.${hostname}`
+
+  return `Google login is blocked for ${hostname}. Add ${hostname} and ${pairedDomain} in Firebase Auth > Settings > Authorized domains.`
+}
+
 // Montserrat font injection
 if (typeof document !== 'undefined' && !document.getElementById('montserrat-font')) {
   const link = document.createElement('link')
@@ -197,7 +211,7 @@ export default function Login() {
       } else if (err.code === 'auth/popup-blocked') {
         setError('Popup was blocked. Please allow popups for this site.')
       } else if (err.code === 'auth/unauthorized-domain') {
-        setError('Google login is blocked for this local URL. Open http://localhost:5173 instead of 127.0.0.1, or add this domain in Firebase Auth > Settings > Authorized domains.')
+        setError(getUnauthorizedDomainMessage())
       } else if (err.code === 'auth/operation-not-allowed') {
         setError('Google login is disabled in Firebase Authentication. Enable the Google provider in Firebase Console.')
       } else {
