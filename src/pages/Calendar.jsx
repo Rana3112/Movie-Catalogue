@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { X, Star, Upload, Calendar as CalIcon, ChevronLeft, ChevronRight, Trash, LayoutGrid, Settings, LogOut } from 'lucide-react'
@@ -7,7 +7,18 @@ import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import { useNavigate } from 'react-router-dom'
 import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../lib/platform'
-import { netflixNeumorphic, netflixPageStyle, netflixRaisedStyle, netflixRedButtonStyle, netflixSurfaceStyle, netflixInsetStyle } from '../styles/netflixNeumorphic'
+import {
+    netflixNeumorphic,
+    netflixPageStyle,
+    netflixRaisedStyle,
+    netflixRedButtonStyle,
+    netflixSurfaceStyle,
+    netflixInsetStyle,
+    nativeFastPageStyle,
+    nativeFastRaisedStyle,
+    nativeFastInsetStyle,
+    nativeFastRedButtonStyle,
+} from '../styles/netflixNeumorphic'
 
 const isNative = shouldUseCompactNativeLayout()
 const useDesktopNeumorphic = shouldUseNeumorphicLayout() && !isNative
@@ -61,10 +72,12 @@ export default function Calendar() {
     const [longPressData, setLongPressData] = useState(null)
     const longPressRef = useRef(false)
     const pressTimer = useRef(null)
+    const pressStartRef = useRef({ x: 0, y: 0 })
 
-    const handlePointerDown = (day, entries) => {
+    const handlePointerDown = (event, day, entries) => {
         longPressRef.current = false;
         if (pressTimer.current) clearTimeout(pressTimer.current);
+        pressStartRef.current = { x: event.clientX || 0, y: event.clientY || 0 }
         pressTimer.current = setTimeout(() => {
             longPressRef.current = true;
             setLongPressData({ day, entries });
@@ -73,6 +86,14 @@ export default function Calendar() {
 
     const clearPress = () => {
         if (pressTimer.current) clearTimeout(pressTimer.current);
+        pressTimer.current = null
+    }
+
+    const handlePointerMove = (event) => {
+        const start = pressStartRef.current
+        if (Math.abs((event.clientX || 0) - start.x) > 10 || Math.abs((event.clientY || 0) - start.y) > 10) {
+            clearPress()
+        }
     }
 
     const onDayClick = (day) => {
@@ -91,7 +112,7 @@ export default function Calendar() {
         fetchCustomGenres()
     }, [fetchEntries, fetchCustomGenres])
 
-    const allUniqueGenres = (() => {
+    const allUniqueGenres = useMemo(() => {
         const uniqueMap = new Map();
         const sources = [...GENRES, ...(Array.isArray(customGenres) ? customGenres : []).map(cg => cg?.name).filter(n => typeof n === 'string'), ...selectedGenres];
         sources.forEach(g => {
@@ -101,7 +122,7 @@ export default function Calendar() {
             }
         });
         return Array.from(uniqueMap.values());
-    })();
+    }, [customGenres, selectedGenres]);
 
     const [imdbLinkValue, setImdbLinkValue] = useState('')
 
@@ -420,27 +441,34 @@ export default function Calendar() {
                     <div
                         key={day}
                         onClick={() => onDayClick(day)}
-                        onPointerDown={() => handlePointerDown(day, dayEntries)}
+                        onPointerDown={(event) => handlePointerDown(event, day, dayEntries)}
+                        onPointerMove={handlePointerMove}
                         onPointerUp={clearPress}
                         onPointerLeave={clearPress}
                         onPointerCancel={clearPress}
                         onContextMenu={(e) => e.preventDefault()}
                         className={`
-                            relative group transition-all duration-300 rounded-[32px] overflow-hidden flex flex-col
-                            select-none touch-auto active:scale-[0.98]
+                            relative group rounded-[28px] overflow-hidden flex flex-col
+                            select-none active:scale-[0.99]
                             ${!isReadOnly ? 'cursor-pointer' : 'cursor-default'}
                         `}
                         style={{ 
-                            minHeight: 220,
+                            minHeight: 204,
                             WebkitTouchCallout: 'none',
                             WebkitUserSelect: 'none',
-                            ...netflixRaisedStyle,
+                            touchAction: 'pan-y',
+                            contain: 'layout paint style',
+                            contentVisibility: 'auto',
+                            containIntrinsicSize: '204px',
+                            transform: 'translateZ(0)',
+                            WebkitBackfaceVisibility: 'hidden',
+                            ...nativeFastRaisedStyle,
                         }}
                     >
                         {entryCount > 0 ? (
                             <>
                                 {isMulti ? (
-                                    <div className="flex flex-col h-full bg-black/15 backdrop-blur-sm">
+                                    <div className="flex flex-col h-full bg-black/15">
                                         <div className="relative z-10 flex flex-col h-full p-5">
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-baseline gap-1.5">
@@ -466,12 +494,12 @@ export default function Calendar() {
                                                                 height: 104,
                                                                 transform: `translate(${xOff}, ${yOff}) rotate(${rot})`,
                                                                 zIndex: zIdx,
-                                                                boxShadow: '0 8px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.12)',
+                                                                boxShadow: '0 4px 10px rgba(0,0,0,0.38), 0 0 0 1px rgba(255,255,255,0.1)',
                                                                 background: netflixNeumorphic.panelSoft
                                                             }}
                                                         >
                                                             {entry.poster ? (
-                                                                <img src={entry.poster} className="w-full h-full object-cover" />
+                                                                <img src={entry.poster} alt={entry.title || 'Poster'} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                                             ) : (
                                                                  <div className="w-full h-full flex items-center justify-center text-neutral-500">
                                                                     <CalIcon size={20} />
@@ -487,7 +515,7 @@ export default function Calendar() {
                                                     className="px-4 py-1.5 rounded-full flex items-center gap-2"
                                                     style={{
                                                         background: 'rgba(229,9,20,0.14)',
-                                                        boxShadow: '0 8px 18px rgba(229,9,20,0.16)',
+                                                        boxShadow: '0 3px 8px rgba(229,9,20,0.14)',
                                                         border: '1px solid rgba(229,9,20,0.34)'
                                                     }}
                                                 >
@@ -505,6 +533,8 @@ export default function Calendar() {
                                                         src={posterEntry.poster}
                                                         alt="Poster"
                                                         className="w-full h-full object-cover"
+                                                        loading="lazy"
+                                                        decoding="async"
                                                     />
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/30 to-transparent" />
                                                 </>
@@ -538,7 +568,6 @@ export default function Calendar() {
                                                             background: 'rgba(0,0,0,0.35)',
                                                             border: '1px solid rgba(255,255,255,0.2)',
                                                             color: 'rgba(255,255,255,0.75)',
-                                                            backdropFilter: 'blur(4px)'
                                                         }}
                                                     >
                                                         {g}
@@ -591,7 +620,7 @@ export default function Calendar() {
                                     <div className="flex flex-col items-center gap-1.5 mt-2">
                                         <div 
                                             className="w-10 h-10 rounded-full flex items-center justify-center" 
-                                            style={netflixInsetStyle}
+                                            style={nativeFastInsetStyle}
                                         >
                                             <CalIcon className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
                                         </div>
@@ -951,7 +980,7 @@ export default function Calendar() {
     // ──────────────────────────────────────────────
     if (isNative) {
         return (
-            <div className="min-h-screen w-full relative font-sans overflow-x-hidden text-white" style={{ background: netflixNeumorphic.pageBackground, fontFamily: "'Montserrat', sans-serif" }}>
+            <div className="min-h-screen w-full relative font-sans overflow-x-hidden text-white" style={{ ...nativeFastPageStyle, fontFamily: "'Montserrat', sans-serif" }}>
                 {/* ── Simplified Native Header ── */}
                 <header className="fixed top-0 left-0 right-0 z-40 px-6 py-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
                     <div className="flex items-center justify-between max-w-lg mx-auto">
@@ -959,7 +988,7 @@ export default function Calendar() {
                             onClick={() => navigate('/genres')}
                             className="w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95"
                             style={{ 
-                                ...netflixRaisedStyle,
+                                ...nativeFastRaisedStyle,
                                 cursor: 'pointer'
                             }}
                         >
@@ -986,7 +1015,7 @@ export default function Calendar() {
                                     onClick={() => changeMonth('prev')}
                                     disabled={currentMonthIndex === 0}
                                     className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
-                                    style={netflixRaisedStyle}
+                                    style={nativeFastRaisedStyle}
                                 >
                                     <ChevronLeft size={20} style={{ color: netflixNeumorphic.textSoft }} />
                                 </button>
@@ -994,7 +1023,7 @@ export default function Calendar() {
                                     onClick={() => changeMonth('next')}
                                     disabled={currentMonthIndex === 11}
                                     className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
-                                    style={netflixRaisedStyle}
+                                    style={nativeFastRaisedStyle}
                                 >
                                     <ChevronRight size={20} style={{ color: netflixNeumorphic.textSoft }} />
                                 </button>
@@ -1026,7 +1055,7 @@ export default function Calendar() {
                 {/* ── Entry Modal (Light Theme) ── */}
                 <AnimatePresence>
                     {showModal && (
-                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md p-0 sm:p-4">
+                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4">
                             <Motion.div
                                 initial={{ y: "100%" }}
                                 animate={{ y: 0 }}
@@ -1034,7 +1063,8 @@ export default function Calendar() {
                                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                                 className="w-full max-w-lg rounded-t-[40px] sm:rounded-[40px] px-6 pt-8 shadow-2xl overflow-y-auto max-h-[90vh] sm:max-h-[90vh]"
                                 style={{ 
-                                    ...netflixSurfaceStyle,
+                                    ...nativeFastRaisedStyle,
+                                    background: `linear-gradient(145deg, ${netflixNeumorphic.panelRaised}, ${netflixNeumorphic.panel})`,
                                     fontFamily: "'Montserrat', sans-serif", 
                                     paddingBottom: 'calc(env(safe-area-inset-bottom, 100px) + 120px)' 
                                 }}
@@ -1045,7 +1075,7 @@ export default function Calendar() {
                                     <h2 className="text-2xl font-bold" style={{ color: netflixNeumorphic.text }}>
                                         <span style={{ color: netflixNeumorphic.red }}>{selectedDate?.day}</span> {MONTHS[selectedDate?.monthIndex]}
                                     </h2>
-                                    <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90" style={{ ...netflixRaisedStyle, color: netflixNeumorphic.textSoft }}><X size={20} /></button>
+                                    <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90" style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.textSoft }}><X size={20} /></button>
                                 </div>
 
                                 {/* Existing Entries */}
@@ -1061,7 +1091,7 @@ export default function Calendar() {
                                             <div
                                                 key={entry._id}
                                                 className="p-4 rounded-[32px] flex gap-4 transition-all active:scale-[0.98] group relative"
-                                                style={netflixInsetStyle}
+                                                style={nativeFastInsetStyle}
                                                 onClick={() => handleEditClick(entry)}
                                             >
                                                 <div className="absolute top-2 right-2 flex gap-1">
@@ -1071,7 +1101,7 @@ export default function Calendar() {
                                                             handleEditClick(entry)
                                                         }}
                                                         className="p-2 rounded-full active:scale-90"
-                                                        style={{ ...netflixRaisedStyle, color: netflixNeumorphic.textSoft }}
+                                                        style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.textSoft }}
                                                     >
                                                         <Upload size={14} className="rotate-90" />
                                                     </button>
@@ -1083,15 +1113,15 @@ export default function Calendar() {
                                                             }
                                                         }}
                                                         className="p-2 rounded-full active:scale-90"
-                                                        style={{ ...netflixRaisedStyle, color: netflixNeumorphic.red }}
+                                                        style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.red }}
                                                     >
                                                         <Trash size={14} />
                                                     </button>
                                                 </div>
                                                 {entry.poster ? (
-                                                    <img src={entry.poster} alt={entry.title} className="w-16 h-24 object-cover rounded-2xl flex-shrink-0" />
+                                                    <img src={entry.poster} alt={entry.title} className="w-16 h-24 object-cover rounded-2xl flex-shrink-0" loading="lazy" decoding="async" />
                                                 ) : (
-                                                    <div className="w-16 h-24 rounded-2xl flex items-center justify-center text-[10px] text-center p-2" style={{ ...netflixRaisedStyle, color: netflixNeumorphic.muted }}>No Poster</div>
+                                                    <div className="w-16 h-24 rounded-2xl flex items-center justify-center text-[10px] text-center p-2" style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.muted }}>No Poster</div>
                                                 )}
                                                 <div className="flex-1 min-w-0 pr-12">
                                                     <h4 className="font-bold text-base truncate" style={{ color: netflixNeumorphic.text }}>{entry.title}</h4>
@@ -1148,7 +1178,7 @@ export default function Calendar() {
                                             <div className="relative">
                                                 <input
                                                     className="w-full rounded-2xl p-4 focus:outline-none transition-all font-medium placeholder:text-neutral-500"
-                                                    style={{ ...netflixInsetStyle, color: netflixNeumorphic.text }}
+                                                    style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
                                                     value={formData.title}
                                                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                                                     placeholder="Enter name..."
@@ -1175,7 +1205,7 @@ export default function Calendar() {
                                                             }}
                                                             className="text-[10px] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider transition-all scale-100 active:scale-95"
                                                             style={{
-                                                                ...(isSelected ? netflixRedButtonStyle : netflixRaisedStyle),
+                                                                ...(isSelected ? nativeFastRedButtonStyle : nativeFastRaisedStyle),
                                                                 color: isSelected ? '#FFFFFF' : netflixNeumorphic.textSoft,
                                                                 border: isSelected ? `1px solid ${netflixNeumorphic.borderStrong}` : `1px solid ${netflixNeumorphic.border}`
                                                             }}
@@ -1192,7 +1222,7 @@ export default function Calendar() {
                                                 <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Critic %</label>
                                                 <input
                                                     className="w-full rounded-2xl p-4 focus:outline-none font-bold placeholder:text-neutral-500"
-                                                    style={{ ...netflixInsetStyle, color: netflixNeumorphic.text }}
+                                                    style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
                                                     value={formData.rtCriticScore}
                                                     onChange={e => setFormData({ ...formData, rtCriticScore: e.target.value })}
                                                     placeholder="0"
@@ -1202,7 +1232,7 @@ export default function Calendar() {
                                                 <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Audience %</label>
                                                 <input
                                                     className="w-full rounded-2xl p-4 focus:outline-none font-bold placeholder:text-neutral-500"
-                                                    style={{ ...netflixInsetStyle, color: netflixNeumorphic.text }}
+                                                    style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
                                                     value={formData.rtAudienceScore}
                                                     onChange={e => setFormData({ ...formData, rtAudienceScore: e.target.value })}
                                                     placeholder="0"
@@ -1215,7 +1245,7 @@ export default function Calendar() {
                                             <div className="flex gap-2">
                                                 <input
                                                     className="flex-1 rounded-2xl p-4 focus:outline-none text-xs placeholder:text-neutral-500"
-                                                    style={{ ...netflixInsetStyle, color: netflixNeumorphic.text }}
+                                                    style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
                                                     value={imdbLinkValue}
                                                     onChange={e => setImdbLinkValue(e.target.value)}
                                                     placeholder="Paste URL..."
@@ -1224,7 +1254,7 @@ export default function Calendar() {
                                                     onClick={() => handleFetchPoster(imdbLinkValue)}
                                                     disabled={isFetching}
                                                     className="w-14 rounded-2xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-50"
-                                                    style={netflixRaisedStyle}
+                                                    style={nativeFastRaisedStyle}
                                                 >
                                                     <Upload size={18} className={isFetching ? 'animate-bounce' : ''} style={{ color: netflixNeumorphic.red }} />
                                                 </button>
@@ -1234,7 +1264,7 @@ export default function Calendar() {
                                         <div className="flex items-center gap-6 py-2">
                                             <div className="flex-1">
                                                 <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Rating</label>
-                                                <div className="flex gap-2 p-3 rounded-2xl" style={netflixInsetStyle}>
+                                                <div className="flex gap-2 p-3 rounded-2xl" style={nativeFastInsetStyle}>
                                                     {[1, 2, 3, 4, 5].map(num => (
                                                         <button
                                                             key={num}
@@ -1270,14 +1300,14 @@ export default function Calendar() {
                                              <button
                                                  onClick={() => setShowModal(false)}
                                                  className="flex-1 py-4 rounded-3xl text-sm font-bold uppercase tracking-widest transition-all active:scale-95"
-                                                 style={{ ...netflixRaisedStyle, color: netflixNeumorphic.textSoft }}
+                                                 style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.textSoft }}
                                              >
                                                  Back
                                              </button>
                                              <button
                                                  onClick={handleSubmit}
                                                  className="flex-[2] py-4 rounded-3xl text-sm font-bold uppercase tracking-widest text-white transition-all active:scale-95"
-                                                 style={netflixRedButtonStyle}
+                                                 style={nativeFastRedButtonStyle}
                                              >
                                                  {editingId ? "Update Entry" : "Save Entry"}
                                              </button>

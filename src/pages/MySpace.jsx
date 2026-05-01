@@ -5,13 +5,21 @@ import { ArrowLeft, Search, Filter, X, Trash2, CalendarDays } from 'lucide-react
 import UserBadge from '../components/ui/UserBadge'
 import '../components/mobile/MobileBackground.css'
 import { shouldUseCompactNativeLayout } from '../lib/platform'
-import { netflixNeumorphic, netflixRaisedStyle, netflixRedButtonStyle, netflixSurfaceStyle, netflixInsetStyle } from '../styles/netflixNeumorphic'
+import {
+    netflixNeumorphic,
+    netflixRaisedStyle,
+    netflixSurfaceStyle,
+    netflixInsetStyle,
+    nativeFastPageStyle,
+    nativeFastRaisedStyle,
+    nativeFastInsetStyle,
+} from '../styles/netflixNeumorphic'
 
 const isNative = shouldUseCompactNativeLayout()
 const NATIVE_GRID_COLUMNS = 2
 const NATIVE_GRID_GAP = 16
-const NATIVE_GRID_OVERSCAN_ROWS = 3
-const INITIAL_NATIVE_ROWS = 6
+const NATIVE_GRID_OVERSCAN_ROWS = 5
+const INITIAL_NATIVE_ROWS = 8
 
 const getScoreColor = (score) => {
     if (!score) return ''
@@ -25,8 +33,13 @@ const getScoreColor = (score) => {
 const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
     const cardStyle = isNative
         ? {
-            ...netflixRaisedStyle,
+            ...nativeFastRaisedStyle,
             aspectRatio: '2/3',
+            contain: 'layout paint style',
+            contentVisibility: 'auto',
+            containIntrinsicSize: '220px 330px',
+            transform: 'translateZ(0)',
+            WebkitBackfaceVisibility: 'hidden',
         }
         : {
             ...netflixRaisedStyle,
@@ -39,7 +52,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
 
     const actionButtonStyle = isNative
         ? {
-            ...netflixRaisedStyle,
+            ...nativeFastRaisedStyle,
         }
         : {
             ...netflixRaisedStyle,
@@ -50,14 +63,14 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
             onClick={() => onClick(entry)}
             className={`group relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer ${
                 isNative 
-                    ? 'transition-transform active:scale-[0.985]' 
+                    ? 'active:scale-[0.99]' 
                     : 'transition-all hover:scale-[1.02] hover:shadow-xl'
             }`}
             style={cardStyle}
         >
             <div className="absolute inset-0" style={{ background: netflixNeumorphic.panelSoft }} />
             {entry.poster ? (
-                <img src={entry.poster} className="w-full h-full object-cover relative z-10" loading="lazy" decoding="async" />
+                <img src={entry.poster} alt={entry.title || 'Poster'} className="w-full h-full object-cover relative z-10" loading="lazy" decoding="async" />
             ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate-300">
                     <div className="text-center p-4">
@@ -72,16 +85,14 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
                 isNative ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'
             }`} />
 
-            {/* Play Icon - Mobile always, Web on hover */}
-            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 z-30 pointer-events-none ${
-                isNative ? 'opacity-30' : 'opacity-0 group-hover:opacity-100'
-            }`}>
-                <div
-                    className="p-3.5 rounded-full border shadow-xl bg-white/20 backdrop-blur-md border-white/20"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white" className="ml-1"><polygon points="6 3 20 12 6 21 6 3" /></svg>
+            {/* Play Icon - Web hover only; native avoids per-card blur layers while scrolling. */}
+            {!isNative && (
+                <div className="absolute inset-0 flex items-center justify-center transition-all duration-500 z-30 pointer-events-none opacity-0 group-hover:opacity-100">
+                    <div className="p-3.5 rounded-full border shadow-xl bg-white/20 backdrop-blur-md border-white/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white" className="ml-1"><polygon points="6 3 20 12 6 21 6 3" /></svg>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             <div className={`absolute top-3 right-3 flex items-center gap-2 ${isNative ? 'z-40' : 'z-20 opacity-0 group-hover:opacity-100 transition-opacity'}`}>
@@ -111,11 +122,11 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
                 isNative ? 'translate-y-0' : 'translate-y-1 group-hover:translate-y-0'
             }`}>
                 <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/10 backdrop-blur-sm">
+                    <span className={`text-[9px] font-bold text-slate-300 uppercase tracking-widest px-1.5 py-0.5 rounded ${isNative ? 'bg-black/35' : 'bg-white/10 backdrop-blur-sm'}`}>
                         {entry.year}
                     </span>
                     {entry.rating > 0 && (
-                        <span className="text-[9px] font-bold text-yellow-500 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 backdrop-blur-sm">
+                        <span className={`text-[9px] font-bold text-yellow-500 flex items-center gap-0.5 px-1.5 py-0.5 rounded ${isNative ? 'bg-black/35' : 'bg-white/10 backdrop-blur-sm'}`}>
                             ★ {entry.rating}
                         </span>
                     )}
@@ -125,7 +136,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
                     isNative ? 'opacity-80' : 'opacity-0 group-hover:opacity-100'
                 }`}>
                     {(entry.genres || []).slice(0, 2).map(g => (
-                        <span key={g} className="text-[8px] font-bold text-white/80 uppercase tracking-tighter border px-1.5 py-0.5 rounded bg-red-500/30 border-white/20 backdrop-blur-sm">
+                        <span key={g} className={`text-[8px] font-bold text-white/80 uppercase tracking-tighter border px-1.5 py-0.5 rounded bg-red-500/30 border-white/20 ${isNative ? '' : 'backdrop-blur-sm'}`}>
                             {g}
                         </span>
                     ))}
@@ -223,7 +234,7 @@ const NativeVirtualizedGrid = React.memo(({ entries, onClick, onNavigate, onRemo
     const bottomSpacerHeight = Math.max(0, totalHeight - topSpacerHeight - renderedHeight)
 
     return (
-        <div ref={containerRef} className="w-full">
+        <div ref={containerRef} className="w-full" style={{ contain: 'layout paint style' }}>
             {topSpacerHeight > 0 && <div style={{ height: topSpacerHeight }} aria-hidden="true" />}
             <div className="grid grid-cols-2 gap-4">
                 {visibleEntries.map((entry) => (
@@ -322,9 +333,9 @@ export default function MySpace() {
         fetchEntries().catch(() => {})
     }, [fetchEntries])
 
-    const surfaceStyle = useMemo(() => netflixRaisedStyle, [])
+    const surfaceStyle = useMemo(() => isNative ? nativeFastRaisedStyle : netflixRaisedStyle, [])
 
-    const pressedSurfaceStyle = useMemo(() => netflixInsetStyle, [])
+    const pressedSurfaceStyle = useMemo(() => isNative ? nativeFastInsetStyle : netflixInsetStyle, [])
 
     const handleEntryClick = useCallback(async (entry) => {
         setSelectedTrailerEntry(entry)
@@ -366,7 +377,7 @@ export default function MySpace() {
     }, [navigate, setCategory, setGlobalSelectedGenres, setSelectedMonth, setYear])
 
     return (
-        <div className="min-h-screen w-full relative font-sans selection:bg-red-500/30" style={{ background: netflixNeumorphic.pageBackgroundSoft }}>
+        <div className="min-h-screen w-full relative font-sans selection:bg-red-500/30" style={isNative ? nativeFastPageStyle : { background: netflixNeumorphic.pageBackgroundSoft }}>
             {/* Background Ambience - Disabled on mobile for performance */}
             {!isNative && (
                 <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
@@ -381,20 +392,13 @@ export default function MySpace() {
                 </div>
             )}
 
-            {isNative && (
-                <div 
-                    className="fixed inset-0 z-0 pointer-events-none"
-                    style={{ background: netflixNeumorphic.pageBackgroundSoft }}
-                />
-            )}
-
             {/* Header / Nav */}
             <header 
-                className={`sticky top-0 z-50 ${isNative ? '' : 'backdrop-blur-md'}`}
+                className={`${isNative ? 'relative' : 'sticky top-0 backdrop-blur-md'} z-50`}
                 style={{ 
-                    background: 'rgba(12,12,13,0.86)', 
+                    background: isNative ? 'rgba(12,12,13,0.98)' : 'rgba(12,12,13,0.86)', 
                     borderBottom: `1px solid ${netflixNeumorphic.border}`,
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.34)'
+                    boxShadow: isNative ? 'none' : '0 10px 30px rgba(0,0,0,0.34)'
                 }}
             >
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
@@ -535,7 +539,7 @@ export default function MySpace() {
                                     className="aspect-[2/3] rounded-2xl overflow-hidden animate-pulse"
                                     style={{
                                         background: netflixNeumorphic.panelSoft,
-                                        boxShadow: netflixNeumorphic.softShadow,
+                                        boxShadow: isNative ? nativeFastRaisedStyle.boxShadow : netflixNeumorphic.softShadow,
                                         border: `1px solid ${netflixNeumorphic.border}`,
                                     }}
                                 >

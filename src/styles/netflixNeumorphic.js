@@ -59,3 +59,27 @@ export const netflixRedButtonStyle = {
   boxShadow: netflixNeumorphic.redShadow,
   border: `1px solid ${netflixNeumorphic.borderStrong}`,
 }
+
+export const nativeFastPageStyle = {
+  background: 'linear-gradient(135deg, #070707 0%, #121214 52%, #070707 100%)',
+  color: netflixNeumorphic.text,
+}
+
+export const nativeFastRaisedStyle = {
+  background: netflixNeumorphic.panelSoft,
+  boxShadow: '0 3px 10px rgba(0,0,0,0.38)',
+  border: `1px solid ${netflixNeumorphic.border}`,
+}
+
+export const nativeFastInsetStyle = {
+  background: netflixNeumorphic.panelSoft,
+  boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.48)',
+  border: `1px solid ${netflixNeumorphic.border}`,
+}
+
+export const nativeFastRedButtonStyle = {
+  background: `linear-gradient(135deg, ${netflixNeumorphic.red}, ${netflixNeumorphic.redDark})`,
+  color: '#FFFFFF',
+  boxShadow: '0 8px 18px rgba(229,9,20,0.22)',
+  border: `1px solid ${netflixNeumorphic.borderStrong}`,
+}

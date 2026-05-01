@@ -1,12 +1,26 @@
-# Categloge Android App
+# Categloge / Movie Catalogue
 
-Categloge is a cinematic movie, TV, anime, calendar, and personal watch-planning app built with React, Vite, Capacitor, Android WebView, Node.js, MongoDB, Firebase, TMDB, AniList, and external playback providers.
+Categloge is a cinematic movie, TV, anime, calendar, and personal watch-planning app built for both web and Android. It uses React, Vite, Capacitor, Android WebView, Node.js, MongoDB, Firebase, TMDB, AniList, and external playback providers.
 
-The project started as a 3D time-travel movie catalogue, then grew into a full Android-ready entertainment app. The latest build adds StreamZone, an in-app streaming area where users can browse movies, TV series, and anime, open detail pages, continue watching, filter by genre, search, and play content in a mobile-focused landscape player.
+The project started as a 3D time-travel movie catalogue, then grew into a full entertainment app with a web experience and a Capacitor Android shell. The current build includes StreamZone, an in-app streaming area where users can browse movies, TV series, and anime, open detail pages, continue watching, filter by genre, search, and play content in a mobile-focused landscape player.
+
+## Live Web App
+
+Primary website:
+
+```text
+https://utkarsh.sbs
+```
+
+Vercel deployment:
+
+```text
+https://movie-catalogue-taupe.vercel.app/
+```
 
 ## Latest Android Debug APK
 
-The latest test build is published from GitHub Releases:
+The latest Android test build is published from GitHub Releases:
 
 ```text
 https://github.com/Rana3112/Movie-Catalogue/releases/latest
@@ -20,7 +34,38 @@ Asset name used for the StreamZone test release:
 Categloge-StreamZone-debug.apk
 ```
 
+Latest APK checksum:
+
+```text
+SHA256: D9B3D6D250CE335705C46BF344DC3D454C45F8F69DBBADBB142D6A3C6753CF19
+```
+
 This is a debug build for testing, not a Play Store production build. Android may show an "unknown app" warning during installation because the APK is not installed from Google Play.
+
+## Latest Web And Android Updates
+
+### Android Version
+
+- Added the Netflix-style dark red neumorphic visual system across the Android app shell.
+- Updated Time Archive, category, genre, calendar, My Calendar, My Space, login/signup, and add-entry surfaces to use the darker cinematic theme.
+- Added StreamZone with movie, TV series, anime, genre, search, detail, See All, and fullscreen player flows.
+- Hardened movie and TV playback against popup windows and app-level ad redirects.
+- Fixed Android physical back button behavior so it navigates through React app history instead of minimizing the app during normal flows.
+- Improved fullscreen landscape player fit with immersive Android system UI handling.
+- Improved My Space scrolling performance on Android by using a virtualized grid, lighter native card shadows, fewer blur layers, and a stable render window.
+- Improved My Calendar scrolling performance on Android by reducing heavy card effects, lazy-decoding poster images, and cancelling long-press work when the user scrolls.
+- Updated the Android debug APK release with the latest performance build.
+
+### Web Version
+
+- Reworked the web app separately from the Android layout so the same repository can support both without forcing phone-sized spacing on desktop.
+- Added a premium animated landing page with cinematic dark UI, poster cards, StreamZone highlights, calendar/watchlist previews, and tech architecture sections.
+- Added official-style poster imagery to the landing page and fixed poster aspect-ratio handling.
+- Propagated the Netflix-style dark red neumorphic theme through the web Time Archive, category, genre, calendar, My Calendar, My Space, login/signup, and add-entry pages.
+- Improved calendar cells on web so they use portrait poster-like cards instead of wide rectangular cells.
+- Added hover previews on My Calendar for days with multiple entries, showing saved title details, genre/status/rating context, and short descriptions where available.
+- Added scroll support to the My Space filter sidebar so category, status, and genre filters remain usable on smaller desktop heights.
+- Improved local and production auth error messages for Firebase Google sign-in domain/API-key configuration.
 
 ## What Was Added In The Latest Android Build
 
@@ -621,6 +666,12 @@ https://github.com/Rana3112/Movie-Catalogue
 ```
 
 ## Live Web App
+
+```text
+https://utkarsh.sbs
+```
+
+Vercel fallback:
 
 ```text
 https://movie-catalogue-taupe.vercel.app/
