@@ -13,6 +13,10 @@ services:
         sync: false
       - key: HIANIME_API_BASE_URL
         sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SERPAPI_KEY
+        sync: false
       - key: STREAM_PROXY_SECRET
         generateValue: true
       - key: GOOGLE_APPLICATION_CREDENTIALS
