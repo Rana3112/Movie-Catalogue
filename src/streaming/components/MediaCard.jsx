@@ -21,27 +21,24 @@ export default function MediaCard({ item, category, onClick }) {
   return (
     <div 
       onClick={() => onClick(item.id)}
-      style={{ width: 140, flexShrink: 0, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
+      className="streaming-media-card"
     >
-      <div style={{ position: 'relative', width: '100%', height: 210, borderRadius: 12, overflow: 'hidden' }}>
+      <div className="streaming-media-poster">
         <img 
           src={poster} 
           alt={title} 
-          style={{ width: '100%', height: '100%', objectFit: 'cover', backgroundColor: '#222' }} 
         />
         
-        {/* Rating Badge */}
-        <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 6px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#fff' }}>
+        <div className="streaming-rating-badge">
           <Star size={10} fill="#ffd700" color="#ffd700" /> {rating}
         </div>
 
-        {/* Category Badge */}
-        <div style={{ position: 'absolute', bottom: 8, left: 8, background: badgeColor, padding: '2px 6px', borderRadius: 4, fontSize: 9, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>
+        <div className="streaming-category-badge" style={{ background: badgeColor }}>
           {badgeLabel}
         </div>
       </div>
       
-      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#fff', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+      <p className="streaming-media-title">
         {title}
       </p>
     </div>

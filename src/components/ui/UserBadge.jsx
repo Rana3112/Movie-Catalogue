@@ -1,8 +1,10 @@
 import { useStore } from '../../store/useStore'
 import { User } from 'lucide-react'
-import { shouldUseNeumorphicLayout } from '../../lib/platform'
+import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../../lib/platform'
+import { netflixNeumorphic, netflixRaisedStyle } from '../../styles/netflixNeumorphic'
 
-const isNative = shouldUseNeumorphicLayout()
+const isNative = shouldUseCompactNativeLayout()
+const useNeumorphic = shouldUseNeumorphicLayout()
 
 export default function UserBadge({ className = "" }) {
     const user = useStore(state => state.user)
@@ -18,9 +20,7 @@ export default function UserBadge({ className = "" }) {
                     width: 48,
                     height: 48,
                     borderRadius: '50%',
-                    background: '#E8EAED',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.10), -2px -2px 6px rgba(255,255,255,0.9)',
-                    border: '1px solid rgba(255,255,255,0.95)',
+                    ...netflixRaisedStyle,
                     flexShrink: 0,
                     cursor: 'default',
                 }}
@@ -36,7 +36,7 @@ export default function UserBadge({ className = "" }) {
                         justifyContent: 'center',
                         overflow: 'hidden',
                         boxShadow: '0 0 14px rgba(14,165,233,0.55), 0 0 5px rgba(14,165,233,0.3)',
-                        border: '2px solid rgba(255,255,255,0.8)',
+                        border: '2px solid rgba(255,255,255,0.16)',
                     }}
                 >
                     {user.avatar ? (
@@ -49,6 +49,44 @@ export default function UserBadge({ className = "" }) {
                         <User size={18} style={{ color: '#fff' }} />
                     )}
                 </div>
+            </div>
+        )
+    }
+
+    if (useNeumorphic) {
+        return (
+            <div
+                className={`flex items-center gap-3 ${className}`}
+                style={{
+                    ...netflixRaisedStyle,
+                    borderRadius: 999,
+                    padding: '7px 14px 7px 8px',
+                    color: netflixNeumorphic.textSoft,
+                }}
+            >
+                <div
+                    style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #0ea5e9 0%, #0f4c81 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        boxShadow: '0 0 18px rgba(229,9,20,0.35), 0 0 8px rgba(255,255,255,0.12)',
+                        border: '2px solid rgba(255,255,255,0.16)',
+                    }}
+                >
+                    {user.avatar ? (
+                        <img src={user.avatar} alt={user.name || 'User'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        <User size={18} style={{ color: '#fff' }} />
+                    )}
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.05em', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user.name || user.email || 'User'}
+                </span>
             </div>
         )
     }

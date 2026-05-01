@@ -68,23 +68,12 @@ export default function StreamingListPage() {
   }, [category]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#fff', paddingBottom: 40 }}>
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 20,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        padding: '16px',
-        background: 'rgba(10,10,15,0.92)',
-        backdropFilter: 'blur(14px)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-      }}>
+    <div className="streaming-page streaming-list-page">
+      <header className="streaming-list-header">
         <button
           onClick={() => navigate(-1)}
           aria-label="Back"
-          style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', borderRadius: 12, width: 40, height: 40, display: 'grid', placeItems: 'center' }}
+          className="streaming-icon-button"
         >
           <ArrowLeft size={22} />
         </button>
@@ -94,14 +83,14 @@ export default function StreamingListPage() {
         </div>
       </header>
 
-      <main style={{ padding: 16 }}>
+      <main>
         {error && (
           <div style={{ padding: 14, borderRadius: 12, color: '#ffb4b4', background: 'rgba(229,9,20,0.15)', border: '1px solid rgba(229,9,20,0.3)', marginBottom: 16 }}>
             {error}
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14, alignItems: 'start' }}>
+        <div className="streaming-list-grid">
           {items.map(item => (
             <MediaCard
               key={`${category}-${item.id}`}
@@ -119,16 +108,7 @@ export default function StreamingListPage() {
         {!isLoading && hasNextPage && (
           <button
             onClick={() => loadPage(page + 1)}
-            style={{
-              width: '100%',
-              marginTop: 24,
-              padding: '14px 0',
-              borderRadius: 14,
-              border: '1px solid rgba(255,255,255,0.14)',
-              background: 'rgba(255,255,255,0.08)',
-              color: '#fff',
-              fontWeight: 700,
-            }}
+            className="streaming-load-more"
           >
             Load More
           </button>

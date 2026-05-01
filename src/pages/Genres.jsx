@@ -5,9 +5,11 @@ import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, Trash2, LayoutGrid, Settings, ChevronRight, ChevronLeft } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
-import { shouldUseNeumorphicLayout } from '../lib/platform'
+import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../lib/platform'
+import { netflixNeumorphic, netflixPageStyle, netflixRaisedStyle, netflixRedButtonStyle, netflixSurfaceStyle, netflixInsetStyle } from '../styles/netflixNeumorphic'
 
-const isNative = shouldUseNeumorphicLayout()
+const isNative = shouldUseCompactNativeLayout()
+const useDesktopNeumorphic = shouldUseNeumorphicLayout() && !isNative
 
 // Lazy load 3D component - only fetched on web
 const Background3D = lazy(() => import('../components/canvas/Background3D'))
@@ -81,7 +83,7 @@ export default function Genres() {
             <div
                 className="min-h-screen w-full relative overflow-hidden flex flex-col"
                 style={{
-                    background: '#ECEEF2',
+                    background: netflixNeumorphic.pageBackground,
                     paddingTop: 'env(safe-area-inset-top, 0px)',
                     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                     fontFamily: "'Montserrat', 'Raleway', sans-serif",
@@ -96,8 +98,8 @@ export default function Genres() {
                         width: 280,
                         height: 280,
                         borderRadius: '50%',
-                        background: 'radial-gradient(circle, rgba(200,210,240,0.35) 0%, transparent 70%)',
-                        filter: 'blur(40px)',
+                        background: 'radial-gradient(circle, rgba(229,9,20,0.24) 0%, transparent 70%)',
+                        filter: 'blur(72px)',
                     }} />
                     <div style={{
                         position: 'absolute',
@@ -106,8 +108,8 @@ export default function Genres() {
                         width: 220,
                         height: 220,
                         borderRadius: '50%',
-                        background: 'radial-gradient(circle, rgba(180,200,230,0.25) 0%, transparent 70%)',
-                        filter: 'blur(50px)',
+                        background: 'radial-gradient(circle, rgba(122,18,28,0.22) 0%, transparent 70%)',
+                        filter: 'blur(76px)',
                     }} />
                 </div>
 
@@ -117,16 +119,14 @@ export default function Genres() {
                         onClick={() => navigate('/category')}
                         className="w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95"
                         style={{ 
-                            background: '#E8EAED', 
-                            boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-                            border: '1px solid rgba(255,255,255,0.95)',
+                            ...netflixRaisedStyle,
                             cursor: 'pointer'
                         }}
                     >
-                        <ChevronLeft size={22} style={{ color: '#4B5563' }} />
+                        <ChevronLeft size={22} style={{ color: netflixNeumorphic.textSoft }} />
                     </button>
                     
-                    <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0 }}>
+                    <h1 style={{ fontSize: 18, fontWeight: 700, color: netflixNeumorphic.text, letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0 }}>
                         Select Genre
                     </h1>
 
@@ -139,7 +139,7 @@ export default function Genres() {
                     style={{ marginTop: 24, marginBottom: 12, paddingHorizontal: 16 }}
                 >
                     <div className="flex items-center justify-center gap-3 mb-1">
-                        <h1 style={{ fontSize: 26, fontWeight: 600, color: '#2D3748', letterSpacing: '0.12em', margin: 0 }}>{selectedYear}</h1>
+                        <h1 style={{ fontSize: 26, fontWeight: 600, color: netflixNeumorphic.text, letterSpacing: '0.12em', margin: 0 }}>{selectedYear}</h1>
                     </div>
                 </div>
 
@@ -160,19 +160,15 @@ export default function Genres() {
                                     onClick={() => toggleGenre(g.id)}
                                     className="pressable relative flex flex-col items-center justify-center p-5 gap-3 transition-all duration-300"
                                     style={{
-                                        // Neumorphic Styling: Recessed when selected, Raised when not
-                                        background: '#E8EAED',
+                                        ...(isSelected ? netflixInsetStyle : netflixRaisedStyle),
                                         borderRadius: 24,
-                                        boxShadow: isSelected
-                                            ? 'inset 4px 4px 10px rgba(180,190,210,0.5), inset -2px -2px 6px rgba(255,255,255,0.95)'
-                                            : '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-                                        border: '1px solid rgba(255,255,255,0.95)',
+                                        border: isSelected ? `1px solid ${netflixNeumorphic.borderStrong}` : `1px solid ${netflixNeumorphic.border}`,
                                         minHeight: 130,
                                     }}
                                 >
                                     <div
                                         className="absolute top-3 right-3 transition-opacity duration-300"
-                                        style={{ opacity: isSelected ? 1 : 0, color: '#4F46E5' }}
+                                        style={{ opacity: isSelected ? 1 : 0, color: netflixNeumorphic.red }}
                                     >
                                         <CheckCircle size={18} />
                                     </div>
@@ -191,9 +187,8 @@ export default function Genres() {
                                         style={{
                                             width: 48,
                                             height: 48,
-                                            background: isSelected ? 'rgba(79, 70, 229, 0.08)' : 'rgba(255, 255, 255, 0.4)',
-                                            color: isSelected ? '#4F46E5' : '#64748B',
-                                            boxShadow: isSelected ? 'inset 1px 1px 3px rgba(0,0,0,0.05)' : 'none'
+                                            ...netflixInsetStyle,
+                                            color: isSelected ? netflixNeumorphic.red : netflixNeumorphic.textSoft,
                                         }}
                                     >
                                         <span className="material-icons-outlined" style={{ fontSize: 28 }}>{g.icon || 'star_border'}</span>
@@ -204,7 +199,7 @@ export default function Genres() {
                                         style={{
                                             fontSize: 14,
                                             fontWeight: isSelected ? 600 : 500,
-                                            color: isSelected ? '#1E293B' : '#475569',
+                                            color: isSelected ? netflixNeumorphic.text : netflixNeumorphic.textSoft,
                                             fontFamily: "'Montserrat', sans-serif"
                                         }}
                                     >
@@ -217,11 +212,11 @@ export default function Genres() {
                         {/* Add Custom Button */}
                         <Motion.button
                             onClick={() => setShowCustomModal(true)}
-                            className="pressable relative flex flex-col items-center justify-center p-5 gap-2 border-2 border-dashed border-slate-300 rounded-3xl opacity-60"
-                            style={{ minHeight: 130 }}
+                            className="pressable relative flex flex-col items-center justify-center p-5 gap-2 rounded-3xl opacity-75"
+                            style={{ ...netflixInsetStyle, minHeight: 130, border: '1px dashed rgba(255,255,255,0.16)' }}
                         >
-                            <span className="material-icons-outlined text-slate-400" style={{ fontSize: 32 }}>add</span>
-                            <span className="text-xs font-medium text-slate-500 uppercase tracking-widest">Custom</span>
+                            <span className="material-icons-outlined text-neutral-500" style={{ fontSize: 32 }}>add</span>
+                            <span className="text-xs font-medium text-neutral-500 uppercase tracking-widest">Custom</span>
                         </Motion.button>
                     </div>
 
@@ -232,10 +227,8 @@ export default function Genres() {
                             disabled={selectedGenres.length === 0}
                             className="pressable w-full disabled:opacity-50"
                             style={{
-                                background: '#E8EAED',
+                                ...netflixRedButtonStyle,
                                 borderRadius: '24px',
-                                boxShadow: '4px 4px 12px rgba(180,190,210,0.6), -4px -4px 12px rgba(255,255,255,1)',
-                                border: '1px solid rgba(255,255,255,0.95)',
                                 padding: '18px 24px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -248,11 +241,11 @@ export default function Genres() {
                                 fontWeight: 700, 
                                 letterSpacing: '0.2em', 
                                 textTransform: 'uppercase', 
-                                color: '#1E293B',
+                                color: '#FFFFFF',
                             }}>
                                 Continue
                             </span>
-                            <ChevronRight size={18} style={{ color: '#4B5563' }} />
+                            <ChevronRight size={18} style={{ color: '#FFFFFF' }} />
                         </button>
                     </div>
                 </main>
@@ -272,11 +265,12 @@ export default function Genres() {
                                 initial={{ y: 300, scale: 0.95 }}
                                 animate={{ y: 0, scale: 1 }}
                                 exit={{ y: 300, scale: 0.95 }}
-                                className="bg-[#ECEEF2] w-full max-w-sm rounded-[40px] p-8 shadow-2xl relative border border-white/80"
+                                className="w-full max-w-sm rounded-[40px] p-8 shadow-2xl relative"
+                                style={netflixSurfaceStyle}
                             >
                                 <div className="flex justify-between items-center mb-8">
-                                    <h3 className="text-xl font-bold text-slate-800 tracking-tight">New Genre</h3>
-                                    <button onClick={() => setShowCustomModal(false)} className="p-2 bg-white/50 rounded-full text-slate-400">
+                                    <h3 className="text-xl font-bold text-white tracking-tight">New Genre</h3>
+                                    <button onClick={() => setShowCustomModal(false)} className="p-2 rounded-full text-neutral-400" style={netflixRaisedStyle}>
                                         <span className="material-icons-outlined">close</span>
                                     </button>
                                 </div>
@@ -286,13 +280,15 @@ export default function Genres() {
                                     value={customGenreName}
                                     onChange={(e) => setCustomGenreName(e.target.value)}
                                     placeholder="Enter genre name..."
-                                    className="w-full bg-[#E8EAED] rounded-2xl p-5 mb-8 text-slate-800 focus:outline-none placeholder:text-slate-400 shadow-inner"
+                                    className="w-full rounded-2xl p-5 mb-8 text-white focus:outline-none placeholder:text-neutral-500"
+                                    style={netflixInsetStyle}
                                     autoFocus
                                 />
 
                                 <button
                                     onClick={handleAddCustom}
-                                    className="pressable w-full bg-slate-800 text-white font-bold py-4 rounded-2xl uppercase tracking-widest text-sm shadow-xl"
+                                    className="pressable w-full text-white font-bold py-4 rounded-2xl uppercase tracking-widest text-sm"
+                                    style={netflixRedButtonStyle}
                                 >
                                     Add Genre
                                 </button>
@@ -305,6 +301,83 @@ export default function Genres() {
     }
 
     // ── Web Layout (Dark theme maintained) ──
+    if (useDesktopNeumorphic) {
+        const theme = netflixNeumorphic
+        return (
+            <div className="min-h-screen w-full relative overflow-hidden" style={netflixPageStyle}>
+                <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+                    <div style={{ position: 'absolute', left: '7%', top: '10%', width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle, rgba(229,9,20,0.22) 0%, transparent 70%)', filter: 'blur(72px)' }} />
+                    <div style={{ position: 'absolute', right: '6%', bottom: '8%', width: 310, height: 310, borderRadius: '50%', background: 'radial-gradient(circle, rgba(122,18,28,0.2) 0%, transparent 70%)', filter: 'blur(76px)' }} />
+                </div>
+                <header className="relative z-10 max-w-7xl mx-auto px-8 pt-8 flex items-center justify-between">
+                    <button onClick={() => navigate('/category')} className="pressable flex items-center justify-center" style={{ ...netflixRaisedStyle, width: 54, height: 54, borderRadius: 22, color: theme.textSoft }}>
+                        <ChevronLeft size={22} />
+                    </button>
+                    <UserBadge />
+                </header>
+
+                <main className="relative z-10 max-w-7xl mx-auto px-8 py-9 grid grid-cols-[330px_1fr] gap-8">
+                    <aside style={{ ...netflixSurfaceStyle, borderRadius: 36, padding: 30, alignSelf: 'start' }}>
+                        <p style={{ fontSize: 12, color: theme.muted, letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 700 }}>{selectedCategory || 'All Media'}</p>
+                        <h1 style={{ marginTop: 16, fontSize: 50, color: theme.text, fontWeight: 750, letterSpacing: '0.08em' }}>{selectedYear}</h1>
+                        <p style={{ marginTop: 14, color: theme.textSoft, lineHeight: 1.8, fontSize: 14 }}>Pick one or more genres. The grid is sized for desktop scanning instead of mobile tapping.</p>
+                        <button onClick={() => navigate('/calendar')} disabled={selectedGenres.length === 0} className="pressable w-full mt-8 disabled:opacity-50" style={{ ...(selectedGenres.length ? netflixRedButtonStyle : netflixInsetStyle), color: selectedGenres.length ? '#FFFFFF' : theme.muted, borderRadius: 24, minHeight: 58, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', fontSize: 12 }}>
+                            Continue ({selectedGenres.length})
+                        </button>
+                    </aside>
+
+                    <section className="grid grid-cols-4 gap-5">
+                        {allGenres.map((g, idx) => {
+                            const isSelected = selectedGenres.includes(g.id)
+                            const isCustom = !DEFAULT_GENRES.some(dg => dg.id === g.id)
+
+                            return (
+                                <Motion.button key={g.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.025, duration: 0.28 }} onClick={() => toggleGenre(g.id)} className="pressable relative flex flex-col items-start justify-between text-left" style={{ ...(isSelected ? netflixInsetStyle : netflixRaisedStyle), borderRadius: 28, border: isSelected ? `1px solid ${theme.borderStrong}` : `1px solid ${theme.border}`, minHeight: 170, padding: 24 }}>
+                                    {isCustom && (
+                                        <span onClick={(e) => handleDeleteCustom(e, g.id)} className="absolute top-4 right-4 text-red-400">
+                                            <Trash2 size={15} />
+                                        </span>
+                                    )}
+                                    <div className="flex items-center justify-center" style={{ ...netflixInsetStyle, width: 52, height: 52, borderRadius: 20, color: isSelected ? theme.red : theme.textSoft }}>
+                                        <span className="material-icons-outlined" style={{ fontSize: 25 }}>{g.icon || 'star_border'}</span>
+                                    </div>
+                                    <div>
+                                        <h2 style={{ color: theme.text, fontSize: 18, fontWeight: 750 }}>{g.label}</h2>
+                                        <p style={{ color: theme.textSoft, fontSize: 12, marginTop: 5 }}>{g.desc || 'Custom genre'}</p>
+                                    </div>
+                                    {isSelected && <CheckCircle className="absolute top-4 right-4 text-red-500" size={18} />}
+                                </Motion.button>
+                            )
+                        })}
+                        <button onClick={() => setShowCustomModal(true)} className="pressable flex flex-col items-center justify-center gap-3" style={{ ...netflixInsetStyle, borderRadius: 28, border: '1px dashed rgba(255,255,255,0.16)', minHeight: 170, color: theme.textSoft }}>
+                            <span className="material-icons-outlined" style={{ fontSize: 30 }}>add</span>
+                            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Custom Genre</span>
+                        </button>
+                    </section>
+                </main>
+
+                <AnimatePresence>
+                    {showCustomModal && (
+                        <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 backdrop-blur-sm px-4">
+                            <Motion.div initial={{ y: 20, scale: 0.96 }} animate={{ y: 0, scale: 1 }} exit={{ y: 20, scale: 0.96 }} className="w-full max-w-md rounded-[36px] p-8 shadow-2xl relative" style={netflixSurfaceStyle}>
+                                <div className="flex justify-between items-center mb-8">
+                                    <h3 className="text-xl font-bold tracking-tight" style={{ color: theme.text }}>New Genre</h3>
+                                    <button onClick={() => setShowCustomModal(false)} className="p-2 rounded-full" style={{ ...netflixRaisedStyle, color: theme.textSoft }}>
+                                        <span className="material-icons-outlined">close</span>
+                                    </button>
+                                </div>
+                                <input type="text" value={customGenreName} onChange={(e) => setCustomGenreName(e.target.value)} placeholder="Enter genre name..." className="w-full rounded-2xl p-5 mb-8 focus:outline-none placeholder:text-neutral-500" style={{ ...netflixInsetStyle, color: theme.text }} autoFocus />
+                                <button onClick={handleAddCustom} className="pressable w-full font-bold py-4 rounded-2xl uppercase tracking-widest text-sm" style={netflixRedButtonStyle}>
+                                    Add Genre
+                                </button>
+                            </Motion.div>
+                        </Motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen flex flex-col transition-colors duration-300 font-sans relative text-white">
             <div className="fixed inset-0 z-0">

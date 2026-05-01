@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 import { Film, Tv, Sparkles, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { netflixNeumorphic, netflixRaisedStyle, netflixRedButtonStyle, netflixInsetStyle } from '../../styles/netflixNeumorphic'
 
 const CATEGORIES = [
   {
@@ -62,13 +63,8 @@ export default function MobileCategoryBarrel({ onHover }) {
               onClick={() => handleClick(cat.id)}
               className="pressable relative flex items-center gap-5 p-5 transition-all duration-200"
               style={{
-                // Unique Highlight for My Calendar, Standard Neumorphic for others
-                background: isSpecial ? 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)' : '#E8EAED',
+                ...(isSpecial ? netflixRedButtonStyle : netflixRaisedStyle),
                 borderRadius: 32,
-                boxShadow: isSpecial 
-                  ? '0px 10px 20px rgba(99, 102, 241, 0.3), inset 2px 2px 5px rgba(255,255,255,0.4)' 
-                  : '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-                border: isSpecial ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.95)',
                 minHeight: 100,
                 cursor: 'pointer',
                 overflow: 'hidden',
@@ -80,7 +76,7 @@ export default function MobileCategoryBarrel({ onHover }) {
                 style={{
                   background: isSpecial 
                     ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 60%)'
-                    : 'linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 60%)',
+                    : 'linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 60%)',
                 }}
               />
 
@@ -89,21 +85,17 @@ export default function MobileCategoryBarrel({ onHover }) {
                 style={{
                   width: 56,
                   height: 56,
-                  background: isSpecial ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.6)',
-                  border: isSpecial ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.8)',
-                  boxShadow: isSpecial 
-                    ? '0 4px 10px rgba(0,0,0,0.1)' 
-                    : 'inset 2px 2px 5px rgba(180,190,210,0.2), 0 2px 4px rgba(0,0,0,0.05)',
+                  ...(isSpecial ? { background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.18)' } : netflixInsetStyle),
                 }}
               >
-                <Icon size={24} style={{ color: isSpecial ? '#FFFFFF' : '#4B5563' }} strokeWidth={1.5} />
+                <Icon size={24} style={{ color: isSpecial ? '#FFFFFF' : netflixNeumorphic.red }} strokeWidth={1.5} />
               </div>
 
               <div className="flex-1 text-left min-w-0 relative z-10">
                 <h3
                   className="text-lg tracking-wide"
                   style={{
-                    color: isSpecial ? '#FFFFFF' : '#2D3748',
+                    color: netflixNeumorphic.text,
                     fontWeight: 600,
                     letterSpacing: '0.02em',
                     fontFamily: "'Montserrat', sans-serif",
@@ -114,7 +106,7 @@ export default function MobileCategoryBarrel({ onHover }) {
                 <p
                   className="text-xs mt-0.5"
                   style={{
-                    color: isSpecial ? 'rgba(255, 255, 255, 0.8)' : '#9CA3AF',
+                    color: isSpecial ? 'rgba(255, 255, 255, 0.8)' : netflixNeumorphic.textSoft,
                     fontWeight: 400,
                     fontFamily: "'Montserrat', sans-serif",
                   }}
@@ -128,14 +120,12 @@ export default function MobileCategoryBarrel({ onHover }) {
                 style={{
                   width: 32,
                   height: 32,
-                  background: isSpecial ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.5)',
-                  boxShadow: isSpecial ? 'none' : '1px 1px 3px rgba(0,0,0,0.05)',
-                  border: isSpecial ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+                  ...(isSpecial ? { background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.18)' } : netflixInsetStyle),
                 }}
               >
                 <ChevronRight
                   size={18}
-                  style={{ color: isSpecial ? '#FFFFFF' : '#9CA3AF' }}
+                  style={{ color: isSpecial ? '#FFFFFF' : netflixNeumorphic.textSoft }}
                   strokeWidth={2}
                 />
               </div>

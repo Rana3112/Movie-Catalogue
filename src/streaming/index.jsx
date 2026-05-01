@@ -7,6 +7,7 @@ import PlayerPage from './pages/PlayerPage';
 import SearchPage from './pages/SearchPage';
 import StreamingListPage from './pages/StreamingListPage';
 import GenresPage from './pages/GenresPage';
+import './streaming.css';
 
 export const StreamingRoutes = (
   <>

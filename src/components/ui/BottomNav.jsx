@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Home, CalendarDays, LayoutList, PlayCircle } from 'lucide-react'
 import { motion as Motion } from 'framer-motion'
-import { shouldUseNeumorphicLayout } from '../../lib/platform'
+import { shouldUseCompactNativeLayout } from '../../lib/platform'
+import { netflixNeumorphic } from '../../styles/netflixNeumorphic'
 
-const isNative = shouldUseNeumorphicLayout()
+const isNative = shouldUseCompactNativeLayout()
 
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: Home },
@@ -28,10 +29,9 @@ export default function BottomNav() {
   // Neomorphic theme for native, original glass for web
   const navContainerStyle = isNative
     ? {
-        background: '#ECEEF2',
-        borderTop: '1px solid rgba(255,255,255,0.9)',
-        // Neomorphic shadow: slight lift from the background
-        boxShadow: '-4px -4px 12px rgba(255, 255, 255, 1), 4px 4px 16px rgba(160, 175, 200, 0.4)',
+        background: 'rgba(12,12,13,0.94)',
+        borderTop: `1px solid ${netflixNeumorphic.border}`,
+        boxShadow: '0 -10px 30px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04)',
         borderRadius: '24px 24px 0 0',
         paddingTop: 8,
       }
@@ -49,7 +49,7 @@ export default function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-50"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        background: isNative ? '#ECEEF2' : 'transparent',
+        background: isNative ? '#080808' : 'transparent',
       }}
     >
       <div style={navContainerStyle}>
@@ -78,8 +78,8 @@ export default function BottomNav() {
                     layoutId="nav-indicator-light"
                     className="absolute -top-1 w-8 h-1 rounded-full"
                     style={{
-                      background: '#4B5563',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                      background: netflixNeumorphic.red,
+                      boxShadow: '0 0 14px rgba(229,9,20,0.45)',
                     }}
                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
@@ -102,10 +102,10 @@ export default function BottomNav() {
                   className="transition-all duration-200"
                   style={{
                     color: isNative
-                      ? active ? '#1A202C' : '#9CA3AF'
+                      ? active ? netflixNeumorphic.text : netflixNeumorphic.muted
                       : active ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)',
                     transform: active ? 'scale(1.1)' : 'scale(1)',
-                    filter: active && isNative ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' : 'none',
+                    filter: active && isNative ? 'drop-shadow(0 0 8px rgba(229,9,20,0.35))' : 'none',
                   }}
                 />
 
@@ -113,7 +113,7 @@ export default function BottomNav() {
                   className="text-[9px] tracking-wide uppercase transition-colors duration-200"
                   style={{
                     color: isNative
-                      ? active ? '#1A202C' : '#9CA3AF'
+                      ? active ? netflixNeumorphic.text : netflixNeumorphic.muted
                       : active ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.25)',
                     fontWeight: active ? 700 : 400,
                     letterSpacing: '0.14em',

@@ -3,3 +3,5 @@ import { Capacitor } from '@capacitor/core'
 export const isNativePlatform = () => Capacitor.isNativePlatform()
 
 export const shouldUseNeumorphicLayout = () => true
+
+export const shouldUseCompactNativeLayout = () => Capacitor.isNativePlatform()

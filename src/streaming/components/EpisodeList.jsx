@@ -10,26 +10,23 @@ export default function EpisodeList({ tvId, seasons, onEpisodeSelect }) {
   if (!seasons || seasons.length === 0) return null;
 
   return (
-    <div style={{ marginTop: 32 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' }}>Episodes</h3>
+    <section className="streaming-episodes">
+      <div className="streaming-episodes-header">
+        <h3>Episodes</h3>
         <select 
           value={selectedSeason} 
           onChange={(e) => setSelectedSeason(Number(e.target.value))}
-          style={{ 
-            background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', 
-            padding: '6px 12px', borderRadius: 8, fontSize: 14, outline: 'none' 
-          }}
+          className="streaming-season-select"
         >
           {seasons.filter(s => s.season_number > 0).map(season => (
-             <option key={season.id} value={season.season_number} style={{ color: '#000' }}>
+             <option key={season.id} value={season.season_number}>
               Season {season.season_number}
             </option>
           ))}
         </select>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="streaming-episode-list">
         {isLoading ? (
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Loading episodes...</p>
         ) : episodes && episodes.length > 0 ? (
@@ -37,23 +34,23 @@ export default function EpisodeList({ tvId, seasons, onEpisodeSelect }) {
             <div 
               key={episode.id} 
               onClick={() => onEpisodeSelect(selectedSeason, episode.episode_number, episode.name)}
-              style={{ display: 'flex', gap: 12, padding: 10, borderRadius: 12, background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}
+              className="streaming-episode-row"
             >
-              <div style={{ position: 'relative', width: 120, height: 68, flexShrink: 0, borderRadius: 6, overflow: 'hidden', background: '#222' }}>
+              <div className="streaming-episode-thumb">
                 {episode.still_path ? (
-                  <img src={imageUrl(episode.still_path, 'w300')} alt={episode.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={imageUrl(episode.still_path, 'w300')} alt={episode.name} />
                 ) : (
                   <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.2)' }}>No Image</div>
                 )}
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
+                <div className="streaming-episode-play">
                   <Play size={24} color="#fff" />
                 </div>
               </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
-                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ minWidth: 0 }}>
+                <h4 className="streaming-episode-title">
                   {episode.episode_number}. {episode.name}
                 </h4>
-                <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
+                <div className="streaming-episode-meta">
                   <span>{episode.runtime ? `${episode.runtime}m` : ''}</span>
                   <span>{episode.air_date?.slice(0, 4)}</span>
                 </div>
@@ -64,6 +61,6 @@ export default function EpisodeList({ tvId, seasons, onEpisodeSelect }) {
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>No episodes available.</p>
         )}
       </div>
-    </div>
+    </section>
   );
 }

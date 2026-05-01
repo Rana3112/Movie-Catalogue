@@ -1,14 +1,16 @@
 import { lazy, Suspense } from 'react'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { LayoutGrid, Settings, Play } from 'lucide-react'
+import { CalendarDays, Clapperboard, LayoutGrid, Settings, Play } from 'lucide-react'
 import { useState } from 'react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import MobileYearBarrel from '../components/mobile/MobileYearBarrel'
-import { shouldUseNeumorphicLayout } from '../lib/platform'
+import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../lib/platform'
+import { netflixNeumorphic, netflixRaisedStyle, netflixRedButtonStyle } from '../styles/netflixNeumorphic'
 
-const isNative = shouldUseNeumorphicLayout()
+const isNative = shouldUseCompactNativeLayout()
+const useDesktopNeumorphic = shouldUseNeumorphicLayout() && !isNative
 
 // Lazy load 3D components — only fetched on web platform
 const LightPillar = lazy(() => import('../components/LightPillar'))
@@ -28,9 +30,11 @@ if (typeof document !== 'undefined') {
 }
 
 export default function Home() {
-  const { logout, isGuest } = useStore()
+  const { logout, isGuest, selectedYear, setYear } = useStore()
   const navigate = useNavigate()
   const [showSettings, setShowSettings] = useState(false)
+  const currentYear = new Date().getFullYear()
+  const desktopYears = Array.from({ length: 25 }, (_, index) => currentYear - 12 + index)
 
   const handleLogout = () => {
     logout()
@@ -53,7 +57,7 @@ export default function Home() {
       <div
         className="h-screen w-full relative overflow-hidden flex flex-col"
         style={{
-          background: '#ECEEF2',
+          background: netflixNeumorphic.pageBackground,
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           fontFamily: "'Montserrat', 'Raleway', sans-serif",
@@ -68,8 +72,8 @@ export default function Home() {
             width: 280,
             height: 280,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(200,210,240,0.35) 0%, transparent 70%)',
-            filter: 'blur(40px)',
+            background: 'radial-gradient(circle, rgba(229,9,20,0.24) 0%, transparent 70%)',
+            filter: 'blur(72px)',
           }} />
           <div style={{
             position: 'absolute',
@@ -78,8 +82,8 @@ export default function Home() {
             width: 220,
             height: 220,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(180,200,230,0.25) 0%, transparent 70%)',
-            filter: 'blur(50px)',
+            background: 'radial-gradient(circle, rgba(122,18,28,0.22) 0%, transparent 70%)',
+            filter: 'blur(76px)',
           }} />
         </div>
 
@@ -97,21 +101,19 @@ export default function Home() {
               aria-label="My Space"
               className="pressable flex items-center justify-center gap-2 flex-1"
               style={{
-                background: '#E8EAED',
+                ...netflixRaisedStyle,
                 borderRadius: 50,
-                boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-                border: '1px solid rgba(255,255,255,0.95)',
                 padding: '11px 16px',
                 minHeight: 48,
               }}
             >
-              <LayoutGrid size={15} strokeWidth={1.5} style={{ color: '#6B7280' }} />
+              <LayoutGrid size={15} strokeWidth={1.5} style={{ color: netflixNeumorphic.textSoft }} />
               <span style={{
                 fontSize: 11,
                 fontWeight: 500,
                 letterSpacing: '0.16em',
                 textTransform: 'uppercase',
-                color: '#4B5563',
+                color: netflixNeumorphic.textSoft,
                 fontFamily: "'Montserrat', 'Raleway', sans-serif",
                 whiteSpace: 'nowrap',
               }}>
@@ -127,16 +129,14 @@ export default function Home() {
                 aria-label="Settings"
                 className="pressable flex items-center justify-center"
                 style={{
-                  background: '#E8EAED',
+                  ...netflixRaisedStyle,
                   borderRadius: 50,
-                  boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-                  border: '1px solid rgba(255,255,255,0.95)',
                   width: 48,
                   height: 48,
                   flexShrink: 0,
                 }}
               >
-                <Settings size={16} strokeWidth={1.5} style={{ color: '#6B7280' }} />
+                <Settings size={16} strokeWidth={1.5} style={{ color: netflixNeumorphic.textSoft }} />
               </button>
             )}
 
@@ -147,10 +147,8 @@ export default function Home() {
               aria-label={isGuest ? 'Sign Up' : 'Exit'}
               className="pressable flex items-center justify-center"
               style={{
-                background: '#E8EAED',
+                ...netflixRaisedStyle,
                 borderRadius: 50,
-                boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-                border: '1px solid rgba(255,255,255,0.95)',
                 padding: '11px 16px',
                 minHeight: 48,
                 flexShrink: 0,
@@ -161,7 +159,7 @@ export default function Home() {
                 fontWeight: 500,
                 letterSpacing: '0.16em',
                 textTransform: 'uppercase',
-                color: '#4B5563',
+                color: netflixNeumorphic.textSoft,
                 fontFamily: "'Montserrat', 'Raleway', sans-serif",
                 whiteSpace: 'nowrap',
               }}>
@@ -181,7 +179,7 @@ export default function Home() {
             style={{
               fontSize: 26,
               fontWeight: 600,
-              color: '#2D3748',
+              color: netflixNeumorphic.text,
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
               fontFamily: "'Montserrat', 'Raleway', sans-serif",
@@ -196,7 +194,7 @@ export default function Home() {
               marginTop: 8,
               fontSize: 13,
               fontWeight: 400,
-              color: '#9CA3AF',
+              color: netflixNeumorphic.textSoft,
               letterSpacing: '0.06em',
               fontFamily: "'Montserrat', 'Raleway', sans-serif",
             }}
@@ -211,10 +209,9 @@ export default function Home() {
             onClick={() => navigate('/streaming')}
             className="pressable"
             style={{
-              background: '#E8EAED',
-              color: '#e50914', border: '1px solid rgba(255,255,255,0.95)', borderRadius: 24, padding: '12px 32px',
+              ...netflixRedButtonStyle,
+              borderRadius: 24, padding: '12px 32px',
               fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
-              boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
               cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase'
             }}
           >
@@ -230,6 +227,130 @@ export default function Home() {
         >
           <MobileYearBarrel />
         </div>
+      </div>
+    )
+  }
+
+  if (useDesktopNeumorphic) {
+    const archiveTheme = {
+      page: '#080808',
+      panel: '#151515',
+      panelSoft: '#1B1B1F',
+      panelRaised: '#202024',
+      red: '#E50914',
+      redDeep: '#8B0008',
+      text: '#F5F5F1',
+      textSoft: '#B3B3B3',
+      muted: '#777777',
+      border: 'rgba(255,255,255,0.08)',
+      borderStrong: 'rgba(229,9,20,0.38)',
+      raisedShadow: '12px 12px 28px rgba(0,0,0,0.62), -7px -7px 18px rgba(255,255,255,0.035)',
+      insetShadow: 'inset 5px 5px 12px rgba(0,0,0,0.58), inset -4px -4px 10px rgba(255,255,255,0.035)',
+      redShadow: '0 18px 34px rgba(229,9,20,0.28), inset 0 1px 0 rgba(255,255,255,0.12)',
+    }
+
+    return (
+      <div
+        className="min-h-screen w-full relative overflow-hidden"
+        style={{
+          background: `
+            radial-gradient(circle at 12% 12%, rgba(229,9,20,0.18), transparent 28%),
+            radial-gradient(circle at 88% 18%, rgba(139,0,8,0.16), transparent 30%),
+            linear-gradient(135deg, #050505 0%, #111111 46%, #080808 100%)
+          `,
+          fontFamily: "'Montserrat', 'Raleway', sans-serif",
+        }}
+      >
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div style={{ position: 'absolute', top: '8%', left: '8%', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(229,9,20,0.22) 0%, transparent 70%)', filter: 'blur(58px)' }} />
+          <div style={{ position: 'absolute', right: '5%', bottom: '10%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.045) 0%, transparent 68%)', filter: 'blur(64px)' }} />
+        </div>
+
+        <header className="relative z-10 max-w-7xl mx-auto px-8 pt-7">
+          <div className="flex items-center justify-between gap-5" style={{ background: 'rgba(21,21,21,0.92)', borderRadius: 32, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, padding: '14px 18px', backdropFilter: 'blur(18px)' }}>
+            <UserBadge />
+            <nav className="flex items-center gap-3">
+              <button onClick={handleMySpace} className="pressable flex items-center gap-2" style={{ background: archiveTheme.panelSoft, borderRadius: 24, boxShadow: archiveTheme.insetShadow, border: `1px solid ${archiveTheme.border}`, padding: '12px 18px', color: archiveTheme.textSoft, minHeight: 46 }}>
+                <LayoutGrid size={15} />
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>My Space</span>
+              </button>
+              {!isGuest && (
+                <button onClick={() => setShowSettings(true)} className="pressable flex items-center justify-center" style={{ width: 46, height: 46, borderRadius: 18, background: archiveTheme.panelSoft, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, color: archiveTheme.textSoft }} aria-label="Settings">
+                  <Settings size={17} />
+                </button>
+              )}
+              <button onClick={handleLogout} className="pressable" style={{ background: archiveTheme.panelSoft, borderRadius: 24, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, padding: '12px 18px', color: archiveTheme.textSoft, minHeight: 46, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                {isGuest ? 'Sign Up' : 'Exit'}
+              </button>
+            </nav>
+          </div>
+        </header>
+
+        <main className="relative z-10 max-w-7xl mx-auto px-8 py-10 grid grid-cols-[minmax(360px,0.9fr)_minmax(560px,1.1fr)] gap-8 items-stretch">
+          <section style={{ background: `linear-gradient(145deg, ${archiveTheme.panelRaised}, ${archiveTheme.panel})`, borderRadius: 40, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, padding: 34 }}>
+            <p style={{ fontSize: 12, color: '#D6D6D6', letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 700 }}>Movie Catalogue</p>
+            <h1 style={{ marginTop: 22, color: archiveTheme.text, fontSize: 58, lineHeight: 1, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              Time<br />Archive
+            </h1>
+            <p style={{ marginTop: 20, color: archiveTheme.textSoft, fontSize: 15, lineHeight: 1.8, maxWidth: 390 }}>
+              Browse your catalogue by year, then move into categories, genres, calendar planning, or StreamZone.
+            </p>
+            <div className="grid grid-cols-2 gap-4 mt-9">
+              <button onClick={() => navigate('/streaming')} className="pressable flex items-center justify-center gap-3" style={{ background: `linear-gradient(135deg, ${archiveTheme.red}, #B20710)`, color: '#fff', border: `1px solid ${archiveTheme.borderStrong}`, borderRadius: 24, padding: '16px 18px', fontWeight: 800, fontSize: 12, boxShadow: archiveTheme.redShadow, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 62 }}>
+                <Play size={18} fill="#fff" /> StreamZone
+              </button>
+              <button onClick={() => navigate('/calendar')} className="pressable flex items-center justify-center gap-3" style={{ background: archiveTheme.panelSoft, color: archiveTheme.textSoft, border: `1px solid ${archiveTheme.border}`, borderRadius: 24, padding: '16px 18px', fontWeight: 800, fontSize: 12, boxShadow: archiveTheme.insetShadow, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 62 }}>
+                <CalendarDays size={18} /> Calendar
+              </button>
+            </div>
+          </section>
+
+          <section style={{ background: `linear-gradient(145deg, ${archiveTheme.panelRaised}, ${archiveTheme.panel})`, borderRadius: 40, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, padding: 28 }}>
+            <div className="flex items-end justify-between mb-6">
+              <div>
+                <p style={{ fontSize: 11, color: archiveTheme.muted, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700 }}>Select Year</p>
+                <h2 style={{ marginTop: 8, fontSize: 38, color: archiveTheme.text, fontWeight: 700 }}>{selectedYear}</h2>
+              </div>
+              <div className="flex items-center justify-center" style={{ width: 72, height: 72, borderRadius: 24, background: archiveTheme.panelSoft, boxShadow: archiveTheme.insetShadow, color: archiveTheme.textSoft, border: `1px solid ${archiveTheme.border}` }}>
+                <Clapperboard size={26} />
+              </div>
+            </div>
+            <div className="grid grid-cols-5 gap-3">
+              {desktopYears.map((year) => {
+                const active = year === selectedYear
+                return (
+                  <button
+                    key={year}
+                    onClick={() => {
+                      setYear(year)
+                      navigate('/category')
+                    }}
+                    className="pressable"
+                    style={{
+                      background: active
+                        ? `linear-gradient(145deg, rgba(229,9,20,0.32), ${archiveTheme.panelSoft})`
+                        : archiveTheme.panelSoft,
+                      borderRadius: 20,
+                      boxShadow: active
+                        ? `inset 5px 5px 12px rgba(0,0,0,0.62), 0 0 22px rgba(229,9,20,0.22)`
+                        : archiveTheme.raisedShadow,
+                      border: active ? `1px solid ${archiveTheme.borderStrong}` : `1px solid ${archiveTheme.border}`,
+                      minHeight: 74,
+                      color: active ? archiveTheme.text : archiveTheme.textSoft,
+                      fontSize: 18,
+                      fontWeight: active ? 850 : 650,
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {year}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        </main>
+
+        {showSettings && <TimeSettingsModal onClose={() => setShowSettings(false)} />}
       </div>
     )
   }

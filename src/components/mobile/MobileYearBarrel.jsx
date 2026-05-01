@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 import { ChevronRight } from 'lucide-react'
+import { netflixNeumorphic, netflixRaisedStyle, netflixInsetStyle } from '../../styles/netflixNeumorphic'
 
 export default function MobileYearBarrel() {
   const scrollRef = useRef(null)
@@ -77,12 +78,8 @@ export default function MobileYearBarrel() {
               minHeight: 72,
               flexShrink: 0,
               // Matched to top navigation buttons exactly
-              background: '#E8EAED',
+              ...(isSelected ? netflixInsetStyle : netflixRaisedStyle),
               borderRadius: 32,
-              boxShadow: isSelected
-                ? 'inset 4px 4px 10px rgba(180,190,210,0.5), inset -2px -2px 6px rgba(255,255,255,0.95)'
-                : '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-              border: '1px solid rgba(255,255,255,0.95)',
               display: 'flex',
               flexDirection: 'row',
               alignItems: 'center',
@@ -100,8 +97,8 @@ export default function MobileYearBarrel() {
                 height: 32,
                 borderRadius: 4,
                 background: isSelected
-                  ? 'linear-gradient(180deg, #7B8EC8 0%, rgba(123,142,200,0.4) 100%)'
-                  : 'linear-gradient(180deg, rgba(155,168,210,0.7) 0%, rgba(155,168,210,0.25) 100%)',
+                  ? `linear-gradient(180deg, ${netflixNeumorphic.red} 0%, rgba(229,9,20,0.35) 100%)`
+                  : 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 100%)',
                 flexShrink: 0,
               }}
             />
@@ -112,7 +109,7 @@ export default function MobileYearBarrel() {
                 style={{
                   fontSize: 32,
                   fontWeight: isSelected ? 800 : 600,
-                  color: isSelected ? '#1A202C' : '#475569',
+                  color: isSelected ? netflixNeumorphic.text : netflixNeumorphic.textSoft,
                   letterSpacing: '0.05em',
                   fontFamily: "'Montserrat', sans-serif",
                 }}
@@ -130,13 +127,13 @@ export default function MobileYearBarrel() {
                     fontWeight: 600,
                     letterSpacing: '0.14em',
                     textTransform: 'uppercase',
-                    color: '#5A6478',
-                    background: 'linear-gradient(145deg, rgba(218,223,236,0.9), rgba(200,208,226,0.85))',
-                    border: '1px solid rgba(190,200,220,0.6)',
+                    color: netflixNeumorphic.text,
+                    background: 'rgba(229,9,20,0.16)',
+                    border: '1px solid rgba(229,9,20,0.35)',
                     borderRadius: 999,
                     padding: '4px 10px',
                     fontFamily: "'Montserrat', 'Raleway', sans-serif",
-                    boxShadow: '2px 2px 5px rgba(150,160,185,0.35), -1px -1px 4px rgba(255,255,255,0.9)',
+                    boxShadow: '0 8px 18px rgba(229,9,20,0.16)',
                   }}
                 >
                   NOW
@@ -146,7 +143,7 @@ export default function MobileYearBarrel() {
                 <ChevronRight
                   size={20}
                   strokeWidth={1.5}
-                  style={{ color: '#9CA3AF' }}
+                  style={{ color: netflixNeumorphic.textSoft }}
                 />
               )}
             </div>

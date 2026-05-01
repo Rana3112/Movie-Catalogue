@@ -16,10 +16,10 @@ export default function ContinueWatching() {
   };
 
   return (
-    <div style={{ marginTop: 24, paddingLeft: 16 }}>
-      <h2 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 700, color: '#fff' }}>Continue Watching</h2>
+    <section className="streaming-carousel">
+      <h2 className="streaming-carousel-title" style={{ marginBottom: 14 }}>Continue Watching</h2>
       
-      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16, paddingRight: 16, WebkitOverflowScrolling: 'touch' }}>
+      <div className="streaming-carousel-track">
         {recentHistory.map((item, idx) => (
           <div 
             key={`history-${item.id}-${idx}`}
@@ -53,6 +53,6 @@ export default function ContinueWatching() {
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

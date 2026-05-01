@@ -137,6 +137,29 @@ body {
   height: 0;
 }
 
+.myspace-filter-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.38) transparent;
+}
+
+.myspace-filter-sidebar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.myspace-filter-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.myspace-filter-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.38);
+  border-radius: 999px;
+}
+
+.myspace-filter-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.52);
+}
+
 /* --- Selection --- */
 ::selection {
   background-color: var(--color-accent-purple-dim);

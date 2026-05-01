@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, Filter, X, Trash2, CalendarDays } from 'lucide-react'
 import UserBadge from '../components/ui/UserBadge'
 import '../components/mobile/MobileBackground.css'
-import { shouldUseNeumorphicLayout } from '../lib/platform'
+import { shouldUseCompactNativeLayout } from '../lib/platform'
+import { netflixNeumorphic, netflixRaisedStyle, netflixRedButtonStyle, netflixSurfaceStyle, netflixInsetStyle } from '../styles/netflixNeumorphic'
 
-const isNative = shouldUseNeumorphicLayout()
+const isNative = shouldUseCompactNativeLayout()
 const NATIVE_GRID_COLUMNS = 2
 const NATIVE_GRID_GAP = 16
 const NATIVE_GRID_OVERSCAN_ROWS = 3
@@ -24,14 +25,11 @@ const getScoreColor = (score) => {
 const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
     const cardStyle = isNative
         ? {
-            background: '#F4F7FB',
-            boxShadow: '0 10px 24px rgba(148, 163, 184, 0.18)',
-            border: '1px solid rgba(255,255,255,0.9)',
+            ...netflixRaisedStyle,
             aspectRatio: '2/3',
         }
         : {
-            boxShadow: '8px 8px 16px #d1d9e6, -4px -4px 12px #ffffff',
-            border: '1px solid rgba(255,255,255,0.8)',
+            ...netflixRaisedStyle,
             aspectRatio: '2/3',
             transform: 'translateZ(0)',
             willChange: 'transform',
@@ -41,26 +39,23 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
 
     const actionButtonStyle = isNative
         ? {
-            background: 'rgba(244, 247, 251, 0.94)',
-            boxShadow: '0 4px 10px rgba(148, 163, 184, 0.16)',
-            border: '1px solid rgba(255,255,255,0.9)',
+            ...netflixRaisedStyle,
         }
         : {
-            background: '#F0F4F8',
-            boxShadow: '3px 3px 6px rgba(0,0,0,0.1), -2px -2px 5px rgba(255,255,255,0.7)',
+            ...netflixRaisedStyle,
         }
 
     return (
         <div
             onClick={() => onClick(entry)}
-            className={`group relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer bg-slate-100 ${
+            className={`group relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer ${
                 isNative 
                     ? 'transition-transform active:scale-[0.985]' 
                     : 'transition-all hover:scale-[1.02] hover:shadow-xl'
             }`}
             style={cardStyle}
         >
-            <div className="absolute inset-0 bg-[#F0F4F8]" />
+            <div className="absolute inset-0" style={{ background: netflixNeumorphic.panelSoft }} />
             {entry.poster ? (
                 <img src={entry.poster} className="w-full h-full object-cover relative z-10" loading="lazy" decoding="async" />
             ) : (
@@ -82,8 +77,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
                 isNative ? 'opacity-30' : 'opacity-0 group-hover:opacity-100'
             }`}>
                 <div
-                    className={`p-3.5 rounded-full border shadow-xl ${isNative ? 'bg-white/90 border-white/90' : 'bg-white/20 backdrop-blur-md border-white/20'}`}
-                    style={isNative ? { boxShadow: '0 8px 18px rgba(15, 23, 42, 0.14)' } : undefined}
+                    className="p-3.5 rounded-full border shadow-xl bg-white/20 backdrop-blur-md border-white/20"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white" className="ml-1"><polygon points="6 3 20 12 6 21 6 3" /></svg>
                 </div>
@@ -105,7 +99,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
                 <button
                     onClick={(e) => onNavigate(e, entry)}
                     style={actionButtonStyle}
-                    className="text-indigo-600 p-2 rounded-xl active:scale-90 transition-transform"
+                    className="text-red-400 p-2 rounded-xl active:scale-90 transition-transform"
                     title="View in Calendar"
                 >
                     <CalendarDays size={13} strokeWidth={2.5} />
@@ -117,11 +111,11 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
                 isNative ? 'translate-y-0' : 'translate-y-1 group-hover:translate-y-0'
             }`}>
                 <div className="flex items-center gap-2 mb-1.5">
-                    <span className={`text-[9px] font-bold text-slate-300 uppercase tracking-widest px-1.5 py-0.5 rounded ${isNative ? 'bg-black/20' : 'bg-white/10 backdrop-blur-sm'}`}>
+                    <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/10 backdrop-blur-sm">
                         {entry.year}
                     </span>
                     {entry.rating > 0 && (
-                        <span className={`text-[9px] font-bold text-yellow-500 flex items-center gap-0.5 px-1.5 py-0.5 rounded ${isNative ? 'bg-black/20' : 'bg-white/10 backdrop-blur-sm'}`}>
+                        <span className="text-[9px] font-bold text-yellow-500 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 backdrop-blur-sm">
                             ★ {entry.rating}
                         </span>
                     )}
@@ -131,7 +125,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
                     isNative ? 'opacity-80' : 'opacity-0 group-hover:opacity-100'
                 }`}>
                     {(entry.genres || []).slice(0, 2).map(g => (
-                        <span key={g} className={`text-[8px] font-bold text-white/80 uppercase tracking-tighter border px-1.5 py-0.5 rounded ${isNative ? 'bg-indigo-500/45 border-white/10' : 'bg-indigo-500/30 border-white/20 backdrop-blur-sm'}`}>
+                        <span key={g} className="text-[8px] font-bold text-white/80 uppercase tracking-tighter border px-1.5 py-0.5 rounded bg-red-500/30 border-white/20 backdrop-blur-sm">
                             {g}
                         </span>
                     ))}
@@ -328,31 +322,9 @@ export default function MySpace() {
         fetchEntries().catch(() => {})
     }, [fetchEntries])
 
-    const surfaceStyle = useMemo(() => (
-        isNative
-            ? {
-                background: '#F4F7FB',
-                boxShadow: '0 8px 20px rgba(148, 163, 184, 0.14)',
-                border: '1px solid rgba(255,255,255,0.9)',
-            }
-            : {
-                background: '#F0F4F8',
-                boxShadow: '4px 4px 8px #d1d9e6, -2px -2px 6px #ffffff',
-            }
-    ), [])
+    const surfaceStyle = useMemo(() => netflixRaisedStyle, [])
 
-    const pressedSurfaceStyle = useMemo(() => (
-        isNative
-            ? {
-                background: '#E8EEF6',
-                boxShadow: 'inset 0 2px 6px rgba(148, 163, 184, 0.18)',
-                border: '1px solid rgba(255,255,255,0.85)',
-            }
-            : {
-                background: '#F0F4F8',
-                boxShadow: 'inset 3px 3px 6px #d1d9e6, inset -2px -2px 5px #ffffff'
-            }
-    ), [])
+    const pressedSurfaceStyle = useMemo(() => netflixInsetStyle, [])
 
     const handleEntryClick = useCallback(async (entry) => {
         setSelectedTrailerEntry(entry)
@@ -394,26 +366,25 @@ export default function MySpace() {
     }, [navigate, setCategory, setGlobalSelectedGenres, setSelectedMonth, setYear])
 
     return (
-        <div className="min-h-screen w-full relative font-sans selection:bg-indigo-500/30" style={{ background: '#F0F4F8' }}>
+        <div className="min-h-screen w-full relative font-sans selection:bg-red-500/30" style={{ background: netflixNeumorphic.pageBackgroundSoft }}>
             {/* Background Ambience - Disabled on mobile for performance */}
             {!isNative && (
                 <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
                     <div 
                         className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full opacity-60" 
-                        style={{ background: 'radial-gradient(circle, rgba(200,220,255,0.4) 0%, transparent 70%)', filter: 'blur(80px)' }}
+                        style={{ background: 'radial-gradient(circle, rgba(229,9,20,0.22) 0%, transparent 70%)', filter: 'blur(80px)' }}
                     />
                     <div 
                         className="absolute bottom-[-10%] left-[-10%] w-[35%] h-[35%] rounded-full opacity-50" 
-                        style={{ background: 'radial-gradient(circle, rgba(79,70,229,0.05) 0%, transparent 70%)', filter: 'blur(80px)' }}
+                        style={{ background: 'radial-gradient(circle, rgba(122,18,28,0.22) 0%, transparent 70%)', filter: 'blur(80px)' }}
                     />
                 </div>
             )}
 
-            {/* Light mobile background gradient */}
             {isNative && (
                 <div 
                     className="fixed inset-0 z-0 pointer-events-none"
-                    style={{ background: 'linear-gradient(135deg, #F0F4F8 0%, #E2E8F0 100%)' }}
+                    style={{ background: netflixNeumorphic.pageBackgroundSoft }}
                 />
             )}
 
@@ -421,11 +392,9 @@ export default function MySpace() {
             <header 
                 className={`sticky top-0 z-50 ${isNative ? '' : 'backdrop-blur-md'}`}
                 style={{ 
-                    background: isNative ? '#F4F7FB' : 'rgba(240, 244, 248, 0.8)', 
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.8)',
-                    boxShadow: isNative
-                        ? '0 4px 12px rgba(148, 163, 184, 0.10)'
-                        : '0 4px 12px rgba(180, 190, 210, 0.15)'
+                    background: 'rgba(12,12,13,0.86)', 
+                    borderBottom: `1px solid ${netflixNeumorphic.border}`,
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.34)'
                 }}
             >
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
@@ -433,11 +402,11 @@ export default function MySpace() {
                         <button
                             onClick={() => navigate('/')}
                             className="p-2 -ml-2 rounded-2xl transition-all active:scale-90"
-                            style={{ ...surfaceStyle, color: '#1E293B' }}
+                            style={{ ...surfaceStyle, color: netflixNeumorphic.textSoft }}
                         >
                             <ArrowLeft size={22} strokeWidth={2.5} />
                         </button>
-                        <h1 className="text-xl md:text-2xl font-bold uppercase tracking-widest text-[#1E293B]">My Space</h1>
+                        <h1 className="text-xl md:text-2xl font-bold uppercase tracking-widest" style={{ color: netflixNeumorphic.text }}>My Space</h1>
                     </div>
                     <UserBadge />
                 </div>
@@ -446,34 +415,31 @@ export default function MySpace() {
             <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 relative z-10 flex flex-col md:flex-row gap-6 md:gap-10 items-start">
 
                 {/* Sidebar Filters - collapsible on mobile */}
-                <aside className="w-full md:w-72 flex-shrink-0 space-y-6 md:space-y-8 md:sticky md:top-24">
+                <aside className="myspace-filter-sidebar w-full md:w-72 flex-shrink-0 space-y-6 md:space-y-8 md:sticky md:top-24 md:max-h-[calc(100dvh-7rem)] md:overflow-y-auto md:pr-3 md:pb-8 md:overscroll-contain">
                     {/* Search */}
                     <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={16} />
                         <input
                             type="text"
                             placeholder="Search collection..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            style={isNative ? pressedSurfaceStyle : {
-                                background: '#F0F4F8',
-                                boxShadow: 'inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff',
-                            }}
-                            className="w-full border-none rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-700 font-medium focus:outline-none transition-all"
+                            style={{ ...pressedSurfaceStyle, color: netflixNeumorphic.text }}
+                            className="w-full border-none rounded-2xl py-3.5 pl-12 pr-4 text-sm font-medium focus:outline-none transition-all text-white placeholder:text-neutral-500"
                         />
                     </div>
 
                     {/* Categories */}
                     <div>
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">Category</h3>
+                        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 ml-1 text-neutral-500">Category</h3>
                         <div className="grid grid-cols-2 md:grid-cols-1 gap-2.5">
                             {['All', 'Movies', 'Series', 'Anime'].map(cat => (
                                 <button
                                     key={cat}
                                     onClick={() => setSelectedCategory(cat)}
                                     style={selectedCategory === cat
-                                        ? { ...pressedSurfaceStyle, color: '#4F46E5' }
-                                        : { ...surfaceStyle, color: '#64748B' }
+                                        ? { ...pressedSurfaceStyle, color: netflixNeumorphic.red, border: `1px solid ${netflixNeumorphic.borderStrong}` }
+                                        : { ...surfaceStyle, color: netflixNeumorphic.textSoft }
                                     }
                                     className={`text-left px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95`}
                                 >
@@ -485,15 +451,15 @@ export default function MySpace() {
 
                     {/* Status */}
                     <div>
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">Status</h3>
+                        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 ml-1 text-neutral-500">Status</h3>
                         <div className="flex flex-wrap gap-2.5">
                             {['All', 'Upcoming', 'Watching', 'Watched'].map(status => (
                                 <button
                                     key={status}
                                     onClick={() => setSelectedStatus(status)}
                                     style={selectedStatus === status
-                                        ? { ...pressedSurfaceStyle, color: '#0F172A' }
-                                        : { ...surfaceStyle, color: '#64748B' }
+                                        ? { ...pressedSurfaceStyle, color: netflixNeumorphic.red, border: `1px solid ${netflixNeumorphic.borderStrong}` }
+                                        : { ...surfaceStyle, color: netflixNeumorphic.textSoft }
                                     }
                                     className={`px-4 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95`}
                                 >
@@ -506,9 +472,9 @@ export default function MySpace() {
                     {/* Genres */}
                     <div>
                         <div className="flex justify-between items-center mb-4 ml-1">
-                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Genres</h3>
+                            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">Genres</h3>
                             {selectedGenres.length > 0 && (
-                                <button onClick={() => setSelectedGenres([])} className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest hover:underline">
+                                <button onClick={() => setSelectedGenres([])} className="text-[10px] font-bold uppercase tracking-widest hover:underline text-red-400">
                                     Clear
                                 </button>
                             )}
@@ -521,13 +487,13 @@ export default function MySpace() {
                                     style={selectedGenres.includes(genre)
                                         ? {
                                             ...pressedSurfaceStyle,
-                                            color: '#4F46E5',
-                                            border: '1px solid rgba(79,70,229,0.2)'
+                                            color: netflixNeumorphic.red,
+                                            border: `1px solid ${netflixNeumorphic.borderStrong}`
                                         }
                                         : {
                                             ...surfaceStyle,
-                                            color: '#64748B',
-                                            border: '1px solid transparent'
+                                            color: netflixNeumorphic.textSoft,
+                                            border: `1px solid ${netflixNeumorphic.border}`
                                         }
                                     }
                                     className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all active:scale-95`}
@@ -541,21 +507,21 @@ export default function MySpace() {
 
                 {/* Main Content Grid */}
                 <div className="flex-1 min-h-[50vh]">
-                    <div className="flex justify-between items-end mb-8 border-b border-slate-200 pb-5">
+                    <div className="flex justify-between items-end mb-8 pb-5 border-b border-white/10">
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
+                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
                                 {selectedCategory === 'All' ? 'My Collection' : selectedCategory}
-                                <span className="text-slate-400 ml-3 text-lg font-medium opacity-60">
+                                <span className="text-neutral-500 ml-3 text-lg font-medium opacity-60">
                                     {selectedStatus !== 'All' && `/ ${selectedStatus}`}
                                 </span>
                             </h2>
-                            <p className="text-slate-500 font-medium text-xs mt-1.5 uppercase tracking-widest">
+                            <p className="text-neutral-400 font-medium text-xs mt-1.5 uppercase tracking-widest">
                                 {isEntriesLoading && filteredEntries.length === 0
                                     ? 'Loading collection...'
                                     : `${filteredEntries.length} items found`
                                 }
                                 {isEntriesLoading && filteredEntries.length > 0 && (
-                                    <span className="ml-3 text-indigo-500">Refreshing...</span>
+                                    <span className="ml-3 text-red-400">Refreshing...</span>
                                 )}
                             </p>
                         </div>
@@ -568,29 +534,27 @@ export default function MySpace() {
                                     key={`loading-card-${index}`}
                                     className="aspect-[2/3] rounded-2xl overflow-hidden animate-pulse"
                                     style={{
-                                        background: '#E7ECF3',
-                                        boxShadow: isNative
-                                            ? '0 8px 18px rgba(148, 163, 184, 0.12)'
-                                            : '8px 8px 16px #d1d9e6, -4px -4px 12px #ffffff',
-                                        border: '1px solid rgba(255,255,255,0.9)',
+                                        background: netflixNeumorphic.panelSoft,
+                                        boxShadow: netflixNeumorphic.softShadow,
+                                        border: `1px solid ${netflixNeumorphic.border}`,
                                     }}
                                 >
-                                    <div className="h-full w-full bg-gradient-to-b from-slate-200 via-slate-100 to-slate-200" />
+                                    <div className="h-full w-full bg-gradient-to-b from-neutral-900 via-neutral-800 to-neutral-900" />
                                 </div>
                             ))}
                         </div>
                     ) : entriesError && filteredEntries.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-24 text-slate-300">
                             <div
-                                style={{ boxShadow: '6px 6px 12px #d1d9e6, -4px -4px 10px #ffffff' }}
-                                className="p-8 rounded-full mb-6 bg-[#F0F4F8]"
+                                style={surfaceStyle}
+                                className="p-8 rounded-full mb-6"
                             >
                                 <Filter size={48} className="opacity-40" />
                             </div>
-                            <p className="text-lg font-bold text-slate-500 text-center max-w-md">{entriesError}</p>
+                            <p className="text-lg font-bold text-center max-w-md text-neutral-400">{entriesError}</p>
                             <button
                                 onClick={() => fetchEntries({ force: true }).catch(() => {})}
-                                className="mt-4 text-xs font-bold text-indigo-500 uppercase tracking-widest hover:underline"
+                                className="mt-4 text-xs font-bold uppercase tracking-widest hover:underline text-red-400"
                             >
                                 Try again
                             </button>
@@ -598,15 +562,15 @@ export default function MySpace() {
                     ) : filteredEntries.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-24 text-slate-300">
                             <div 
-                                style={{ boxShadow: '6px 6px 12px #d1d9e6, -4px -4px 10px #ffffff' }}
-                                className="p-8 rounded-full mb-6 bg-[#F0F4F8]"
+                                style={surfaceStyle}
+                                className="p-8 rounded-full mb-6"
                             >
                                 <Filter size={48} className="opacity-40" />
                             </div>
-                            <p className="text-lg font-bold text-slate-400">Nothing found here...</p>
+                            <p className="text-lg font-bold text-neutral-400">Nothing found here...</p>
                             <button
                                 onClick={() => { setSelectedCategory('All'); setSelectedStatus('All'); setSelectedGenres([]); setSearchQuery(''); }}
-                                className="mt-4 text-xs font-bold text-indigo-500 uppercase tracking-widest hover:underline"
+                                className="mt-4 text-xs font-bold uppercase tracking-widest hover:underline text-red-400"
                             >
                                 Reset all filters
                             </button>
@@ -639,34 +603,34 @@ export default function MySpace() {
             {/* Trailer Modal */}
             {selectedTrailerEntry && (
                 <div
-                    className={`fixed inset-0 z-[100] bg-slate-900/40 flex items-center justify-center p-4 md:p-10 ${isNative ? '' : 'backdrop-blur-md'}`}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-black/75 backdrop-blur-md"
                     onClick={closeTrailerModal}
                 >
                     <div
                         className="w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl relative flex flex-col transition-all"
-                        style={{ background: '#F0F4F8', border: '1px solid rgba(255,255,255,0.8)' }}
+                        style={netflixSurfaceStyle}
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between p-5 border-b border-slate-200">
+                        <div className="flex items-center justify-between p-5 border-b border-white/10">
                             <div>
-                                <h3 className="text-xl md:text-2xl font-bold text-slate-800 max-w-md truncate">{selectedTrailerEntry.title}</h3>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">
+                                <h3 className="text-xl md:text-2xl font-bold max-w-md truncate text-white">{selectedTrailerEntry.title}</h3>
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] mt-1 text-neutral-500">
                                     {isLoadingTrailer ? 'Searching Trailer...' : 'Official Trailer'}
                                 </p>
                             </div>
                             <button 
                                 onClick={closeTrailerModal} 
                                 style={surfaceStyle}
-                                className="p-2.5 rounded-2xl text-slate-600 transition-all active:scale-90"
+                                className="p-2.5 rounded-2xl transition-all active:scale-90 text-neutral-300"
                             >
                                 <X size={24} />
                             </button>
                         </div>
-                        <div className="relative aspect-video w-full bg-slate-100 group flex items-center justify-center">
+                        <div className="relative aspect-video w-full group flex items-center justify-center bg-black">
                             {isLoadingTrailer ? (
                                 <div className="flex flex-col items-center">
-                                    <div className="w-12 h-12 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin mb-4" />
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Searching YouTube...</span>
+                                    <div className="w-12 h-12 border-4 rounded-full animate-spin mb-4 border-neutral-800 border-t-red-500" />
+                                    <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">Searching YouTube...</span>
                                 </div>
                             ) : trailerVideoId ? (
                                 <iframe
@@ -680,8 +644,8 @@ export default function MySpace() {
                             ) : (
                                 <div className="text-center p-10">
                                     <div className="text-5xl mb-6">🏜️</div>
-                                    <h4 className="text-xl font-bold text-slate-800 mb-2">No Trailer Found</h4>
-                                    <p className="text-slate-500 text-sm mb-8">Could not locate an embeddable video for this title.</p>
+                                    <h4 className="text-xl font-bold mb-2 text-white">No Trailer Found</h4>
+                                    <p className="text-neutral-400 text-sm mb-8">Could not locate an embeddable video for this title.</p>
                                     <a
                                         href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedTrailerEntry.title + " official trailer")}`}
                                         target="_blank"
@@ -693,8 +657,8 @@ export default function MySpace() {
                                 </div>
                             )}
                         </div>
-                        <div className="p-5 bg-slate-50/50 flex items-center justify-between border-t border-slate-200">
-                            <div className="flex gap-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <div className="p-5 flex items-center justify-between bg-black/20 border-t border-white/10">
+                            <div className="flex gap-5 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
                                 <span>{selectedTrailerEntry.year}</span>
                                 <span>{selectedTrailerEntry.category || 'Movie'}</span>
                             </div>

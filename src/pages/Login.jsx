@@ -8,6 +8,7 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 import { Capacitor } from '@capacitor/core'
 import { auth } from '../main'
 import { shouldUseNeumorphicLayout } from '../lib/platform'
+import { netflixNeumorphic, netflixRaisedStyle, netflixInsetStyle, netflixRedButtonStyle, netflixSurfaceStyle } from '../styles/netflixNeumorphic'
 
 const isNative = Capacitor.isNativePlatform()
 const useNeumorphicLayout = shouldUseNeumorphicLayout()
@@ -213,7 +214,8 @@ export default function Login() {
       <div
         className="min-h-screen w-full flex flex-col items-center justify-center p-6 relative"
         style={{
-          background: '#ECEEF2',
+          background: netflixNeumorphic.pageBackground,
+          color: netflixNeumorphic.text,
           fontFamily: "'Montserrat', 'Raleway', sans-serif",
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -228,8 +230,8 @@ export default function Login() {
             width: 260,
             height: 260,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(200,210,240,0.3) 0%, transparent 70%)',
-            filter: 'blur(40px)',
+            background: 'radial-gradient(circle, rgba(229,9,20,0.22) 0%, transparent 70%)',
+            filter: 'blur(46px)',
           }} />
           <div style={{
             position: 'absolute',
@@ -238,8 +240,8 @@ export default function Login() {
             width: 200,
             height: 200,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(79,70,229,0.08) 0%, transparent 70%)',
-            filter: 'blur(40px)',
+            background: 'radial-gradient(circle, rgba(122,18,28,0.2) 0%, transparent 70%)',
+            filter: 'blur(46px)',
           }} />
         </div>
 
@@ -251,13 +253,11 @@ export default function Login() {
             width: 44,
             height: 44,
             borderRadius: 14,
-            background: '#E8EAED',
-            boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-            border: '1px solid rgba(255,255,255,0.95)',
+            ...netflixRaisedStyle,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#1E293B',
+            color: netflixNeumorphic.textSoft,
           }}
         >
           <ArrowLeft size={20} strokeWidth={2.5} />
@@ -266,10 +266,8 @@ export default function Login() {
         {/* Main Card */}
         <div
           style={{
-            background: '#E8EAED',
+            ...netflixSurfaceStyle,
             borderRadius: 28,
-            boxShadow: '6px 6px 14px rgba(180,190,210,0.5), -3px -3px 8px rgba(255,255,255,0.95)',
-            border: '1px solid rgba(255,255,255,0.95)',
             padding: '32px 24px',
             width: '100%',
             maxWidth: 380,
@@ -280,7 +278,7 @@ export default function Login() {
             <h1 style={{
               fontSize: 26,
               fontWeight: 600,
-              color: '#1E293B',
+              color: netflixNeumorphic.text,
               letterSpacing: -0.5,
               marginBottom: 6,
             }}>
@@ -288,7 +286,7 @@ export default function Login() {
             </h1>
             <p style={{
               fontSize: 13,
-              color: '#9CA3AF',
+              color: netflixNeumorphic.textSoft,
               fontWeight: 400,
             }}>
               Sign in to access your catalogue
@@ -321,7 +319,7 @@ export default function Login() {
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: 1.2,
-                color: '#64748B',
+                color: netflixNeumorphic.textSoft,
                 marginBottom: 8,
               }}>
                 Email
@@ -339,9 +337,8 @@ export default function Login() {
                   borderRadius: 16,
                   padding: '14px 16px',
                   fontSize: 15,
-                  color: '#1E293B',
-                  background: '#E8EAED',
-                  boxShadow: 'inset 4px 4px 10px rgba(180,190,210,0.5), inset -2px -2px 6px rgba(255,255,255,0.95)',
+                  color: netflixNeumorphic.text,
+                  ...netflixInsetStyle,
                   outline: 'none',
                   minHeight: 52,
                   fontFamily: "'Montserrat', sans-serif",
@@ -358,7 +355,7 @@ export default function Login() {
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: 1.2,
-                color: '#64748B',
+                color: netflixNeumorphic.textSoft,
                 marginBottom: 8,
               }}>
                 Password
@@ -376,9 +373,8 @@ export default function Login() {
                   borderRadius: 16,
                   padding: '14px 16px',
                   fontSize: 15,
-                  color: '#1E293B',
-                  background: '#E8EAED',
-                  boxShadow: 'inset 4px 4px 10px rgba(180,190,210,0.5), inset -2px -2px 6px rgba(255,255,255,0.95)',
+                  color: netflixNeumorphic.text,
+                  ...netflixInsetStyle,
                   outline: 'none',
                   minHeight: 52,
                   fontFamily: "'Montserrat', sans-serif",
@@ -400,12 +396,7 @@ export default function Login() {
                 fontSize: 15,
                 fontWeight: 600,
                 color: '#fff',
-                background: loading
-                  ? 'linear-gradient(135deg, #6366F1, #4F46E5)'
-                  : 'linear-gradient(135deg, #6366F1, #4F46E5)',
-                boxShadow: loading
-                  ? '4px 4px 10px rgba(79,70,229,0.3), -2px -2px 6px rgba(255,255,255,0.95)'
-                  : '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95), 0 4px 16px rgba(79,70,229,0.25)',
+                ...netflixRedButtonStyle,
                 minHeight: 52,
                 display: 'flex',
                 alignItems: 'center',
@@ -432,11 +423,11 @@ export default function Login() {
             gap: 12,
             margin: '24px 0',
           }}>
-            <div style={{ flex: 1, height: 1, background: 'rgba(180,190,210,0.4)' }} />
-            <span style={{ fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500 }}>
+            <div style={{ flex: 1, height: 1, background: netflixNeumorphic.border }} />
+            <span style={{ fontSize: 11, color: netflixNeumorphic.textSoft, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500 }}>
               Or continue with
             </span>
-            <div style={{ flex: 1, height: 1, background: 'rgba(180,190,210,0.4)' }} />
+            <div style={{ flex: 1, height: 1, background: netflixNeumorphic.border }} />
           </div>
 
           {/* Google Button */}
@@ -450,10 +441,8 @@ export default function Login() {
               padding: '12px 16px',
               fontSize: 14,
               fontWeight: 500,
-              color: '#1E293B',
-              background: '#E8EAED',
-              boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-              border: '1px solid rgba(255,255,255,0.95)',
+              color: netflixNeumorphic.text,
+              ...netflixRaisedStyle,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -474,12 +463,12 @@ export default function Login() {
 
           {/* Signup Link */}
           <div style={{ marginTop: 28, textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: '#9CA3AF' }}>
+            <p style={{ fontSize: 13, color: netflixNeumorphic.textSoft }}>
               Don't have an account?{' '}
               <Link
                 to="/signup"
                 style={{
-                  color: '#4F46E5',
+                  color: netflixNeumorphic.red,
                   fontWeight: 600,
                   textDecoration: 'none',
                 }}

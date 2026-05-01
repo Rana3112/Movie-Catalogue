@@ -33,45 +33,30 @@ export default function HeroSection({ items = [], activeTab }) {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: 400, overflow: 'hidden' }}>
+    <div className="streaming-hero">
       {items.map((imgItem, idx) => (
         <img
           key={`hero-bg-${imgItem.id}`}
           src={isAnime ? (imgItem.bannerImage || imgItem.coverImage?.extraLarge) : imageUrl(imgItem.backdrop_path, 'w1280')}
           alt="hero"
-          style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            objectFit: 'cover', opacity: idx === currentIndex ? 1 : 0,
-            transition: 'opacity 1s ease-in-out'
-          }}
+          className={`streaming-hero-image ${idx === currentIndex ? 'is-active' : ''}`}
         />
       ))}
       
-      {/* Gradient Overlay */}
-      <div 
-        style={{ 
-          position: 'absolute', inset: 0, 
-          background: 'linear-gradient(to top, #0a0a0f 0%, rgba(10,10,15,0.4) 50%, transparent 100%)' 
-        }} 
-      />
+      <div className="streaming-hero-overlay" />
 
-      <div style={{ position: 'absolute', bottom: 40, left: 16, right: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+      <div className="streaming-hero-content">
+        <h1 className="streaming-hero-title">
           {title}
         </h1>
-        <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.8)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <p className="streaming-hero-overview">
           {overview}
         </p>
         
-        <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+        <div className="streaming-actions">
           <button 
             onClick={handlePlayClick}
-            style={{ 
-              flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
-              background: 'linear-gradient(135deg, #e50914, #ff6b35)', color: '#fff',
-              fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              cursor: 'pointer'
-            }}
+            className="streaming-primary-button"
           >
             <Play size={18} fill="#fff" /> Watch Now
           </button>
@@ -83,25 +68,16 @@ export default function HeroSection({ items = [], activeTab }) {
               posterUrl: isAnime ? item.coverImage?.extraLarge : imageUrl(item.poster_path, 'w185'),
               category: activeTab,
             }} 
-            style={{ 
-              width: 44, height: 44, borderRadius: 12, border: '1px solid rgba(255,255,255,0.2)',
-              background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer'
-            }} 
+            className="streaming-watchlist-button"
           />
         </div>
       </div>
       
-      {/* Pagination Dots */}
-      <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6 }}>
+      <div className="streaming-hero-dots">
         {items.map((_, i) => (
           <div 
             key={i} 
-            style={{ 
-              width: i === currentIndex ? 16 : 6, height: 6, borderRadius: 3,
-              backgroundColor: i === currentIndex ? '#fff' : 'rgba(255,255,255,0.4)',
-              transition: 'all 0.3s'
-            }} 
+            className={`streaming-hero-dot ${i === currentIndex ? 'is-active' : ''}`}
           />
         ))}
       </div>

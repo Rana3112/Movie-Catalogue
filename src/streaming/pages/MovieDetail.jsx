@@ -27,103 +27,75 @@ export default function MovieDetail() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0f', color: '#fff', paddingBottom: 40 }}>
-      {/* Back Button */}
-      <button 
+    <div className="streaming-page streaming-detail">
+      <button
         onClick={() => navigate(-1)}
-        style={{
-          position: 'absolute', top: 16, left: 16, zIndex: 10,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
-          border: 'none', borderRadius: '50%',
-          width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', cursor: 'pointer'
-        }}
+        className="streaming-icon-button"
+        style={{ position: 'fixed', top: 16, left: 16, zIndex: 10 }}
+        aria-label="Back"
       >
-        <ArrowLeft size={24} />
+        <ArrowLeft size={22} />
       </button>
 
-      {/* Backdrop */}
-      <div style={{ width: '100%', height: 300, position: 'relative' }}>
-        <img 
-          src={imageUrl(movie.backdrop_path, 'w1280')} 
-          alt={movie.title}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }}
-        />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #0a0a0f, transparent)' }} />
+      <div className="streaming-detail-backdrop">
+        <img src={imageUrl(movie.backdrop_path, 'w1280')} alt={movie.title} />
       </div>
 
-      {/* Content Meta */}
-      <div style={{ padding: '0 16px', marginTop: -60, position: 'relative', zIndex: 2 }}>
-        <div style={{ display: 'flex', gap: 16 }}>
-          <img 
-            src={imageUrl(movie.poster_path, 'w342')} 
+      <main className="streaming-detail-content">
+        <section className="streaming-detail-hero">
+          <img
+            src={imageUrl(movie.poster_path, 'w342')}
             alt={movie.title}
-            style={{ width: 110, height: 165, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', objectFit: 'cover' }}
+            className="streaming-detail-poster"
           />
-          <div style={{ flex: 1, marginTop: 40 }}>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{movie.title}</h1>
-            
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 12, fontSize: 13, color: 'rgba(255,255,255,0.7)', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Star size={14} color="#ffd700" fill="#ffd700" />
-                <span style={{ color: '#fff', fontWeight: 600 }}>{movie.vote_average?.toFixed(1)}</span>
+
+          <div className="streaming-detail-copy">
+            <h1 className="streaming-detail-title">{movie.title}</h1>
+
+            <div className="streaming-meta">
+              <div className="streaming-meta-item">
+                <Star size={15} color="#ffd700" fill="#ffd700" />
+                <span style={{ color: '#fff' }}>{movie.vote_average?.toFixed(1)}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Calendar size={14} /> {movie.release_date?.slice(0, 4)}
+              <div className="streaming-meta-item">
+                <Calendar size={15} /> {movie.release_date?.slice(0, 4)}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Clock size={14} /> {movie.runtime}m
+              <div className="streaming-meta-item">
+                <Clock size={15} /> {movie.runtime}m
               </div>
             </div>
+
+            <div className="streaming-detail-actions">
+              <button onClick={handlePlay} className="streaming-primary-button">
+                <Play size={19} fill="#fff" /> Play Movie
+              </button>
+
+              <WatchlistButton
+                item={{
+                  id: movie.id,
+                  title: movie.title,
+                  posterUrl: imageUrl(movie.poster_path, 'w500'),
+                  category: 'movie',
+                }}
+                className="streaming-watchlist-button"
+              />
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-          <button 
-            onClick={handlePlay}
-            style={{ 
-              flex: 1, padding: '14px 0', borderRadius: 12, border: 'none',
-              background: 'linear-gradient(135deg, #e50914, #ff6b35)', color: '#fff',
-              fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              cursor: 'pointer'
-            }}
-          >
-            <Play size={20} fill="#fff" /> Play Movie
-          </button>
-          
-          <WatchlistButton 
-            item={{
-              id: movie.id,
-              title: movie.title,
-              posterUrl: imageUrl(movie.poster_path, 'w500'),
-              category: 'movie',
-            }} 
-            style={{ 
-              width: 50, height: 50, borderRadius: 12, border: '1px solid rgba(255,255,255,0.2)',
-              background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer'
-            }} 
-          />
-        </div>
+        <section className="streaming-detail-section">
+          <h3>Overview</h3>
+          <p>{movie.overview}</p>
+        </section>
 
-        {/* Overview */}
-        <div style={{ marginTop: 24 }}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700 }}>Overview</h3>
-          <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
-            {movie.overview}
-          </p>
-        </div>
-
-        {/* Genres */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+        <div className="streaming-genre-row">
           {movie.genres?.map(g => (
-            <span key={g.id} style={{ padding: '4px 12px', borderRadius: 100, background: 'rgba(255,255,255,0.1)', fontSize: 12 }}>
+            <span key={g.id} className="streaming-pill">
               {g.name}
             </span>
           ))}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -6,9 +6,11 @@ import { X, Star, Upload, Calendar as CalIcon, ChevronLeft, ChevronRight, Trash,
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import { useNavigate } from 'react-router-dom'
-import { shouldUseNeumorphicLayout } from '../lib/platform'
+import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../lib/platform'
+import { netflixNeumorphic, netflixPageStyle, netflixRaisedStyle, netflixRedButtonStyle, netflixSurfaceStyle, netflixInsetStyle } from '../styles/netflixNeumorphic'
 
-const isNative = shouldUseNeumorphicLayout()
+const isNative = shouldUseCompactNativeLayout()
+const useDesktopNeumorphic = shouldUseNeumorphicLayout() && !isNative
 
 // Lazy import - only fetched on web
 const Background3D = lazy(() => import('../components/canvas/Background3D'))
@@ -145,6 +147,8 @@ export default function Calendar() {
         genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
     })
     const [isFetching, setIsFetching] = useState(false)
+    const neumorphicRaisedStyle = useDesktopNeumorphic ? netflixRaisedStyle : undefined
+    const neumorphicInsetStyle = useDesktopNeumorphic ? netflixInsetStyle : undefined
 
     const handleDateClick = (day) => {
         if (isGuest) {
@@ -338,15 +342,44 @@ export default function Calendar() {
         return new Date(year, monthIndex, day).getDay()
     }
 
+    const getEntrySummary = (entry) => {
+        const savedSummary = entry.description || entry.overview || entry.summary || entry.notes
+        if (savedSummary) return savedSummary
+
+        const genres = (entry.genres || [entry.genre || 'General']).filter(Boolean)
+        const status = entry.status || 'unspecified'
+        const category = entry.category || selectedCategory || 'Title'
+        return `${category} marked as ${status}${genres.length ? ` in ${genres.slice(0, 3).join(', ')}` : ''}.`
+    }
+
+    const renderRatingStars = (rating = 0, size = 12) => (
+        <div className="flex items-center gap-0.5">
+            {Array.from({ length: 5 }).map((_, starI) => (
+                <Star
+                    key={starI}
+                    size={size}
+                    fill={starI < Number(rating || 0) ? '#F59E0B' : 'none'}
+                    className={starI < Number(rating || 0) ? 'text-amber-500' : 'text-slate-300'}
+                />
+            ))}
+        </div>
+    )
+
     const renderCalendarGrid = () => {
         const daysInMonth = getDaysInMonth(currentMonthIndex, selectedYear)
         const firstDay = getFirstDayOfMonth(currentMonthIndex, selectedYear)
         const days = []
 
         if (!isNative) {
-            // --- WEB: Original 7-column grid ---
+            // --- WEB: 7-column calendar with poster-shaped day cards ---
             for (let i = 0; i < firstDay; i++) {
-                days.push(<div key={`empty-${i}`} className="aspect-[3/4] bg-white/5 border border-white/5 rounded-lg opacity-20" />)
+                days.push(
+                    <div
+                        key={`empty-${i}`}
+                        className={useDesktopNeumorphic ? 'aspect-[2/3] rounded-[28px] opacity-45' : 'aspect-[3/4] bg-white/5 border border-white/5 rounded-lg opacity-20'}
+                        style={useDesktopNeumorphic ? netflixRaisedStyle : undefined}
+                    />
+                )
             }
         }
 
@@ -401,20 +434,18 @@ export default function Calendar() {
                             minHeight: 220,
                             WebkitTouchCallout: 'none',
                             WebkitUserSelect: 'none',
-                            background: '#E8EAED',
-                            boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-                            border: '1px solid rgba(255,255,255,0.95)',
+                            ...netflixRaisedStyle,
                         }}
                     >
                         {entryCount > 0 ? (
                             <>
                                 {isMulti ? (
-                                    <div className="flex flex-col h-full bg-white/30 backdrop-blur-sm">
+                                    <div className="flex flex-col h-full bg-black/15 backdrop-blur-sm">
                                         <div className="relative z-10 flex flex-col h-full p-5">
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-baseline gap-1.5">
-                                                    <span className="text-2xl font-bold" style={{ color: '#2D3748' }}>{day}</span>
-                                                    <span className="text-[10px] uppercase font-bold" style={{ color: '#9CA3AF', letterSpacing: '0.1em' }}>{DAYS_SHORT[dayOfWeek]}</span>
+                                                    <span className="text-2xl font-bold" style={{ color: netflixNeumorphic.text }}>{day}</span>
+                                                    <span className="text-[10px] uppercase font-bold" style={{ color: netflixNeumorphic.muted, letterSpacing: '0.1em' }}>{DAYS_SHORT[dayOfWeek]}</span>
                                                 </div>
                                             </div>
                                             
@@ -435,14 +466,14 @@ export default function Calendar() {
                                                                 height: 104,
                                                                 transform: `translate(${xOff}, ${yOff}) rotate(${rot})`,
                                                                 zIndex: zIdx,
-                                                                boxShadow: '0 4px 12px rgba(0,0,0,0.15), 0 0 0 2px rgba(255,255,255,0.8)',
-                                                                background: '#E8EAED'
+                                                                boxShadow: '0 8px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.12)',
+                                                                background: netflixNeumorphic.panelSoft
                                                             }}
                                                         >
                                                             {entry.poster ? (
                                                                 <img src={entry.poster} className="w-full h-full object-cover" />
                                                             ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                                                 <div className="w-full h-full flex items-center justify-center text-neutral-500">
                                                                     <CalIcon size={20} />
                                                                 </div>
                                                             )}
@@ -455,12 +486,12 @@ export default function Calendar() {
                                                 <div 
                                                     className="px-4 py-1.5 rounded-full flex items-center gap-2"
                                                     style={{
-                                                        background: 'rgba(255,255,255,0.8)',
-                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,1)',
-                                                        border: '1px solid rgba(255,255,255,1)'
+                                                        background: 'rgba(229,9,20,0.14)',
+                                                        boxShadow: '0 8px 18px rgba(229,9,20,0.16)',
+                                                        border: '1px solid rgba(229,9,20,0.34)'
                                                     }}
                                                 >
-                                                    <span className="text-xs font-bold" style={{ color: '#6366F1' }}>{entryCount} Entries</span>
+                                                    <span className="text-xs font-bold" style={{ color: netflixNeumorphic.text }}>{entryCount} Entries</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -478,7 +509,7 @@ export default function Calendar() {
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/30 to-transparent" />
                                                 </>
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center" style={{ background: '#E8EAED', color: '#9CA3AF' }}>
+                                                <div className="w-full h-full flex items-center justify-center" style={{ background: netflixNeumorphic.panelSoft, color: netflixNeumorphic.muted }}>
                                                     <CalIcon size={32} strokeWidth={1.5} />
                                                 </div>
                                             )}
@@ -541,7 +572,7 @@ export default function Calendar() {
                                                             removeEntry(dayEntries[0]._id, dateStr)
                                                         }
                                                     }}
-                                                    className="p-2 bg-white/40 text-slate-500 rounded-full border border-white/60 active:bg-red-50 active:text-red-500"
+                                                    className="p-2 bg-black/70 text-red-400 rounded-full border border-white/10 active:bg-red-500/20"
                                                 >
                                                     <Trash size={14} />
                                                 </button>
@@ -553,18 +584,18 @@ export default function Calendar() {
                         ) : (
                             <div className="flex flex-col items-center justify-center flex-1 py-8">
                                 <div className="flex items-baseline gap-2 mb-3">
-                                    <span className="text-3xl font-bold" style={{ color: 'rgba(45, 55, 72, 0.2)' }}>{day}</span>
-                                    <span className="text-[10px] uppercase font-semibold" style={{ color: 'rgba(156, 163, 175, 0.3)' }}>{DAYS_SHORT[dayOfWeek]}</span>
+                                    <span className="text-3xl font-bold" style={{ color: 'rgba(255,255,255,0.22)' }}>{day}</span>
+                                    <span className="text-[10px] uppercase font-semibold" style={{ color: 'rgba(255,255,255,0.18)' }}>{DAYS_SHORT[dayOfWeek]}</span>
                                 </div>
                                 {!isReadOnly && (
                                     <div className="flex flex-col items-center gap-1.5 mt-2">
                                         <div 
                                             className="w-10 h-10 rounded-full flex items-center justify-center" 
-                                            style={{ background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.8)' }}
+                                            style={netflixInsetStyle}
                                         >
-                                            <CalIcon className="w-5 h-5 text-slate-400" strokeWidth={1.5} />
+                                            <CalIcon className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
                                         </div>
-                                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400/80">Add Entry</span>
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">Add Entry</span>
                                     </div>
                                 )}
                             </div>
@@ -572,19 +603,174 @@ export default function Calendar() {
                     </div>
                 )
             } else {
-                // --- WEB: Original 7-column cell ---
+                // --- WEB: 7-column poster-style day card ---
                 days.push(
                     <div
                         key={day}
                         onClick={() => !isReadOnly && handleDateClick(day)}
-                        className={`
-                            aspect-[3/4] rounded-lg relative group transition-all duration-300 ${!isReadOnly ? 'cursor-pointer' : 'cursor-default'}
-                            ${entryCount > 0 ? 'border-blue-500/50' : isReadOnly ? 'bg-white/5 border border-white/10' : 'bg-white/5 border border-white/10 hover:bg-white/10'}
-                        `}
+                        className={useDesktopNeumorphic
+                            ? `aspect-[2/3] rounded-[28px] relative group transition-all duration-300 ${isMulti ? 'overflow-visible z-10 hover:z-[120]' : 'overflow-hidden'} ${!isReadOnly ? 'cursor-pointer hover:-translate-y-1' : 'cursor-default'}`
+                            : `
+                                aspect-[3/4] rounded-lg relative group transition-all duration-300 ${!isReadOnly ? 'cursor-pointer' : 'cursor-default'}
+                                ${entryCount > 0 ? 'border-blue-500/50' : isReadOnly ? 'bg-white/5 border border-white/10' : 'bg-white/5 border border-white/10 hover:bg-white/10'}
+                            `
+                        }
+                        style={useDesktopNeumorphic ? {
+                            ...netflixRaisedStyle,
+                            boxShadow: entryCount > 0 ? netflixNeumorphic.raisedShadow : netflixNeumorphic.softShadow,
+                            border: entryCount > 0 ? `1px solid ${netflixNeumorphic.borderStrong}` : `1px solid ${netflixNeumorphic.border}`,
+                        } : undefined}
                     >
                         {entryCount > 0 && (
                             <>
-                                {isMulti ? (
+                                {useDesktopNeumorphic && isMulti ? (
+                                    <div className="absolute inset-0 flex flex-col p-4">
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-2xl font-bold text-white">{day}</span>
+                                            <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-500">{DAYS_SHORT[dayOfWeek]}</span>
+                                        </div>
+
+                                        <div className="relative flex-1 flex items-center justify-center">
+                                            {dayEntries.slice(0, 3).map((entry, idx) => {
+                                                const rotation = idx === 0 ? '-8deg' : idx === 1 ? '4deg' : '11deg'
+                                                const translateX = idx === 0 ? '-18px' : idx === 1 ? '8px' : '26px'
+                                                const translateY = idx === 1 ? '-10px' : '8px'
+                                                return (
+                                                    <div
+                                                        key={entry._id || idx}
+                                                        className="absolute rounded-2xl overflow-hidden bg-neutral-900"
+                                                        style={{
+                                                            width: '48%',
+                                                            aspectRatio: '2/3',
+                                                            transform: `translate(${translateX}, ${translateY}) rotate(${rotation})`,
+                                                            zIndex: 10 - idx,
+                                                            boxShadow: '0 12px 20px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.12)',
+                                                        }}
+                                                    >
+                                                        {entry.poster ? (
+                                                            <img src={entry.poster} alt={entry.title} className="w-full h-full object-cover" loading="lazy" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                                                                <CalIcon size={24} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+
+                                        <div className="flex justify-center">
+                                            <span
+                                                className="px-4 py-1.5 rounded-full text-xs font-bold text-white"
+                                                style={netflixRedButtonStyle}
+                                            >
+                                                {entryCount} Entries
+                                            </span>
+                                        </div>
+                                        <div
+                                            className={`calendar-multi-entry-preview pointer-events-none absolute top-1/2 hidden w-[380px] -translate-y-1/2 group-hover:block group-hover:pointer-events-auto ${
+                                                dayOfWeek >= 5 ? 'right-[calc(100%+16px)]' : 'left-[calc(100%+16px)]'
+                                            }`}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <div
+                                                className="rounded-[28px] p-4"
+                                                style={{
+                                                    background: 'rgba(24,24,27,0.96)',
+                                                    boxShadow: '18px 18px 42px rgba(0,0,0,0.55), -8px -8px 22px rgba(255,255,255,0.03)',
+                                                    border: `1px solid ${netflixNeumorphic.border}`,
+                                                    backdropFilter: 'blur(16px)',
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                                                    <div>
+                                                        <p className="m-0 text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-500">
+                                                            {DAYS_SHORT[dayOfWeek]}, {MONTHS[currentMonthIndex]} {day}
+                                                        </p>
+                                                        <h4 className="m-0 mt-1 text-lg font-extrabold text-white">
+                                                            {entryCount} Entries
+                                                        </h4>
+                                                    </div>
+                                                    <span className="rounded-full bg-red-500/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-red-400 border border-red-500/20">
+                                                        Hover Preview
+                                                    </span>
+                                                </div>
+
+                                                <div className="mt-3 max-h-[420px] space-y-3 overflow-y-auto pr-1">
+                                                    {dayEntries.map((entry, entryIndex) => {
+                                                        const genres = (entry.genres || [entry.genre || 'General']).filter(Boolean)
+                                                        const criticScore = entry.rtCriticScore || entry.rottenTomatoesScore
+                                                        return (
+                                                            <div
+                                                                key={entry._id || `${dateStr}-${entryIndex}`}
+                                                                className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 rounded-3xl p-3"
+                                                                style={{
+                                                                    ...netflixInsetStyle,
+                                                                }}
+                                                            >
+                                                                <div className="h-24 w-16 overflow-hidden rounded-2xl bg-neutral-900">
+                                                                    {entry.poster ? (
+                                                                        <img src={entry.poster} alt={entry.title} className="h-full w-full object-cover" loading="lazy" />
+                                                                    ) : (
+                                                                        <div className="flex h-full w-full items-center justify-center text-neutral-500">
+                                                                            <CalIcon size={22} />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="min-w-0">
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <h5 className="m-0 line-clamp-2 text-sm font-extrabold leading-snug text-white">
+                                                                            {entry.title}
+                                                                        </h5>
+                                                                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                                                                            entry.status === 'watched'
+                                                                                ? 'bg-green-100 text-green-700'
+                                                                                : entry.status === 'watching'
+                                                                                    ? 'bg-sky-100 text-sky-700'
+                                                                                    : 'bg-amber-100 text-amber-700'
+                                                                        }`}>
+                                                                            {entry.status || 'Saved'}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-neutral-400">
+                                                                        <span>{entry.category || selectedCategory || 'Calendar'}</span>
+                                                                        {renderRatingStars(entry.rating, 11)}
+                                                                        {criticScore && (
+                                                                            <span className={`rounded-full border px-2 py-0.5 ${getScoreColor(criticScore)}`}>
+                                                                                Critic {criticScore}%
+                                                                            </span>
+                                                                        )}
+                                                                        {entry.rtAudienceScore && (
+                                                                            <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-orange-500">
+                                                                                Audience {entry.rtAudienceScore}%
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {genres.length > 0 && (
+                                                                        <div className="mt-2 flex flex-wrap gap-1">
+                                                                            {genres.slice(0, 4).map(g => (
+                                                                                <span key={g} className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-neutral-400">
+                                                                                    {g}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-neutral-400">
+                                                                        {getEntrySummary(entry)}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : isMulti ? (
                                     <div className="absolute inset-0 flex flex-col pt-10 px-2 pb-2 bg-gradient-to-br from-gray-900 to-black rounded-lg">
                                         <div className="flex-1 flex flex-col gap-1 overflow-hidden relative z-10">
                                             {dayEntries.slice(0, 3).map((entry, idx) => (
@@ -600,6 +786,65 @@ export default function Calendar() {
                                             <div className="text-xs text-center font-bold text-blue-400">{entryCount} Entries</div>
                                         </div>
                                     </div>
+                                ) : useDesktopNeumorphic ? (
+                                    <>
+                                        <div className="absolute inset-0 overflow-hidden rounded-[28px]">
+                                            {posterEntry ? (
+                                                <>
+                                                    <img
+                                                        src={posterEntry.poster}
+                                                        alt={dayEntries[0].title}
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                        loading="lazy"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
+                                                </>
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                                    <CalIcon size={34} strokeWidth={1.5} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className={`absolute top-4 left-4 z-10 flex items-baseline gap-1.5 ${posterEntry ? 'text-white' : 'text-neutral-300'}`}>
+                                            <span className="text-2xl font-bold drop-shadow-sm">{day}</span>
+                                            <span className={`text-[10px] uppercase font-bold tracking-widest ${posterEntry ? 'text-white/70' : 'text-neutral-500'}`}>{DAYS_SHORT[dayOfWeek]}</span>
+                                        </div>
+
+                                        <div className="absolute bottom-0 left-0 right-0 z-10 p-4">
+                                            <h4 className={`font-bold text-sm leading-tight line-clamp-2 ${posterEntry ? 'text-white drop-shadow-lg' : 'text-white'}`}>
+                                                {dayEntries[0].title}
+                                            </h4>
+                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                {(dayEntries[0].genres || [dayEntries[0].genre || 'General']).slice(0, 2).map(g => (
+                                                    <span
+                                                        key={g}
+                                                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide truncate max-w-[82px] ${
+                                                            posterEntry ? 'bg-white/18 text-white/80 border border-white/20 backdrop-blur-sm' : 'bg-white/5 text-neutral-400 border border-white/10'
+                                                        }`}
+                                                    >
+                                                        {g}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {!isReadOnly && (
+                                            <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        if (confirm(`Delete "${dayEntries[0].title}"?`)) {
+                                                            removeEntry(dayEntries[0]._id, dateStr)
+                                                        }
+                                                    }}
+                                                    className="p-2 rounded-full text-red-400 bg-black/70 border border-white/10 shadow-sm"
+                                                >
+                                                    <Trash size={13} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
                                 ) : (
                                     <>
                                         <div className="absolute inset-0 overflow-hidden rounded-lg">
@@ -662,16 +907,38 @@ export default function Calendar() {
                             </>
                         )}
 
-                        {entryCount === 0 && !isReadOnly && (
+                        {entryCount === 0 && useDesktopNeumorphic && (
+                            <div className="absolute inset-0 flex flex-col">
+                                <div className="p-4 flex items-baseline gap-1.5">
+                                    <span className="text-2xl font-bold text-neutral-500">{day}</span>
+                                    <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-600">{DAYS_SHORT[dayOfWeek]}</span>
+                                </div>
+                                {!isReadOnly && (
+                                    <div className="flex-1 flex flex-col items-center justify-center gap-2 pb-6 opacity-55 group-hover:opacity-100 transition-opacity">
+                                        <div
+                                            className="w-11 h-11 rounded-full flex items-center justify-center"
+                                            style={netflixInsetStyle}
+                                        >
+                                            <CalIcon className="w-5 h-5 text-neutral-500" strokeWidth={1.6} />
+                                        </div>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Add Entry</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {entryCount === 0 && !useDesktopNeumorphic && !isReadOnly && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <CalIcon className="text-white/20 w-8 h-8 mb-1" />
                                 <span className="text-[10px] text-white/30 uppercase tracking-widest">Add</span>
                             </div>
                         )}
 
-                        <span className={`absolute top-2 left-3 font-bold text-lg z-[90] pointer-events-none ${entryCount > 0 ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-white/70'}`}>
-                            {day}
-                        </span>
+                        {!useDesktopNeumorphic && (
+                            <span className={`absolute top-2 left-3 font-bold text-lg z-[90] pointer-events-none ${entryCount > 0 ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-white/70'}`}>
+                                {day}
+                            </span>
+                        )}
                     </div>
                 )
             }
@@ -684,7 +951,7 @@ export default function Calendar() {
     // ──────────────────────────────────────────────
     if (isNative) {
         return (
-            <div className="min-h-screen w-full relative font-sans overflow-x-hidden" style={{ background: "#ECEEF2", fontFamily: "'Montserrat', sans-serif" }}>
+            <div className="min-h-screen w-full relative font-sans overflow-x-hidden text-white" style={{ background: netflixNeumorphic.pageBackground, fontFamily: "'Montserrat', sans-serif" }}>
                 {/* ── Simplified Native Header ── */}
                 <header className="fixed top-0 left-0 right-0 z-40 px-6 py-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
                     <div className="flex items-center justify-between max-w-lg mx-auto">
@@ -692,16 +959,14 @@ export default function Calendar() {
                             onClick={() => navigate('/genres')}
                             className="w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95"
                             style={{ 
-                                background: '#E8EAED', 
-                                boxShadow: '4px 4px 10px rgba(180,190,210,0.5), -2px -2px 6px rgba(255,255,255,0.95)',
-                                border: '1px solid rgba(255,255,255,0.95)',
+                                ...netflixRaisedStyle,
                                 cursor: 'pointer'
                             }}
                         >
-                            <ChevronLeft size={22} style={{ color: '#4B5563' }} />
+                            <ChevronLeft size={22} style={{ color: netflixNeumorphic.textSoft }} />
                         </button>
                         
-                        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0 }}>
+                        <h1 style={{ fontSize: 18, fontWeight: 700, color: netflixNeumorphic.text, letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0 }}>
                             {selectedCategory ? 'Calendar' : 'My Calendar'}
                         </h1>
 
@@ -713,7 +978,7 @@ export default function Calendar() {
                     {/* ── Page Title & Month Switcher ── */}
                     <div className="mb-8">
                         <div className="flex items-center justify-between mb-2">
-                             <h1 className="text-2xl font-bold uppercase tracking-tight" style={{ color: '#1E293B' }}>
+                             <h1 className="text-2xl font-bold uppercase tracking-tight" style={{ color: netflixNeumorphic.text }}>
                                  {selectedCategory || "My Calendar"}
                              </h1>
                              <div className="flex items-center gap-3">
@@ -721,28 +986,28 @@ export default function Calendar() {
                                     onClick={() => changeMonth('prev')}
                                     disabled={currentMonthIndex === 0}
                                     className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
-                                    style={{ background: '#E8EAED', boxShadow: '3px 3px 6px rgba(180,190,210,0.4), -2px -2px 5px rgba(255,255,255,0.9)' }}
+                                    style={netflixRaisedStyle}
                                 >
-                                    <ChevronLeft size={20} style={{ color: '#4B5563' }} />
+                                    <ChevronLeft size={20} style={{ color: netflixNeumorphic.textSoft }} />
                                 </button>
                                 <button
                                     onClick={() => changeMonth('next')}
                                     disabled={currentMonthIndex === 11}
                                     className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
-                                    style={{ background: '#E8EAED', boxShadow: '3px 3px 6px rgba(180,190,210,0.4), -2px -2px 5px rgba(255,255,255,0.9)' }}
+                                    style={netflixRaisedStyle}
                                 >
-                                    <ChevronRight size={20} style={{ color: '#4B5563' }} />
+                                    <ChevronRight size={20} style={{ color: netflixNeumorphic.textSoft }} />
                                 </button>
                              </div>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-extrabold" style={{ color: '#4F46E5' }}>{MONTHS[currentMonthIndex]}</span>
-                            <span className="text-xl font-medium" style={{ color: '#9CA3AF' }}>{selectedYear}</span>
+                            <span className="text-4xl font-extrabold" style={{ color: netflixNeumorphic.red }}>{MONTHS[currentMonthIndex]}</span>
+                            <span className="text-xl font-medium" style={{ color: netflixNeumorphic.textSoft }}>{selectedYear}</span>
                         </div>
                         {selectedGenres.length > 0 && (
                             <div className="flex gap-1.5 mt-3 flex-wrap">
                                 {selectedGenres.map(g => (
-                                    <span key={g} className="text-[10px] px-3 py-1 rounded-full uppercase font-bold tracking-wider" style={{ background: '#D1D5DB', color: '#4B5563' }}>
+                                    <span key={g} className="text-[10px] px-3 py-1 rounded-full uppercase font-bold tracking-wider" style={{ background: 'rgba(229,9,20,0.16)', color: netflixNeumorphic.text, border: `1px solid ${netflixNeumorphic.borderStrong}` }}>
                                         {g}
                                     </span>
                                 ))}
@@ -761,7 +1026,7 @@ export default function Calendar() {
                 {/* ── Entry Modal (Light Theme) ── */}
                 <AnimatePresence>
                     {showModal && (
-                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] p-0 sm:p-4">
+                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-md p-0 sm:p-4">
                             <Motion.div
                                 initial={{ y: "100%" }}
                                 animate={{ y: 0 }}
@@ -769,18 +1034,18 @@ export default function Calendar() {
                                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                                 className="w-full max-w-lg rounded-t-[40px] sm:rounded-[40px] px-6 pt-8 shadow-2xl overflow-y-auto max-h-[90vh] sm:max-h-[90vh]"
                                 style={{ 
-                                    background: '#ECEEF2', 
+                                    ...netflixSurfaceStyle,
                                     fontFamily: "'Montserrat', sans-serif", 
                                     paddingBottom: 'calc(env(safe-area-inset-bottom, 100px) + 120px)' 
                                 }}
                             >
-                                <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-8 opacity-50 block sm:hidden" />
+                                <div className="w-12 h-1.5 rounded-full mx-auto mb-8 opacity-70 block sm:hidden" style={{ background: netflixNeumorphic.dim }} />
                                 
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold" style={{ color: '#1E293B' }}>
-                                        <span style={{ color: '#4F46E5' }}>{selectedDate?.day}</span> {MONTHS[selectedDate?.monthIndex]}
+                                    <h2 className="text-2xl font-bold" style={{ color: netflixNeumorphic.text }}>
+                                        <span style={{ color: netflixNeumorphic.red }}>{selectedDate?.day}</span> {MONTHS[selectedDate?.monthIndex]}
                                     </h2>
-                                    <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full flex items-center justify-center bg-white/50 text-slate-500 active:scale-90"><X size={20} /></button>
+                                    <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90" style={{ ...netflixRaisedStyle, color: netflixNeumorphic.textSoft }}><X size={20} /></button>
                                 </div>
 
                                 {/* Existing Entries */}
@@ -796,7 +1061,7 @@ export default function Calendar() {
                                             <div
                                                 key={entry._id}
                                                 className="p-4 rounded-[32px] flex gap-4 transition-all active:scale-[0.98] group relative"
-                                                style={{ background: '#E8EAED', boxShadow: 'inset 2px 2px 5px rgba(180,190,210,0.3), inset -2px -2px 5px rgba(255,255,255,0.7)' }}
+                                                style={netflixInsetStyle}
                                                 onClick={() => handleEditClick(entry)}
                                             >
                                                 <div className="absolute top-2 right-2 flex gap-1">
@@ -805,7 +1070,8 @@ export default function Calendar() {
                                                             e.stopPropagation()
                                                             handleEditClick(entry)
                                                         }}
-                                                        className="p-2 bg-white/60 text-indigo-500 rounded-full shadow-sm active:scale-90"
+                                                        className="p-2 rounded-full active:scale-90"
+                                                        style={{ ...netflixRaisedStyle, color: netflixNeumorphic.textSoft }}
                                                     >
                                                         <Upload size={14} className="rotate-90" />
                                                     </button>
@@ -816,7 +1082,8 @@ export default function Calendar() {
                                                                 removeEntry(entry._id, selectedDate.dateStr)
                                                             }
                                                         }}
-                                                        className="p-2 bg-white/60 text-red-500 rounded-full shadow-sm active:scale-90"
+                                                        className="p-2 rounded-full active:scale-90"
+                                                        style={{ ...netflixRaisedStyle, color: netflixNeumorphic.red }}
                                                     >
                                                         <Trash size={14} />
                                                     </button>
@@ -824,13 +1091,13 @@ export default function Calendar() {
                                                 {entry.poster ? (
                                                     <img src={entry.poster} alt={entry.title} className="w-16 h-24 object-cover rounded-2xl flex-shrink-0" />
                                                 ) : (
-                                                    <div className="w-16 h-24 bg-white/50 rounded-2xl flex items-center justify-center text-[10px] text-center p-2 text-slate-400">No Poster</div>
+                                                    <div className="w-16 h-24 rounded-2xl flex items-center justify-center text-[10px] text-center p-2" style={{ ...netflixRaisedStyle, color: netflixNeumorphic.muted }}>No Poster</div>
                                                 )}
                                                 <div className="flex-1 min-w-0 pr-12">
-                                                    <h4 className="font-bold text-base truncate" style={{ color: '#1E293B' }}>{entry.title}</h4>
+                                                    <h4 className="font-bold text-base truncate" style={{ color: netflixNeumorphic.text }}>{entry.title}</h4>
                                                     <div className="flex flex-wrap gap-1 mt-1.5 mb-2">
                                                         {(entry.genres || [entry.genre || 'General']).map(g => (
-                                                            <span key={g} className="text-[9px] bg-white/80 px-2 py-0.5 rounded-full border border-white" style={{ color: '#64748B' }}>
+                                                            <span key={g} className="text-[9px] px-2 py-0.5 rounded-full border" style={{ background: 'rgba(255,255,255,0.06)', borderColor: netflixNeumorphic.border, color: netflixNeumorphic.textSoft }}>
                                                                 {g}
                                                             </span>
                                                         ))}
@@ -841,7 +1108,7 @@ export default function Calendar() {
                                                         </span>
                                                         <div className="flex">
                                                             {Array.from({ length: 5 }).map((_, starI) => (
-                                                                <Star key={starI} size={11} fill={starI < entry.rating ? "#F59E0B" : "none"} className={starI < entry.rating ? "text-amber-500" : "text-slate-300"} />
+                                                                <Star key={starI} size={11} fill={starI < entry.rating ? "#F59E0B" : "none"} className={starI < entry.rating ? "text-amber-500" : "text-neutral-600"} />
                                                             ))}
                                                         </div>
                                                     </div>
@@ -850,9 +1117,9 @@ export default function Calendar() {
                                         ))}
                                 </div>
 
-                                <div className="border-t border-slate-200 pt-8">
+                                <div className="border-t pt-8" style={{ borderColor: netflixNeumorphic.border }}>
                                     <div className="flex items-center justify-between mb-6">
-                                        <h3 className="font-bold text-lg" style={{ color: '#475569' }}>{editingId ? "Edit Details" : "Add Entry"}</h3>
+                                        <h3 className="font-bold text-lg" style={{ color: netflixNeumorphic.text }}>{editingId ? "Edit Details" : "Add Entry"}</h3>
                                         {editingId && (
                                             <button
                                                 onClick={() => {
@@ -867,7 +1134,8 @@ export default function Calendar() {
                                                         genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
                                                     })
                                                 }}
-                                                className="text-xs font-bold text-indigo-500 uppercase tracking-wider"
+                                                className="text-xs font-bold uppercase tracking-wider"
+                                                style={{ color: netflixNeumorphic.red }}
                                             >
                                                 New Entry
                                             </button>
@@ -876,11 +1144,11 @@ export default function Calendar() {
 
                                     <div className="space-y-6">
                                         <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Title</label>
+                                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Title</label>
                                             <div className="relative">
                                                 <input
-                                                    className="w-full rounded-2xl p-4 focus:outline-none transition-all text-slate-700 font-medium"
-                                                    style={{ background: '#E8EAED', boxShadow: 'inset 2px 2px 5px rgba(180,190,210,0.5), inset -2px -2px 5px rgba(255,255,255,0.7)' }}
+                                                    className="w-full rounded-2xl p-4 focus:outline-none transition-all font-medium placeholder:text-neutral-500"
+                                                    style={{ ...netflixInsetStyle, color: netflixNeumorphic.text }}
                                                     value={formData.title}
                                                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                                                     placeholder="Enter name..."
@@ -889,7 +1157,7 @@ export default function Calendar() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Genres</label>
+                                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Genres</label>
                                             <div className="flex flex-wrap gap-2">
                                                 {allUniqueGenres.map(g => {
                                                     const isSelected = formData.genres.some(fg => fg.toLowerCase() === g.toLowerCase());
@@ -905,15 +1173,11 @@ export default function Calendar() {
                                                                     return { ...annot, genres: newGenres.length > 0 ? newGenres : ['General'] };
                                                                 });
                                                             }}
-                                                            className={`text-[10px] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider transition-all scale-100 active:scale-95 ${isSelected
-                                                                ? 'bg-indigo-50 text-indigo-600'
-                                                                : 'bg-white/60 text-slate-400'
-                                                            }`}
+                                                            className="text-[10px] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider transition-all scale-100 active:scale-95"
                                                             style={{
-                                                                boxShadow: isSelected 
-                                                                    ? 'inset 1px 1px 3px rgba(0,0,0,0.05), inset -1px -1px 3px rgba(255,255,255,0.5)'
-                                                                    : '2px 2px 4px rgba(180,190,210,0.3), -2px -2px 4px rgba(255,255,255,0.8)',
-                                                                border: isSelected ? '1px solid rgba(79, 70, 229, 0.2)' : '1px solid transparent'
+                                                                ...(isSelected ? netflixRedButtonStyle : netflixRaisedStyle),
+                                                                color: isSelected ? '#FFFFFF' : netflixNeumorphic.textSoft,
+                                                                border: isSelected ? `1px solid ${netflixNeumorphic.borderStrong}` : `1px solid ${netflixNeumorphic.border}`
                                                             }}
                                                         >
                                                             {g}
@@ -925,20 +1189,20 @@ export default function Calendar() {
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Critic %</label>
+                                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Critic %</label>
                                                 <input
-                                                    className="w-full rounded-2xl p-4 focus:outline-none text-slate-700 font-bold"
-                                                    style={{ background: '#E8EAED', boxShadow: 'inset 2px 2px 5px rgba(180,190,210,0.5), inset -2px -2px 5px rgba(255,255,255,0.7)' }}
+                                                    className="w-full rounded-2xl p-4 focus:outline-none font-bold placeholder:text-neutral-500"
+                                                    style={{ ...netflixInsetStyle, color: netflixNeumorphic.text }}
                                                     value={formData.rtCriticScore}
                                                     onChange={e => setFormData({ ...formData, rtCriticScore: e.target.value })}
                                                     placeholder="0"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Audience %</label>
+                                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Audience %</label>
                                                 <input
-                                                    className="w-full rounded-2xl p-4 focus:outline-none text-slate-700 font-bold"
-                                                    style={{ background: '#E8EAED', boxShadow: 'inset 2px 2px 5px rgba(180,190,210,0.5), inset -2px -2px 5px rgba(255,255,255,0.7)' }}
+                                                    className="w-full rounded-2xl p-4 focus:outline-none font-bold placeholder:text-neutral-500"
+                                                    style={{ ...netflixInsetStyle, color: netflixNeumorphic.text }}
                                                     value={formData.rtAudienceScore}
                                                     onChange={e => setFormData({ ...formData, rtAudienceScore: e.target.value })}
                                                     placeholder="0"
@@ -947,11 +1211,11 @@ export default function Calendar() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">IMDb Link (Poster Fetch)</label>
+                                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>IMDb Link (Poster Fetch)</label>
                                             <div className="flex gap-2">
                                                 <input
-                                                    className="flex-1 rounded-2xl p-4 focus:outline-none text-slate-700 text-xs"
-                                                    style={{ background: '#E8EAED', boxShadow: 'inset 2px 2px 5px rgba(180,190,210,0.5), inset -2px -2px 5px rgba(255,255,255,0.7)' }}
+                                                    className="flex-1 rounded-2xl p-4 focus:outline-none text-xs placeholder:text-neutral-500"
+                                                    style={{ ...netflixInsetStyle, color: netflixNeumorphic.text }}
                                                     value={imdbLinkValue}
                                                     onChange={e => setImdbLinkValue(e.target.value)}
                                                     placeholder="Paste URL..."
@@ -960,17 +1224,17 @@ export default function Calendar() {
                                                     onClick={() => handleFetchPoster(imdbLinkValue)}
                                                     disabled={isFetching}
                                                     className="w-14 rounded-2xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-50"
-                                                    style={{ background: '#E8EAED', boxShadow: '3px 3px 6px rgba(180,190,210,0.4), -2px -2px 5px rgba(255,255,255,0.9)' }}
+                                                    style={netflixRaisedStyle}
                                                 >
-                                                    <Upload size={18} className={isFetching ? 'animate-bounce' : 'text-indigo-500'} />
+                                                    <Upload size={18} className={isFetching ? 'animate-bounce' : ''} style={{ color: netflixNeumorphic.red }} />
                                                 </button>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center gap-6 py-2">
                                             <div className="flex-1">
-                                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Rating</label>
-                                                <div className="flex gap-2 bg-white/50 p-3 rounded-2xl border border-white shadow-inner">
+                                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Rating</label>
+                                                <div className="flex gap-2 p-3 rounded-2xl" style={netflixInsetStyle}>
                                                     {[1, 2, 3, 4, 5].map(num => (
                                                         <button
                                                             key={num}
@@ -980,21 +1244,21 @@ export default function Calendar() {
                                                             <Star 
                                                                 size={24} 
                                                                 fill={num <= formData.rating ? "#F59E0B" : "none"} 
-                                                                className={num <= formData.rating ? "text-amber-500" : "text-slate-300"} 
+                                                                className={num <= formData.rating ? "text-amber-500" : "text-neutral-600"} 
                                                             />
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
                                             <div className="w-24">
-                                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Status</label>
+                                                 <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Status</label>
                                                  <button
                                                      onClick={() => setFormData({ ...formData, status: formData.status === 'watched' ? 'watchlist' : 'watched' })}
                                                      className="w-full py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest border transition-all active:scale-95"
                                                      style={{ 
-                                                         background: formData.status === 'watched' ? '#DCFCE7' : '#FEF3C7',
-                                                         color: formData.status === 'watched' ? '#166534' : '#92400E',
-                                                         borderColor: 'transparent'
+                                                         background: formData.status === 'watched' ? 'rgba(34,197,94,0.16)' : 'rgba(229,9,20,0.16)',
+                                                         color: formData.status === 'watched' ? '#86EFAC' : netflixNeumorphic.text,
+                                                         borderColor: formData.status === 'watched' ? 'rgba(34,197,94,0.32)' : netflixNeumorphic.borderStrong
                                                      }}
                                                  >
                                                      {formData.status}
@@ -1005,15 +1269,15 @@ export default function Calendar() {
                                         <div className="pt-4 flex gap-4">
                                              <button
                                                  onClick={() => setShowModal(false)}
-                                                 className="flex-1 py-4 rounded-3xl text-sm font-bold uppercase tracking-widest text-slate-500 transition-all active:scale-95"
-                                                 style={{ background: '#E8EAED', boxShadow: '3px 3px 6px rgba(180,190,210,0.4), -2px -2px 5px rgba(255,255,255,0.9)' }}
+                                                 className="flex-1 py-4 rounded-3xl text-sm font-bold uppercase tracking-widest transition-all active:scale-95"
+                                                 style={{ ...netflixRaisedStyle, color: netflixNeumorphic.textSoft }}
                                              >
                                                  Back
                                              </button>
                                              <button
                                                  onClick={handleSubmit}
                                                  className="flex-[2] py-4 rounded-3xl text-sm font-bold uppercase tracking-widest text-white transition-all active:scale-95"
-                                                 style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)', boxShadow: '0 8px 20px rgba(79, 70, 229, 0.3)' }}
+                                                 style={netflixRedButtonStyle}
                                              >
                                                  {editingId ? "Update Entry" : "Save Entry"}
                                              </button>
@@ -1029,10 +1293,13 @@ export default function Calendar() {
     }
 
     // ──────────────────────────────────────────────
-    // Web Perspective (Original Dark Design)
+    // Web Perspective
     // ──────────────────────────────────────────────
     return (
-        <div className="min-h-screen w-full relative text-white font-sans overflow-x-hidden " style={{ background: "linear-gradient(160deg, #0c0c1d 0%, #0a0a14 30%, #08080f 60%, #0d0d1a 100%)" }}>
+        <div
+            className={`min-h-screen w-full relative font-sans overflow-x-hidden ${useDesktopNeumorphic ? 'text-white' : 'text-white'}`}
+            style={{ background: useDesktopNeumorphic ? netflixNeumorphic.pageBackground : "linear-gradient(160deg, #0c0c1d 0%, #0a0a14 30%, #08080f 60%, #0d0d1a 100%)" }}
+        >
             {/* Background */}
             {isNative ? (
                 <div className="fixed inset-0 z-0 pointer-events-none">
@@ -1046,6 +1313,11 @@ export default function Calendar() {
                     <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2" style={{ background: "radial-gradient(ellipse, rgba(255, 255, 255, 0.03) 0%, transparent 70%)", filter: "blur(80px)" }} />
                     <div className="absolute bottom-1/4 right-1/4 w-1/2 h-1/2" style={{ background: "radial-gradient(ellipse, rgba(200, 210, 255, 0.02) 0%, transparent 70%)", filter: "blur(80px)" }} />
                 </div>
+            ) : useDesktopNeumorphic ? (
+                <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+                    <div style={{ position: 'absolute', top: '7%', left: '8%', width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle, rgba(229,9,20,0.22) 0%, transparent 70%)', filter: 'blur(72px)' }} />
+                    <div style={{ position: 'absolute', right: '6%', bottom: '8%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(122,18,28,0.2) 0%, transparent 70%)', filter: 'blur(76px)' }} />
+                </div>
             ) : (
                 <Suspense fallback={<div className="fixed inset-0 z-0 bg-[#121212]" />}>
                     <Background3D />
@@ -1053,17 +1325,31 @@ export default function Calendar() {
             )}
 
             {/* Header */}
-            <header className="px-4 md:px-8 py-4 md:py-6 border-b border-white/10 backdrop-blur-md sticky top-0 z-20 bg-black/50" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
+            <header
+                className="px-4 md:px-8 py-4 md:py-6 sticky top-0 z-20"
+                style={{
+                    paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+                    background: useDesktopNeumorphic ? 'rgba(12,12,13,0.86)' : 'rgba(0,0,0,0.5)',
+                    backdropFilter: 'blur(16px)',
+                    borderBottom: useDesktopNeumorphic ? `1px solid ${netflixNeumorphic.border}` : '1px solid rgba(255,255,255,0.1)',
+                }}
+            >
                 <div className="container mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600 tracking-wide flex flex-wrap items-baseline gap-2 md:gap-3 uppercase">
+                        <h1
+                            className={`text-2xl md:text-4xl font-bold tracking-wide flex flex-wrap items-baseline gap-2 md:gap-3 uppercase ${useDesktopNeumorphic ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600'}`}
+                        >
                             <span>{selectedCategory ? `${selectedCategory}` : "My Calendar"}</span>
-                            <span className="text-white/50 text-lg md:text-2xl font-light">| {MONTHS[currentMonthIndex]} {selectedYear}</span>
+                            <span className={`${useDesktopNeumorphic ? 'text-neutral-400' : 'text-white/50'} text-lg md:text-2xl font-light`}>| {MONTHS[currentMonthIndex]} {selectedYear}</span>
                         </h1>
                         {selectedGenres.length > 0 && (
                             <div className="flex gap-2 mt-2 flex-wrap">
                                 {selectedGenres.map(g => (
-                                    <span key={g} className="text-xs bg-white/10 px-3 py-1 rounded-full text-white/70 border border-white/20 uppercase tracking-wider">
+                                    <span
+                                        key={g}
+                                        className={`text-xs px-3 py-1 rounded-full uppercase tracking-wider ${useDesktopNeumorphic ? 'text-neutral-300' : 'bg-white/10 text-white/70 border border-white/20'}`}
+                                        style={useDesktopNeumorphic ? netflixInsetStyle : undefined}
+                                    >
                                         {g}
                                     </span>
                                 ))}
@@ -1074,14 +1360,16 @@ export default function Calendar() {
                         <button
                             onClick={() => changeMonth('prev')}
                             disabled={currentMonthIndex === 0}
-                            className="flex items-center px-3 md:px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 rounded-full text-sm font-medium transition-colors border border-white/10 backdrop-blur-sm"
+                            className="flex items-center px-3 md:px-4 py-2 disabled:opacity-30 rounded-full text-sm font-medium transition-colors"
+                            style={useDesktopNeumorphic ? { ...netflixRaisedStyle, color: netflixNeumorphic.textSoft } : undefined}
                         >
                             <ChevronLeft size={16} className="mr-1" /> Prev
                         </button>
                         <button
                             onClick={() => changeMonth('next')}
                             disabled={currentMonthIndex === 11}
-                            className="flex items-center px-3 md:px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 rounded-full text-sm font-medium transition-colors border border-white/10 backdrop-blur-sm"
+                            className="flex items-center px-3 md:px-4 py-2 disabled:opacity-30 rounded-full text-sm font-medium transition-colors"
+                            style={useDesktopNeumorphic ? { ...netflixRaisedStyle, color: netflixNeumorphic.textSoft } : undefined}
                         >
                             Next <ChevronRight size={16} className="ml-1" />
                         </button>
@@ -1097,18 +1385,21 @@ export default function Calendar() {
                     </div>
                 ) : (
                     /* --- WEB: Traditional 7-column calendar --- */
-                    <div className="bg-black/40 border border-white/10 rounded-2xl md:rounded-3xl p-4 md:p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                    <div
+                        className={`rounded-2xl md:rounded-3xl ${useDesktopNeumorphic ? 'p-5 md:p-9' : 'p-4 md:p-8'}`}
+                        style={useDesktopNeumorphic ? netflixSurfaceStyle : undefined}
+                    >
                         {/* Weekday Headers */}
-                        <div className="grid grid-cols-7 mb-4 border-b border-white/5 pb-4">
+                        <div className={`grid grid-cols-7 mb-4 pb-4 ${useDesktopNeumorphic ? 'border-b border-white/10' : 'border-b border-white/5'}`}>
                             {DAYS_OF_WEEK.map(day => (
-                                <div key={day} className="text-center text-blue-400/70 font-bold uppercase text-[10px] md:text-xs tracking-widest py-2">
+                                <div key={day} className={`text-center font-bold uppercase text-[10px] md:text-xs tracking-widest py-2 ${useDesktopNeumorphic ? 'text-neutral-500' : 'text-blue-400/70'}`}>
                                     {day}
                                 </div>
                             ))}
                         </div>
 
                         {/* Calendar Grid */}
-                        <div className="grid grid-cols-7 gap-4">
+                        <div className={`grid grid-cols-7 ${useDesktopNeumorphic ? 'gap-5 xl:gap-6' : 'gap-4'}`}>
                             {renderCalendarGrid()}
                         </div>
                     </div>
@@ -1118,17 +1409,34 @@ export default function Calendar() {
             {/* Entry Modal */}
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+                    <div
+                        className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+                            useDesktopNeumorphic ? 'bg-black/70 backdrop-blur-md' : 'bg-black/90 backdrop-blur-md'
+                        }`}
+                    >
                         <Motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-[#1a1a1a] border border-white/20 p-6 md:p-8 rounded-2xl md:rounded-3xl w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto"
+                            className={`p-6 md:p-8 rounded-[32px] w-full max-w-2xl relative max-h-[90vh] overflow-y-auto ${
+                                useDesktopNeumorphic
+                                    ? 'text-white'
+                                    : 'bg-[#1a1a1a] border border-white/20 shadow-2xl text-white'
+                            }`}
+                            style={useDesktopNeumorphic ? netflixSurfaceStyle : undefined}
                         >
-                            <button onClick={() => setShowModal(false)} className="absolute top-4 md:top-6 right-4 md:right-6 text-white/50 hover:text-white"><X /></button>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className={`absolute top-4 md:top-6 right-4 md:right-6 rounded-full flex items-center justify-center transition-all ${
+                                    useDesktopNeumorphic ? 'w-11 h-11 text-neutral-400 hover:text-white' : 'text-white/50 hover:text-white'
+                                }`}
+                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
+                            >
+                                <X size={useDesktopNeumorphic ? 18 : 24} />
+                            </button>
 
-                            <h2 className="text-xl md:text-2xl font-bold mb-6">
-                                {selectedDate?.day} {MONTHS[selectedDate?.monthIndex]}
+                            <h2 className={`text-xl md:text-3xl font-bold mb-6 ${useDesktopNeumorphic ? 'text-white' : ''}`}>
+                                <span className={useDesktopNeumorphic ? 'text-red-500' : ''}>{selectedDate?.day}</span> {MONTHS[selectedDate?.monthIndex]}
                             </h2>
 
                             {/* Existing Entries */}
@@ -1143,7 +1451,10 @@ export default function Calendar() {
                                     .map((entry) => (
                                         <div
                                             key={entry._id}
-                                            className="bg-white/5 p-4 rounded-xl flex gap-4 hover:bg-white/10 transition-colors cursor-pointer group relative"
+                                            className={`p-4 rounded-[24px] flex gap-4 transition-all cursor-pointer group relative ${
+                                                useDesktopNeumorphic ? 'hover:-translate-y-0.5' : 'bg-white/5 hover:bg-white/10'
+                                            }`}
+                                            style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
                                             onClick={() => handleEditClick(entry)}
                                         >
                                             <button
@@ -1151,7 +1462,10 @@ export default function Calendar() {
                                                     e.stopPropagation()
                                                     handleEditClick(entry)
                                                 }}
-                                                className="absolute top-2 right-10 p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                                                className={`absolute top-2 right-11 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30 ${
+                                                    useDesktopNeumorphic ? 'text-red-400' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+                                                }`}
+                                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
                                             >
                                                 <Upload size={14} className="rotate-90" />
                                             </button>
@@ -1162,31 +1476,44 @@ export default function Calendar() {
                                                         removeEntry(entry._id, selectedDate.dateStr)
                                                     }
                                                 }}
-                                                className="absolute top-2 right-2 p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                                                className={`absolute top-2 right-2 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30 ${
+                                                    useDesktopNeumorphic ? 'text-red-500' : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                                                }`}
+                                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
                                             >
                                                 <Trash size={14} />
                                             </button>
                                             {entry.poster ? (
-                                                <img src={entry.poster} alt={entry.title} className="w-16 h-24 object-cover rounded-md" />
+                                                <img src={entry.poster} alt={entry.title} className={`w-16 h-24 object-cover flex-shrink-0 ${useDesktopNeumorphic ? 'rounded-2xl' : 'rounded-md'}`} />
                                             ) : (
-                                                <div className="w-16 h-24 bg-white/10 rounded-md flex items-center justify-center text-xs text-center">No Poster</div>
+                                                <div
+                                                    className={`w-16 h-24 rounded-2xl flex items-center justify-center text-xs text-center flex-shrink-0 ${useDesktopNeumorphic ? 'text-neutral-500' : 'bg-white/10'}`}
+                                                    style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
+                                                >
+                                                    No Poster
+                                                </div>
                                             )}
-                                            <div>
-                                                <h4 className="font-bold text-lg pr-6">{entry.title}</h4>
+                                            <div className="min-w-0">
+                                                <h4 className={`font-bold text-lg pr-16 ${useDesktopNeumorphic ? 'text-white' : ''}`}>{entry.title}</h4>
                                                 <div className="flex flex-wrap gap-1 mt-1 mb-2">
                                                     {(entry.genres || [entry.genre || 'General']).map(g => (
-                                                        <span key={g} className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-white/70 border border-white/20">
+                                                        <span
+                                                            key={g}
+                                                            className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                                                                useDesktopNeumorphic ? 'bg-white/5 text-neutral-400 border-white/10' : 'bg-white/10 text-white/70 border-white/20'
+                                                            }`}
+                                                        >
                                                             {g}
                                                         </span>
                                                     ))}
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-white/70">
+                                                <div className={`flex items-center gap-2 text-sm ${useDesktopNeumorphic ? 'text-neutral-400' : 'text-white/70'}`}>
                                                     <span className={`px-2 py-0.5 rounded text-xs ${entry.status === 'watched' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                                                         {entry.status}
                                                     </span>
                                                     <div className="flex">
                                                         {Array.from({ length: 5 }).map((_, starI) => (
-                                                            <Star key={starI} size={12} fill={starI < entry.rating ? "currentColor" : "none"} className={starI < entry.rating ? "text-yellow-400" : "text-gray-600"} />
+                                                            <Star key={starI} size={12} fill={starI < entry.rating ? "currentColor" : "none"} className={starI < entry.rating ? "text-yellow-400" : useDesktopNeumorphic ? "text-neutral-600" : "text-gray-600"} />
                                                         ))}
                                                     </div>
                                                 </div>
@@ -1207,9 +1534,9 @@ export default function Calendar() {
                                     ))}
                             </div>
 
-                            <div className="border-t border-white/10 pt-6">
+                            <div className={`pt-6 ${useDesktopNeumorphic ? 'border-t border-white/10' : 'border-t border-white/10'}`}>
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-bold text-white/80">{editingId ? "Edit Entry" : "Add New Entry"}</h3>
+                                    <h3 className={`font-bold ${useDesktopNeumorphic ? 'text-white/90' : 'text-white/80'}`}>{editingId ? "Edit Entry" : "Add New Entry"}</h3>
                                     {editingId && (
                                         <button
                                             onClick={() => {
@@ -1224,7 +1551,7 @@ export default function Calendar() {
                                                     genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
                                                 })
                                             }}
-                                            className="text-xs text-white/50 hover:text-white"
+                                            className={`text-xs font-bold uppercase tracking-wider ${useDesktopNeumorphic ? 'text-red-400 hover:text-red-300' : 'text-white/50 hover:text-white'}`}
                                         >
                                             Cancel Edit
                                         </button>
@@ -1233,9 +1560,12 @@ export default function Calendar() {
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs uppercase text-white/50 mb-1">Title</label>
+                                        <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Title</label>
                                         <input
-                                            className="w-full bg-black/50 border border-white/20 rounded-xl p-3 focus:outline-none focus:border-blue-500 text-white"
+                                            className={`w-full rounded-2xl p-3 focus:outline-none ${
+                                                useDesktopNeumorphic ? 'text-white placeholder:text-neutral-500' : 'bg-black/50 border border-white/20 focus:border-blue-500 text-white'
+                                            }`}
+                                            style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
                                             value={formData.title}
                                             onChange={e => setFormData({ ...formData, title: e.target.value })}
                                             placeholder="Movie or Series Name"
@@ -1243,7 +1573,7 @@ export default function Calendar() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs uppercase text-white/50 mb-2">Genres</label>
+                                        <label className={`block text-xs uppercase mb-2 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Genres</label>
                                         <div className="flex flex-wrap gap-2">
                                             {allUniqueGenres.map(g => {
                                                 const isSelected = formData.genres.some(fg => fg.toLowerCase() === g.toLowerCase())
@@ -1260,9 +1590,16 @@ export default function Calendar() {
                                                             })
                                                         }}
                                                         className={`text-xs px-3 py-1.5 rounded-full border transition-all ${isSelected
-                                                            ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/30 shadow-lg'
-                                                            : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
+                                                            ? useDesktopNeumorphic
+                                                                ? 'text-red-300 border-red-500/40'
+                                                                : 'bg-blue-600 text-white border-blue-500 shadow-blue-500/30 shadow-lg'
+                                                            : useDesktopNeumorphic
+                                                                ? 'text-neutral-400 border-white/10 hover:border-white/20'
+                                                                : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
                                                             }`}
+                                                        style={useDesktopNeumorphic ? {
+                                                            ...(isSelected ? netflixInsetStyle : netflixRaisedStyle),
+                                                        } : undefined}
                                                     >
                                                         {g}
                                                     </button>
@@ -1273,9 +1610,12 @@ export default function Calendar() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs uppercase text-white/50 mb-1">Status</label>
+                                            <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Status</label>
                                             <select
-                                                className="w-full bg-black/50 border border-white/20 rounded-xl p-3 focus:outline-none focus:border-blue-500 appearance-none text-white"
+                                                className={`w-full rounded-2xl p-3 focus:outline-none appearance-none ${
+                                                    useDesktopNeumorphic ? 'text-white' : 'bg-black/50 border border-white/20 focus:border-blue-500 text-white'
+                                                }`}
+                                                style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
                                                 value={formData.status}
                                                 onChange={e => setFormData({ ...formData, status: e.target.value })}
                                             >
@@ -1285,8 +1625,11 @@ export default function Calendar() {
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-xs uppercase text-white/50 mb-1">Rating</label>
-                                            <div className="flex items-center gap-1 bg-black/50 border border-white/20 rounded-xl p-3">
+                                            <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Rating</label>
+                                            <div
+                                                className={`flex items-center gap-1 rounded-2xl p-3 ${useDesktopNeumorphic ? '' : 'bg-black/50 border border-white/20'}`}
+                                                style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
+                                            >
                                                 {[1, 2, 3, 4, 5].map((_, i) => (
                                                     <button
                                                         key={i}
@@ -1305,30 +1648,36 @@ export default function Calendar() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs uppercase text-white/50 mb-2">Scores (Auto-Fetched)</label>
-                                        <div className="flex gap-4 p-3 bg-black/50 border border-white/20 rounded-xl min-h-[50px] items-center">
+                                        <label className={`block text-xs uppercase mb-2 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Scores (Auto-Fetched)</label>
+                                        <div
+                                            className={`flex gap-4 p-3 rounded-2xl min-h-[50px] items-center ${useDesktopNeumorphic ? '' : 'bg-black/50 border border-white/20'}`}
+                                            style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
+                                        >
                                             {formData.rtCriticScore ? (
                                                 <span className={`flex items-center gap-2 font-bold px-3 py-1 rounded border ${getScoreColor(formData.rtCriticScore)}`}>
                                                     {formData.rtCriticScore}% (Critic)
                                                 </span>
                                             ) : (
-                                                <span className="text-white/30 text-xs italic">No Critic Score</span>
+                                                <span className={`${useDesktopNeumorphic ? 'text-neutral-500' : 'text-white/30'} text-xs italic`}>No Critic Score</span>
                                             )}
                                             {formData.rtAudienceScore ? (
                                                 <span className="flex items-center gap-2 text-orange-400 font-bold bg-orange-500/10 px-3 py-1 rounded border border-orange-500/20">
                                                     {formData.rtAudienceScore}% (Audience)
                                                 </span>
                                             ) : (
-                                                <span className="text-white/30 text-xs italic">No Audience Score</span>
+                                                <span className={`${useDesktopNeumorphic ? 'text-neutral-500' : 'text-white/30'} text-xs italic`}>No Audience Score</span>
                                             )}
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs uppercase text-white/50 mb-1">Paste IMDb Link</label>
+                                        <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Paste IMDb Link</label>
                                         <div className="flex gap-2">
                                             <input
-                                                className="flex-1 bg-black/50 border border-white/20 rounded-xl p-3 focus:outline-none focus:border-blue-500 text-sm"
+                                                className={`flex-1 rounded-2xl p-3 focus:outline-none text-sm ${
+                                                    useDesktopNeumorphic ? 'text-white placeholder:text-neutral-500' : 'bg-black/50 border border-white/20 focus:border-blue-500'
+                                                }`}
+                                                style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
                                                 placeholder="https://www.imdb.com/title/tt..."
                                                 value={imdbLinkValue}
                                                 onChange={(e) => setImdbLinkValue(e.target.value)}
@@ -1339,7 +1688,10 @@ export default function Calendar() {
                                             <button
                                                 onClick={() => handleFetchPoster(imdbLinkValue)}
                                                 disabled={isFetching}
-                                                className="bg-blue-600/20 hover:bg-blue-600/40 disabled:opacity-50 text-blue-400 px-4 rounded-xl text-sm font-medium transition-colors"
+                                                className={`disabled:opacity-50 px-4 rounded-2xl text-sm font-bold transition-colors ${
+                                                    useDesktopNeumorphic ? 'text-red-300' : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400'
+                                                }`}
+                                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
                                             >
                                                 {isFetching ? "..." : "Fetch"}
                                             </button>
@@ -1347,12 +1699,17 @@ export default function Calendar() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs uppercase text-white/50 mb-1">Poster (Manual)</label>
+                                        <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Poster (Manual)</label>
                                         <div className="flex items-center gap-4">
                                             {formData.poster && (
-                                                <img src={formData.poster} className="h-20 w-14 object-cover rounded border border-white/20" />
+                                                <img src={formData.poster} className={`h-20 w-14 object-cover ${useDesktopNeumorphic ? 'rounded-2xl' : 'rounded border border-white/20'}`} />
                                             )}
-                                            <label className="flex items-center gap-2 cursor-pointer bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-colors">
+                                            <label
+                                                className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-2xl transition-colors ${
+                                                    useDesktopNeumorphic ? 'text-neutral-300' : 'bg-white/10 hover:bg-white/20'
+                                                }`}
+                                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
+                                            >
                                                 <Upload size={16} />
                                                 <span className="text-sm">Upload Image</span>
                                                 <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
@@ -1362,7 +1719,10 @@ export default function Calendar() {
 
                                     <button
                                         onClick={handleSubmit}
-                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl mt-6 transition-colors shadow-lg shadow-blue-500/20"
+                                        className={`w-full text-white font-bold py-3 rounded-2xl mt-6 transition-colors ${
+                                            useDesktopNeumorphic ? '' : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20'
+                                        }`}
+                                        style={useDesktopNeumorphic ? netflixRedButtonStyle : undefined}
                                     >
                                         {editingId ? "Update Entry" : "Save Entry"}
                                     </button>
@@ -1389,33 +1749,32 @@ export default function Calendar() {
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             className="w-full max-w-[340px] rounded-[32px] overflow-hidden relative flex flex-col max-h-[80vh]"
                             style={{ 
-                                background: '#F8F9FA',
-                                boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+                                ...netflixSurfaceStyle,
                             }}
                         >
-                            <div className="px-6 py-5 flex justify-between items-center border-b border-gray-200/60 bg-white/50">
-                                <h3 className="text-lg font-bold" style={{ color: '#2D3748' }}>
+                            <div className="px-6 py-5 flex justify-between items-center border-b" style={{ borderColor: netflixNeumorphic.border, background: 'rgba(255,255,255,0.03)' }}>
+                                <h3 className="text-lg font-bold" style={{ color: netflixNeumorphic.text }}>
                                     {longPressData.entries.length} Entries on {longPressData.day}
                                 </h3>
-                                <button onClick={() => setLongPressData(null)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
-                                    <X size={18} color="#4A5568" />
+                                <button onClick={() => setLongPressData(null)} className="p-2 rounded-full transition-colors" style={netflixRaisedStyle}>
+                                    <X size={18} color={netflixNeumorphic.textSoft} />
                                 </button>
                             </div>
                             
                             <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-3">
                                 {longPressData.entries.map((entry, idx) => (
-                                    <div key={entry._id || idx} className="flex gap-4 p-3 rounded-2xl bg-white shadow-sm border border-gray-100/80">
-                                        <div className="w-16 h-24 flex-shrink-0 bg-gray-100 rounded-xl overflow-hidden">
+                                    <div key={entry._id || idx} className="flex gap-4 p-3 rounded-2xl" style={netflixInsetStyle}>
+                                        <div className="w-16 h-24 flex-shrink-0 rounded-xl overflow-hidden" style={{ background: netflixNeumorphic.panelRaised }}>
                                             {entry.poster ? (
                                                 <img src={entry.poster} alt={entry.title} className="w-full h-full object-cover" />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
+                                                <div className="w-full h-full flex items-center justify-center" style={{ color: netflixNeumorphic.muted, background: netflixNeumorphic.panelRaised }}>
                                                     <CalIcon size={24} />
                                                 </div>
                                             )}
                                         </div>
                                         <div className="flex-1 flex flex-col justify-center min-w-0 py-1">
-                                            <h4 className="font-bold text-[15px] leading-tight mb-2 text-slate-800 line-clamp-2">{entry.title}</h4>
+                                            <h4 className="font-bold text-[15px] leading-tight mb-2 line-clamp-2" style={{ color: netflixNeumorphic.text }}>{entry.title}</h4>
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className={`text-[10px] px-2 py-1 rounded-full uppercase font-bold tracking-wider ${entry.status === 'watched' ? 'bg-green-100 text-green-700' : entry.status === 'upcoming' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
                                                     {entry.status}
@@ -1423,7 +1782,7 @@ export default function Calendar() {
                                             </div>
                                             <div className="flex gap-1 mt-auto">
                                                 {[...Array(5)].map((_, i) => (
-                                                    <Star key={i} size={14} className={i < (entry.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-200"} />
+                                                    <Star key={i} size={14} className={i < (entry.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-neutral-700"} />
                                                 ))}
                                             </div>
                                         </div>
