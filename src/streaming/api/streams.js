@@ -1,6 +1,54 @@
-const VIDZEE = import.meta.env.VITE_VIDZEE_PLAYER;
+const VIDZEE = (import.meta.env.VITE_VIDZEE_PLAYER || 'https://player.vidzee.wtf').replace(/\/+$/, '');
 const ANIME_PLAYER = (import.meta.env.VITE_ANIME_PLAYER || 'https://vidnest.fun').replace(/\/+$/, '');
 const API_URL = (import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com').replace(/\/+$/, '');
+
+const preconnectedOrigins = new Set();
+const prefetchedUrls = new Set();
+
+const getOrigin = (url) => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+};
+
+const addHeadLink = ({ rel, href, as }) => {
+  if (typeof document === 'undefined' || !href) return;
+  const key = `${rel}:${href}`;
+  const link = document.createElement('link');
+  link.rel = rel;
+  link.href = href;
+  link.dataset.streamzonePrewarm = key;
+  if (as) link.as = as;
+  document.head.appendChild(link);
+};
+
+export const preconnectStreamingProviders = () => {
+  [VIDZEE, ANIME_PLAYER, API_URL]
+    .map(getOrigin)
+    .filter(Boolean)
+    .forEach(origin => {
+      if (preconnectedOrigins.has(origin)) return;
+      preconnectedOrigins.add(origin);
+      addHeadLink({ rel: 'dns-prefetch', href: origin });
+      addHeadLink({ rel: 'preconnect', href: origin });
+    });
+};
+
+export const prewarmStreamUrl = (url) => {
+  if (!url) return;
+  preconnectStreamingProviders();
+  const origin = getOrigin(url);
+  if (origin && !preconnectedOrigins.has(origin)) {
+    preconnectedOrigins.add(origin);
+    addHeadLink({ rel: 'dns-prefetch', href: origin });
+    addHeadLink({ rel: 'preconnect', href: origin });
+  }
+  if (prefetchedUrls.has(url)) return;
+  prefetchedUrls.add(url);
+  addHeadLink({ rel: 'prefetch', href: url, as: 'document' });
+};
 
 export const getMovieEmbedUrl = (tmdbId) =>
   `${VIDZEE}/embed/movie/${tmdbId}`;

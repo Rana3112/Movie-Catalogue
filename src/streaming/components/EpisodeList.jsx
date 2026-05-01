@@ -3,7 +3,7 @@ import { Play } from 'lucide-react';
 import { imageUrl } from '../api/tmdb';
 import { useTVEpisodes } from '../hooks/useTVShows';
 
-export default function EpisodeList({ tvId, seasons, onEpisodeSelect }) {
+export default function EpisodeList({ tvId, seasons, onEpisodeSelect, onEpisodePrewarm }) {
   const [selectedSeason, setSelectedSeason] = useState(seasons?.find(s => s.season_number > 0)?.season_number || 1);
   const { data: episodes, isLoading } = useTVEpisodes(tvId, selectedSeason);
 
@@ -33,6 +33,8 @@ export default function EpisodeList({ tvId, seasons, onEpisodeSelect }) {
           episodes.map(episode => (
             <div 
               key={episode.id} 
+              onPointerEnter={() => onEpisodePrewarm?.(selectedSeason, episode.episode_number)}
+              onPointerDown={() => onEpisodePrewarm?.(selectedSeason, episode.episode_number)}
               onClick={() => onEpisodeSelect(selectedSeason, episode.episode_number, episode.name)}
               className="streaming-episode-row"
             >

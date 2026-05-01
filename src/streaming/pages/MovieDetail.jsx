@@ -1,8 +1,9 @@
+import { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Play, Star, Calendar, Clock } from 'lucide-react';
 import { useMovieDetail } from '../hooks/useMovies';
 import { imageUrl } from '../api/tmdb';
-import { getMovieEmbedUrl } from '../api/streams';
+import { getMovieEmbedUrl, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
 
@@ -10,6 +11,11 @@ export default function MovieDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: movie, isLoading } = useMovieDetail(id);
+  const streamUrl = useMemo(() => getMovieEmbedUrl(id), [id]);
+
+  useEffect(() => {
+    prewarmStreamUrl(streamUrl);
+  }, [streamUrl]);
 
   if (isLoading || !movie) return <DetailSkeleton />;
 
@@ -17,7 +23,7 @@ export default function MovieDetail() {
     navigate('/streaming/player', {
       state: {
         mode: 'iframe',
-        src: getMovieEmbedUrl(id),
+        src: streamUrl,
         id: movie.id,
         title: movie.title,
         posterUrl: imageUrl(movie.poster_path, 'w500'),
@@ -66,7 +72,12 @@ export default function MovieDetail() {
             </div>
 
             <div className="streaming-detail-actions">
-              <button onClick={handlePlay} className="streaming-primary-button">
+              <button
+                onPointerEnter={() => prewarmStreamUrl(streamUrl)}
+                onPointerDown={() => prewarmStreamUrl(streamUrl)}
+                onClick={handlePlay}
+                className="streaming-primary-button"
+              >
                 <Play size={19} fill="#fff" /> Play Movie
               </button>
 

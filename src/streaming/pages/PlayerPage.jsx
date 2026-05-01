@@ -4,6 +4,7 @@ import { StatusBar } from '@capacitor/status-bar';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { X } from 'lucide-react';
 import { useStreamingStore } from '../store/useStreamingStore';
+import { prewarmStreamUrl } from '../api/streams';
 
 const setNativePlayerMode = (enabled) => {
   try {
@@ -27,6 +28,8 @@ export default function PlayerPage() {
       navigate(-1);
       return undefined;
     }
+
+    prewarmStreamUrl(sourceUrl);
 
     const previousOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -129,6 +132,8 @@ export default function PlayerPage() {
         <iframe
           title={config.title || 'StreamZone player'}
           src={sourceUrl}
+          loading="eager"
+          fetchPriority="high"
           style={{
             position: 'absolute',
             inset: 0,

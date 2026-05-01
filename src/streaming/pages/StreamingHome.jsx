@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Film, Tv, Sword, Search, ChevronLeft, Tags } from 'lucide-react';
 import { useTrendingMovies, usePopularMovies, useTopRatedMovies } from '../hooks/useMovies';
@@ -7,6 +8,7 @@ import { useStreamingStore } from '../store/useStreamingStore';
 import HeroSection from '../components/HeroSection';
 import ContentCarousel from '../components/ContentCarousel';
 import ContinueWatching from '../components/ContinueWatching';
+import { preconnectStreamingProviders } from '../api/streams';
 
 export default function StreamingHome() {
   const navigate = useNavigate();
@@ -22,6 +24,10 @@ export default function StreamingHome() {
   const { data: trendingAnime, isLoading: isLoadingTA } = useTrendingAnime();
   const { data: popularAnime, isLoading: isLoadingPA } = usePopularAnime();
   const { data: seasonalAnime, isLoading: isLoadingSA } = useSeasonalAnime();
+
+  useEffect(() => {
+    preconnectStreamingProviders();
+  }, []);
 
   const tabs = [
     { id: 'movies', label: 'Movies', icon: Film },

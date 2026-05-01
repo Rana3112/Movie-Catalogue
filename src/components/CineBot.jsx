@@ -6,6 +6,142 @@ import './CineBot.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
 
+const normalizeCalendarCategory = (data = {}) => {
+    const explicit = String(data.category || '').trim().toLowerCase()
+    if (explicit === 'anime') return 'Anime'
+    if (explicit === 'series' || explicit === 'tv' || explicit === 'tv series') return 'Series'
+    if (explicit === 'movies' || explicit === 'movie' || explicit === 'film') return 'Movies'
+
+    const genres = Array.isArray(data.genres)
+        ? data.genres
+        : (data.genre ? String(data.genre).split(',') : [])
+    const text = [
+        data.type,
+        data.title,
+        data.description,
+        data.country,
+        data.language,
+        data.genre,
+        ...genres,
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    if (/\banime\b|anime series|japanese animation|\bmanga\b|\bshoujo\b|\bshojo\b|\bshounen\b|\bshonen\b|\bseinen\b|\bisekai\b/.test(text)) {
+        return 'Anime'
+    }
+
+    if (genres.some(g => /animation/i.test(g)) && /japan|japanese/.test(text)) {
+        return 'Anime'
+    }
+
+    if (/\btv\b|tv series|tv mini series|tv mini-series|television|series|mini-series|miniseries|limited series|web series|\bshow\b|episode/.test(text)) {
+        return 'Series'
+    }
+
+    return 'Movies'
+}
+
+const normalizeTitleForMatch = (value = '') => (
+    String(value)
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+)
+
+const enrichWithImdbSuggestion = async (movieData, query) => {
+    const searchTitle = movieData.title || query
+    const normalizedSearch = normalizeTitleForMatch(searchTitle)
+    if (!normalizedSearch) return movieData
+
+    try {
+        const firstChar = normalizedSearch.replace(/\s+/g, '')[0] || 't'
+        const suggestionUrl = `https://v2.sg.media-imdb.com/suggestion/${firstChar}/${encodeURIComponent(searchTitle)}.json`
+        const suggestionRes = await fetch(suggestionUrl)
+        if (!suggestionRes.ok) return movieData
+
+        const suggestionData = await suggestionRes.json()
+        const candidates = Array.isArray(suggestionData.d) ? suggestionData.d : []
+        const best = candidates.find(item => normalizeTitleForMatch(item.l) === normalizedSearch)
+            || candidates.find(item => normalizeTitleForMatch(item.l).includes(normalizedSearch))
+            || candidates[0]
+
+        if (!best) return movieData
+        const yearMatch = typeof best.yr === 'string' ? best.yr.match(/\d{4}/) : null
+        const yearFromRange = yearMatch ? parseInt(yearMatch[0], 10) : null
+
+        return {
+            ...movieData,
+            title: movieData.title || best.l,
+            year: movieData.year || best.y || yearFromRange,
+            imdbLink: movieData.imdbLink || (best.id ? `https://www.imdb.com/title/${best.id}/` : null),
+            type: movieData.type || best.qid || best.q,
+        }
+    } catch (error) {
+        console.warn('[CineBot] IMDb suggestion fallback failed:', error)
+        return movieData
+    }
+}
+
+const enrichWithAniList = async (movieData, query) => {
+    const searchTitle = movieData.title || query
+    const normalizedSearch = normalizeTitleForMatch(searchTitle)
+    if (!normalizedSearch) return movieData
+
+    try {
+        const res = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: `
+                  query ($search: String) {
+                    Page(page: 1, perPage: 5) {
+                      media(search: $search, type: ANIME, isAdult: false) {
+                        id
+                        title { romaji english native }
+                        seasonYear
+                        genres
+                        coverImage { extraLarge large }
+                        description(asHtml: false)
+                      }
+                    }
+                  }
+                `,
+                variables: { search: searchTitle }
+            })
+        })
+        if (!res.ok) return movieData
+
+        const data = await res.json()
+        const matches = data?.data?.Page?.media || []
+        const best = matches.find(item => {
+            const titles = [item.title?.english, item.title?.romaji, item.title?.native].filter(Boolean)
+            return titles.some(title => normalizeTitleForMatch(title) === normalizedSearch)
+        })
+
+        if (!best) return movieData
+
+        const currentType = String(movieData.type || '').toLowerCase()
+        const hasStrongMovieEvidence = /movie|feature|film/.test(currentType)
+        if (hasStrongMovieEvidence) return movieData
+
+        return {
+            ...movieData,
+            category: 'Anime',
+            type: 'anime',
+            title: movieData.title || best.title?.english || best.title?.romaji || searchTitle,
+            genres: movieData.genres?.length ? movieData.genres : (best.genres || []),
+            genre: movieData.genre && movieData.genre !== 'General' ? movieData.genre : (best.genres?.[0] || movieData.genre || 'General'),
+            year: movieData.year || best.seasonYear,
+            releaseDate: movieData.releaseDate || (best.seasonYear ? `${best.seasonYear}-01-01` : null),
+            poster: movieData.poster || best.coverImage?.extraLarge || best.coverImage?.large || null,
+            description: movieData.description || best.description || null,
+        }
+    } catch (error) {
+        console.warn('[CineBot] AniList fallback failed:', error)
+        return movieData
+    }
+}
+
 export default function CineBot() {
     const [isOpen, setIsOpen] = useState(false)
     const [messages, setMessages] = useState([
@@ -162,7 +298,7 @@ export default function CineBot() {
 
             // Step 3: If we have lookup queries, fetch movie data
             if (lookupQueries.length > 0) {
-                setMessages(prev => [...prev, { role: 'bot', content: '🔍 Searching for movie details...' }])
+                setMessages(prev => [...prev, { role: 'bot', content: '🔍 Searching for title details...' }])
 
                 const fetches = lookupQueries.map(async (query) => {
                     try {
@@ -171,8 +307,10 @@ export default function CineBot() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ query })
                         })
-                        const movieData = await lookupRes.json()
+                        let movieData = await lookupRes.json()
                         if (lookupRes.ok && movieData.title) {
+                            movieData = await enrichWithImdbSuggestion(movieData, query)
+                            movieData = await enrichWithAniList(movieData, query)
                             // Frontend fallback: If backend returns 'General' or is missing poster, fetch via OMDB using IMDB id!
                             if (movieData.imdbLink && (movieData.genre === 'General' || !movieData.genres || movieData.genres.length === 0 || !movieData.poster)) {
                                 const imdbIdMatch = movieData.imdbLink.match(/title\/(tt\d+)/);
@@ -186,6 +324,15 @@ export default function CineBot() {
                                                 if (omdbData.Genre && omdbData.Genre !== 'N/A') {
                                                     movieData.genres = omdbData.Genre.split(',').map(g => g.trim());
                                                     movieData.genre = movieData.genres[0];
+                                                }
+                                                if (omdbData.Type && omdbData.Type !== 'N/A') {
+                                                    movieData.type = omdbData.Type;
+                                                }
+                                                if (omdbData.Country && omdbData.Country !== 'N/A') {
+                                                    movieData.country = omdbData.Country;
+                                                }
+                                                if (omdbData.Language && omdbData.Language !== 'N/A') {
+                                                    movieData.language = omdbData.Language;
                                                 }
                                                 if (!movieData.poster && omdbData.Poster && omdbData.Poster !== 'N/A') {
                                                     movieData.poster = omdbData.Poster;
@@ -206,6 +353,7 @@ export default function CineBot() {
                                     }
                                 }
                             }
+                            movieData.category = normalizeCalendarCategory(movieData)
                             return movieData
                         }
                     } catch (e) {
@@ -278,17 +426,7 @@ export default function CineBot() {
             }
         }
 
-        // Determine category from type/genre/description
-        let category = 'Movies' // Default
-        const desc = (movieData.description || '').toLowerCase()
-        const genre = (movieData.genre || '').toLowerCase()
-        const mediaType = (movieData.type || '').toLowerCase()
-
-        if (desc.includes('anime') || genre.includes('animation') || genre.includes('anime')) {
-            category = 'Anime'
-        } else if (mediaType === 'series' || mediaType.includes('tv') || desc.includes('series') || desc.includes('tv show') || desc.includes('television')) {
-            category = 'Series'
-        }
+        const category = normalizeCalendarCategory(movieData)
 
         // Determine genres array
         const standardGenreMap = {
@@ -425,6 +563,7 @@ export default function CineBot() {
                                 // Movie Card
                                 if (msg.role === 'movie') {
                                     const m = msg.data
+                                    const calendarCategory = normalizeCalendarCategory(m)
                                     return (
                                         <div key={idx} className="cinebot-movie-card">
                                             <div className="cinebot-movie-card-inner">
@@ -442,6 +581,7 @@ export default function CineBot() {
                                                 <div className="cinebot-movie-info">
                                                     <h4>{m.title}</h4>
                                                     <div className="movie-meta">
+                                                        <span>🗂️ {calendarCategory}</span>
                                                         {m.releaseDate && <span>📅 {m.releaseDate}</span>}
                                                         {m.genre && <span>🎭 {m.genre}</span>}
                                                         {m.year && <span>📆 Year: {m.year}</span>}

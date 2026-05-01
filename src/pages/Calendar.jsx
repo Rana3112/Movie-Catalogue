@@ -143,6 +143,7 @@ export default function Calendar() {
                 rtCriticScore: cineBotPendingEntry.rtCriticScore || '',
                 rtAudienceScore: cineBotPendingEntry.rtAudienceScore || '',
                 poster: null,
+                category: cineBotPendingEntry.category || selectedCategory || 'Movies',
                 genres: cineBotPendingEntry.genres || selectedGenres.length > 0 ? [...(cineBotPendingEntry.genres || selectedGenres)] : ['General']
             })
             if (cineBotPendingEntry.imdbLink) {

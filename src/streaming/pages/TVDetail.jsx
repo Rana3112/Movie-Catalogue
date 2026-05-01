@@ -1,8 +1,9 @@
+import { useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Calendar, Tv } from 'lucide-react';
 import { useTVDetail } from '../hooks/useTVShows';
 import { imageUrl } from '../api/tmdb';
-import { getTVEmbedUrl } from '../api/streams';
+import { getTVEmbedUrl, preconnectStreamingProviders, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
 import EpisodeList from '../components/EpisodeList';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
@@ -12,13 +13,22 @@ export default function TVDetail() {
   const navigate = useNavigate();
   const { data: tv, isLoading } = useTVDetail(id);
 
+  const getEpisodeStreamUrl = useCallback((season, episode) => (
+    getTVEmbedUrl(id, season, episode)
+  ), [id]);
+
+  useEffect(() => {
+    preconnectStreamingProviders();
+  }, []);
+
   if (isLoading || !tv) return <DetailSkeleton />;
 
   const handleEpisodeSelect = (season, episode, epName) => {
+    const streamUrl = getEpisodeStreamUrl(season, episode);
     navigate('/streaming/player', {
       state: {
         mode: 'iframe',
-        src: getTVEmbedUrl(id, season, episode),
+        src: streamUrl,
         id: tv.id,
         title: tv.name,
         episodeTitle: epName,
@@ -28,6 +38,11 @@ export default function TVDetail() {
         category: 'tv',
       }
     });
+  };
+
+  const handleEpisodePrewarm = (season, episode) => {
+    preconnectStreamingProviders();
+    prewarmStreamUrl(getEpisodeStreamUrl(season, episode));
   };
 
   return (
@@ -93,6 +108,7 @@ export default function TVDetail() {
           tvId={tv.id}
           seasons={tv.seasons}
           onEpisodeSelect={handleEpisodeSelect}
+          onEpisodePrewarm={handleEpisodePrewarm}
         />
       </main>
     </div>

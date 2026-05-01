@@ -173,7 +173,7 @@ export const useStore = create(persist((set, get) => ({
             const payload = {
                 ...entryData,
                 date,
-                category: selectedCategory || 'Movies', // Fallback
+                category: entryData.category || selectedCategory || 'Movies', // Fallback
                 genres: finalGenres, // Send Array from form data
                 genre: finalGenres[0] || 'General', // Legacy fallback
                 userEmail: user?.email // Include Email

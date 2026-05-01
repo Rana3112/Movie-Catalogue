@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Calendar, ListVideo } from 'lucide-react';
 import { useAnimeDetail } from '../hooks/useAnime';
-import { getAnimeEmbedUrl } from '../api/streams';
+import { getAnimeEmbedUrl, preconnectStreamingProviders, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
 
@@ -9,6 +10,11 @@ export default function AnimeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: anime, isLoading } = useAnimeDetail(id);
+
+  useEffect(() => {
+    preconnectStreamingProviders();
+    if (id) prewarmStreamUrl(getAnimeEmbedUrl(id, 1, { dub: false }));
+  }, [id]);
 
   if (isLoading || !anime) return <DetailSkeleton />;
 
@@ -20,10 +26,11 @@ export default function AnimeDetail() {
   const title = titleOptions[0];
 
   const handleEpisodeSelect = (epNumber) => {
+    const streamUrl = getAnimeEmbedUrl(anime.id, epNumber, { dub: false });
     navigate('/streaming/player', {
       state: {
         mode: 'iframe',
-        src: getAnimeEmbedUrl(anime.id, epNumber, { dub: false }),
+        src: streamUrl,
         id: anime.id,
         anilistId: anime.id,
         title,
@@ -33,6 +40,10 @@ export default function AnimeDetail() {
         category: 'anime',
       }
     });
+  };
+
+  const handleEpisodePrewarm = (epNumber) => {
+    prewarmStreamUrl(getAnimeEmbedUrl(anime.id, epNumber, { dub: false }));
   };
 
   return (
@@ -108,6 +119,8 @@ export default function AnimeDetail() {
             {Array.from({ length: anime.episodes || 12 }).map((_, i) => (
               <button
                 key={`ep-${i + 1}`}
+                onPointerEnter={() => handleEpisodePrewarm(i + 1)}
+                onPointerDown={() => handleEpisodePrewarm(i + 1)}
                 onClick={() => handleEpisodeSelect(i + 1)}
                 className="streaming-anime-episode"
               >

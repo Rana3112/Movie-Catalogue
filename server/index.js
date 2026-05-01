@@ -532,6 +532,40 @@ app.delete('/api/entries/:id', async (req, res) => {
 // ============================================================
 
 // POST /api/movie-lookup — Search for movie details via SerpAPI
+const normalizeCineBotCategory = (info = {}) => {
+    const rawGenres = Array.isArray(info.genres)
+        ? info.genres
+        : (info.genre ? String(info.genre).split(',') : []);
+    const text = [
+        info.category,
+        info.type,
+        info.title,
+        info.description,
+        info.country,
+        info.language,
+        info.genre,
+        ...rawGenres
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    if (/\banime\b|anime series|japanese animation|\bmanga\b|\bshoujo\b|\bshojo\b|\bshounen\b|\bshonen\b|\bseinen\b|\bisekai\b/.test(text)) {
+        return 'Anime';
+    }
+
+    const isJapaneseAnimation =
+        rawGenres.some(g => /animation/i.test(g)) &&
+        (/japan|japanese/.test(text));
+
+    if (isJapaneseAnimation) {
+        return 'Anime';
+    }
+
+    if (/\btv\b|tv series|tv mini series|tv mini-series|television|series|mini-series|miniseries|limited series|web series|\bshow\b|episode/.test(text)) {
+        return 'Series';
+    }
+
+    return 'Movies';
+};
+
 app.post('/api/movie-lookup', async (req, res) => {
     try {
         const { query } = req.body;
@@ -542,8 +576,8 @@ app.post('/api/movie-lookup', async (req, res) => {
         const serpApiKey = process.env.SERPAPI_KEY;
         if (!serpApiKey) return res.status(500).json({ error: 'SerpAPI key not configured' });
 
-        // Step 1: Search for the movie on Google via SerpAPI
-        const searchUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query + ' movie release date IMDB')}&api_key=${serpApiKey}&engine=google`;
+        // Step 1: Search neutrally so TV series and anime are not biased into movie results.
+        const searchUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query + ' IMDb movie TV series anime release date')}&api_key=${serpApiKey}&engine=google`;
         const searchRes = await fetch(searchUrl);
         const searchData = await searchRes.json();
 
@@ -557,7 +591,10 @@ app.post('/api/movie-lookup', async (req, res) => {
             genres: [],
             imdbLink: null,
             description: null,
-            type: null
+            type: null,
+            country: null,
+            language: null,
+            category: null
         };
 
         // Step 3: Try to extract from Knowledge Graph
@@ -720,11 +757,17 @@ app.post('/api/movie-lookup', async (req, res) => {
         // Step 10: Always try OMDB API to enrich any missing data
         if (movieInfo.title) {
             try {
-                const omdbUrl = `https://www.omdbapi.com/?t=${encodeURIComponent(movieInfo.title)}&apikey=3e80e9fc`;
+                const imdbId = movieInfo.imdbLink?.match(/title\/(tt\d+)/)?.[1];
+                const omdbUrl = imdbId
+                    ? `https://www.omdbapi.com/?i=${imdbId}&apikey=3e80e9fc`
+                    : `https://www.omdbapi.com/?t=${encodeURIComponent(movieInfo.title)}&apikey=3e80e9fc`;
                 const omdbRes = await fetch(omdbUrl);
                 const omdbData = await omdbRes.json();
 
                 if (omdbData.Response === 'True') {
+                    if (omdbData.Title && omdbData.Title !== 'N/A') {
+                        movieInfo.title = omdbData.Title;
+                    }
                     if (!movieInfo.poster && omdbData.Poster !== 'N/A') {
                         movieInfo.poster = omdbData.Poster;
                     }
@@ -753,14 +796,22 @@ app.post('/api/movie-lookup', async (req, res) => {
                     if (!movieInfo.description && omdbData.Plot && omdbData.Plot !== 'N/A') {
                         movieInfo.description = omdbData.Plot;
                     }
-                    if (!movieInfo.type && omdbData.Type && omdbData.Type !== 'N/A') {
+                    if (omdbData.Type && omdbData.Type !== 'N/A') {
                         movieInfo.type = omdbData.Type; // usually 'movie', 'series', 'episode'
+                    }
+                    if (omdbData.Country && omdbData.Country !== 'N/A') {
+                        movieInfo.country = omdbData.Country;
+                    }
+                    if (omdbData.Language && omdbData.Language !== 'N/A') {
+                        movieInfo.language = omdbData.Language;
                     }
                 }
             } catch (omdbErr) {
                 console.log('[CINEBOT] OMDB fallback failed:', omdbErr.message);
             }
         }
+
+        movieInfo.category = normalizeCineBotCategory(movieInfo);
 
         console.log(`[CINEBOT] Lookup result:`, movieInfo);
         res.json(movieInfo);
