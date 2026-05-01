@@ -135,3 +135,5 @@ android/.idea/
 android/app/.project
 android/app/.settings/
 android/app/src/main/icon_backup_*/
+
+.vercel
