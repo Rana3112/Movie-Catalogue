@@ -31,6 +31,7 @@ export default function PlayerPage() {
   const sourceUrl = useMemo(() => candidates[providerIndex]?.src || config?.src || config?.embedUrl || '', [candidates, config, providerIndex]);
   const isHlsMode = config?.mode === 'hls';
   const hasAlternateProvider = candidates.length > 1;
+  const currentProviderLabel = candidates[providerIndex]?.label || 'Provider';
 
   useEffect(() => {
     if (!config || !sourceUrl) {
@@ -112,6 +113,14 @@ export default function PlayerPage() {
     setFrameKey(value => value + 1);
   };
 
+  const selectProvider = (nextIndex) => {
+    if (nextIndex === providerIndex || !candidates[nextIndex]) return;
+    prewarmStreamUrl(candidates[nextIndex].src);
+    setProviderIndex(nextIndex);
+    setShowSlowHint(false);
+    setFrameKey(value => value + 1);
+  };
+
   if (!config || !sourceUrl) return null;
 
   return (
@@ -178,10 +187,41 @@ export default function PlayerPage() {
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
             color: health.status === 'degraded' ? '#FBBF24' : '#E5E7EB',
+            maxWidth: 'min(42vw, 220px)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         >
-          {candidates[providerIndex]?.label || 'Provider'}: {health.status === 'checking' ? 'Checking' : health.status}
+          {currentProviderLabel}: {health.status === 'checking' ? 'Checking' : health.status}
         </div>
+        {hasAlternateProvider && (
+          <select
+            aria-label="Streaming provider"
+            value={providerIndex}
+            onChange={(event) => selectProvider(Number(event.target.value))}
+            style={{
+              width: 118,
+              height: 40,
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.18)',
+              background: 'rgba(0,0,0,0.72)',
+              color: '#fff',
+              padding: '0 12px',
+              fontSize: 12,
+              fontWeight: 800,
+              outline: 'none',
+              cursor: 'pointer',
+              backdropFilter: 'blur(12px)',
+            }}
+          >
+            {candidates.map((candidate, index) => (
+              <option key={`${candidate.label}-${candidate.src}`} value={index}>
+                {candidate.label}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           onClick={retryCurrentProvider}
           aria-label="Retry current provider"

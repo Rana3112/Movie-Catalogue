@@ -1,4 +1,5 @@
 const VIDZEE = (import.meta.env.VITE_VIDZEE_PLAYER || 'https://player.vidzee.wtf').replace(/\/+$/, '');
+const VIDSRC_MOV = (import.meta.env.VITE_VIDSRC_MOV_PLAYER || 'https://vidsrc.mov').replace(/\/+$/, '');
 const ANIME_PLAYER = (import.meta.env.VITE_ANIME_PLAYER || 'https://vidnest.fun').replace(/\/+$/, '');
 const API_URL = (import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com').replace(/\/+$/, '');
 
@@ -25,7 +26,7 @@ const addHeadLink = ({ rel, href, as }) => {
 };
 
 export const preconnectStreamingProviders = () => {
-  [VIDZEE, ANIME_PLAYER, API_URL]
+  [VIDZEE, VIDSRC_MOV, ANIME_PLAYER, API_URL]
     .map(getOrigin)
     .filter(Boolean)
     .forEach(origin => {
@@ -62,14 +63,22 @@ export const getMovieEmbedUrlV2 = (tmdbId) =>
 export const getTVEmbedUrlV2 = (tmdbId, season, episode) =>
   `${VIDZEE}/v2/embed/tv/${tmdbId}/${season}/${episode}`;
 
+export const getVidSrcMovieEmbedUrl = (tmdbId) =>
+  `${VIDSRC_MOV}/embed/movie/${tmdbId}`;
+
+export const getVidSrcTVEmbedUrl = (tmdbId, season, episode) =>
+  `${VIDSRC_MOV}/embed/tv/${tmdbId}/${season}/${episode}`;
+
 export const getMovieStreamCandidates = (tmdbId) => ([
   { label: 'VidZee', src: getMovieEmbedUrl(tmdbId) },
   { label: 'VidZee V2', src: getMovieEmbedUrlV2(tmdbId) },
+  { label: 'VidSrc', src: getVidSrcMovieEmbedUrl(tmdbId) },
 ]);
 
 export const getTVStreamCandidates = (tmdbId, season, episode) => ([
   { label: 'VidZee', src: getTVEmbedUrl(tmdbId, season, episode) },
   { label: 'VidZee V2', src: getTVEmbedUrlV2(tmdbId, season, episode) },
+  { label: 'VidSrc', src: getVidSrcTVEmbedUrl(tmdbId, season, episode) },
 ]);
 
 export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
@@ -131,15 +140,17 @@ export const resolveAnimePlayback = async ({ anilistId, title, titles = [], epis
 };
 
 export const buildEmbedUrl = (config) => {
-  const { category, tmdbId, season, episode, useV2 } = config;
+  const { category, tmdbId, season, episode, useV2, provider } = config;
 
   switch (category) {
     case 'movie':
+      if (provider === 'vidsrc') return getVidSrcMovieEmbedUrl(tmdbId);
       return useV2
         ? getMovieEmbedUrlV2(tmdbId)
         : getMovieEmbedUrl(tmdbId);
 
     case 'tv':
+      if (provider === 'vidsrc') return getVidSrcTVEmbedUrl(tmdbId, season, episode);
       return useV2
         ? getTVEmbedUrlV2(tmdbId, season, episode)
         : getTVEmbedUrl(tmdbId, season, episode);
