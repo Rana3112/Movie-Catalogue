@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { BarChart3, CalendarDays, Clapperboard, LayoutGrid, Settings, Play } from 'lucide-react'
+import { BarChart3, Clapperboard, LayoutGrid, Settings, Play } from 'lucide-react'
 import { useState } from 'react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
@@ -204,7 +204,7 @@ export default function Home() {
         </div>
 
         {/* ── StreamZone Button ── */}
-        <div style={{ padding: '0 16px', marginBottom: 12, zIndex: 20, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ padding: '0 16px', marginBottom: 12, zIndex: 20, display: 'flex', justifyContent: 'center' }}>
           <button
             onClick={() => navigate('/streaming')}
             className="pressable"
@@ -216,19 +216,6 @@ export default function Home() {
             }}
           >
             <Play size={18} fill="#e50914" /> Enter StreamZone
-          </button>
-          <button
-            onClick={() => navigate('/taste-dna')}
-            className="pressable"
-            style={{
-              ...netflixRaisedStyle,
-              borderRadius: 24, padding: '12px 22px',
-              fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8,
-              cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase',
-              color: netflixNeumorphic.textSoft,
-            }}
-          >
-            <BarChart3 size={17} /> Taste DNA
           </button>
         </div>
 
@@ -312,15 +299,9 @@ export default function Home() {
             <p style={{ marginTop: 20, color: archiveTheme.textSoft, fontSize: 15, lineHeight: 1.8, maxWidth: 390 }}>
               Browse your catalogue by year, then move into categories, genres, calendar planning, or StreamZone.
             </p>
-            <div className="grid grid-cols-3 gap-4 mt-9">
+            <div className="flex mt-9">
               <button onClick={() => navigate('/streaming')} className="pressable flex items-center justify-center gap-3" style={{ background: `linear-gradient(135deg, ${archiveTheme.red}, #B20710)`, color: '#fff', border: `1px solid ${archiveTheme.borderStrong}`, borderRadius: 24, padding: '16px 18px', fontWeight: 800, fontSize: 12, boxShadow: archiveTheme.redShadow, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 62 }}>
                 <Play size={18} fill="#fff" /> StreamZone
-              </button>
-              <button onClick={() => navigate('/calendar')} className="pressable flex items-center justify-center gap-3" style={{ background: archiveTheme.panelSoft, color: archiveTheme.textSoft, border: `1px solid ${archiveTheme.border}`, borderRadius: 24, padding: '16px 18px', fontWeight: 800, fontSize: 12, boxShadow: archiveTheme.insetShadow, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 62 }}>
-                <CalendarDays size={18} /> Calendar
-              </button>
-              <button onClick={() => navigate('/taste-dna')} className="pressable flex items-center justify-center gap-3" style={{ background: archiveTheme.panelSoft, color: archiveTheme.textSoft, border: `1px solid ${archiveTheme.border}`, borderRadius: 24, padding: '16px 18px', fontWeight: 800, fontSize: 12, boxShadow: archiveTheme.insetShadow, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 62 }}>
-                <BarChart3 size={18} /> Taste DNA
               </button>
             </div>
           </section>
