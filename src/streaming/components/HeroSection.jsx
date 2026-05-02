@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play } from 'lucide-react';
 import { imageUrl } from '../api/tmdb';
+import {
+  getAnimeEmbedUrl,
+  getAnimeStreamCandidates,
+  getMovieEmbedUrl,
+  getMovieStreamCandidates,
+  getTVEmbedUrl,
+  getTVStreamCandidates,
+  prewarmStreamCandidates,
+  prewarmStreamUrl,
+} from '../api/streams';
 import WatchlistButton from './WatchlistButton';
 import { HeroSkeleton } from './LoadingSkeletons';
 
@@ -27,9 +37,72 @@ export default function HeroSection({ items = [], activeTab }) {
   
   const title = isAnime ? (item.title?.english || item.title?.romaji) : (item.title || item.name);
   const overview = isAnime ? item.description?.replace(/<[^>]*>?/gm, '') : item.overview;
-  
+
+  const buildPlayerState = () => {
+    if (activeTab === 'tv') {
+      const season = 1;
+      const episode = 1;
+      const streamUrl = getTVEmbedUrl(item.id, season, episode);
+      const candidates = getTVStreamCandidates(item.id, season, episode);
+
+      return {
+        mode: 'iframe',
+        src: streamUrl,
+        id: item.id,
+        title,
+        episodeTitle: 'Episode 1',
+        season,
+        episode,
+        posterUrl: imageUrl(item.poster_path, 'w500'),
+        category: 'tv',
+        candidates,
+      };
+    }
+
+    if (activeTab === 'anime') {
+      const episode = 1;
+      const streamUrl = getAnimeEmbedUrl(item.id, episode, { dub: false });
+      const candidates = getAnimeStreamCandidates(item.id, episode, { dub: false });
+
+      return {
+        mode: 'iframe',
+        src: streamUrl,
+        id: item.id,
+        anilistId: item.id,
+        title,
+        episodeTitle: 'Episode 1',
+        episode,
+        posterUrl: item.coverImage?.extraLarge,
+        category: 'anime',
+        candidates,
+      };
+    }
+
+    const streamUrl = getMovieEmbedUrl(item.id);
+    const candidates = getMovieStreamCandidates(item.id);
+
+    return {
+      mode: 'iframe',
+      src: streamUrl,
+      id: item.id,
+      title,
+      posterUrl: imageUrl(item.poster_path, 'w500'),
+      category: 'movie',
+      candidates,
+    };
+  };
+
+  const prewarmHeroStream = () => {
+    const playerState = buildPlayerState();
+    prewarmStreamUrl(playerState.src);
+    prewarmStreamCandidates(playerState.candidates);
+  };
+
   const handlePlayClick = () => {
-    navigate(`/streaming/${activeTab}/${item.id}`);
+    const playerState = buildPlayerState();
+    prewarmStreamUrl(playerState.src);
+    prewarmStreamCandidates(playerState.candidates);
+    navigate('/streaming/player', { state: playerState });
   };
 
   return (
@@ -55,6 +128,8 @@ export default function HeroSection({ items = [], activeTab }) {
         
         <div className="streaming-actions">
           <button 
+            onPointerEnter={prewarmHeroStream}
+            onPointerDown={prewarmHeroStream}
             onClick={handlePlayClick}
             className="streaming-primary-button"
           >

@@ -180,7 +180,7 @@ function CategoryBranch({ label, xPos, isUp, onClick, onHover }) {
 }
 
 function CategoryString({ onHover }) {
-    const { setCategory, selectedYear } = useStore()
+    const { setCategory, setSelectedGenres, selectedYear } = useStore()
     const navigate = useNavigate()
 
     return (
@@ -206,6 +206,7 @@ function CategoryString({ onHover }) {
                         isUp={isUp}
                         onClick={(c) => {
                             setCategory(c)
+                            setSelectedGenres([])
                             navigate('/genres')
                         }}
                         onHover={onHover}

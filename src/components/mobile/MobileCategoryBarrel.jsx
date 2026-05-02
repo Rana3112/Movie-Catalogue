@@ -34,15 +34,17 @@ const CATEGORIES = [
 export default function MobileCategoryBarrel({ onHover }) {
   const navigate = useNavigate()
   const setCategory = useStore(s => s.setCategory)
+  const setSelectedGenres = useStore(s => s.setSelectedGenres)
   const year = useStore(s => s.selectedYear)
 
   const handleClick = (cat) => {
     if (cat === 'MyCalendar') {
       setCategory(null)
-      useStore.setState({ selectedGenres: [] })
+      setSelectedGenres([])
       navigate('/calendar')
     } else {
       setCategory(cat)
+      setSelectedGenres([])
       navigate('/genres')
     }
   }

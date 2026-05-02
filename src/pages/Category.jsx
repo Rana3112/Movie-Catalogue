@@ -31,6 +31,7 @@ if (typeof document !== 'undefined') {
 export default function Category() {
   const year = useStore(state => state.selectedYear)
   const setCategory = useStore(state => state.setCategory)
+  const setSelectedGenres = useStore(state => state.setSelectedGenres)
   const navigate = useNavigate()
   const [showSettings, setShowSettings] = useState(false)
   const [hoveredCategory, setHoveredCategory] = useState(null)
@@ -45,11 +46,12 @@ export default function Category() {
   const handleDesktopCategory = (categoryId) => {
     if (categoryId === 'MyCalendar') {
       setCategory(null)
-      useStore.setState({ selectedGenres: [] })
+      setSelectedGenres([])
       navigate('/calendar')
       return
     }
     setCategory(categoryId)
+    setSelectedGenres([])
     navigate('/genres')
   }
 
