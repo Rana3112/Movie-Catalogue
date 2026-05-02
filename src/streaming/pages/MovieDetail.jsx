@@ -74,41 +74,41 @@ export default function MovieDetail() {
                 <Clock size={15} /> {movie.runtime}m
               </div>
             </div>
+          </div>
 
-            <div className="streaming-detail-actions">
-              <button
-                onPointerEnter={() => prewarmStreamUrl(streamUrl)}
-                onPointerDown={() => prewarmStreamUrl(streamUrl)}
-                onClick={handlePlay}
-                className="streaming-primary-button"
-              >
-                <Play size={19} fill="#fff" /> Play Movie
-              </button>
+          <div className="streaming-detail-actions">
+            <button
+              onPointerEnter={() => prewarmStreamUrl(streamUrl)}
+              onPointerDown={() => prewarmStreamUrl(streamUrl)}
+              onClick={handlePlay}
+              className="streaming-primary-button"
+            >
+              <Play size={19} fill="#fff" /> Play Movie
+            </button>
 
-              <WatchlistButton
-                item={{
-                  id: movie.id,
-                  title: movie.title,
-                  posterUrl: imageUrl(movie.poster_path, 'w500'),
-                  category: 'movie',
-                }}
-                className="streaming-watchlist-button"
-              />
+            <WatchlistButton
+              item={{
+                id: movie.id,
+                title: movie.title,
+                posterUrl: imageUrl(movie.poster_path, 'w500'),
+                category: 'movie',
+              }}
+              className="streaming-watchlist-button"
+            />
 
-              <StreamCalendarButton
-                category="movie"
-                media={{
-                  title: movie.title,
-                  releaseDate: movie.release_date,
-                  year: movie.release_date ? Number(movie.release_date.slice(0, 4)) : undefined,
-                  poster: imageUrl(movie.poster_path, 'w500'),
-                  genres: movie.genres || [],
-                  rating: Math.round((movie.vote_average || 0) / 2),
-                  description: movie.overview,
-                  imdbLink: movie.external_ids?.imdb_id ? `https://www.imdb.com/title/${movie.external_ids.imdb_id}/` : null,
-                }}
-              />
-            </div>
+            <StreamCalendarButton
+              category="movie"
+              media={{
+                title: movie.title,
+                releaseDate: movie.release_date,
+                year: movie.release_date ? Number(movie.release_date.slice(0, 4)) : undefined,
+                poster: imageUrl(movie.poster_path, 'w500'),
+                genres: movie.genres || [],
+                rating: Math.round((movie.vote_average || 0) / 2),
+                description: movie.overview,
+                imdbLink: movie.external_ids?.imdb_id ? `https://www.imdb.com/title/${movie.external_ids.imdb_id}/` : null,
+              }}
+            />
           </div>
         </section>
 

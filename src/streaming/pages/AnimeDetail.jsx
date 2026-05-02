@@ -88,33 +88,33 @@ export default function AnimeDetail() {
                 <ListVideo size={15} /> {anime.episodes || '?'} Eps
               </div>
             </div>
+          </div>
 
-            <div className="streaming-detail-actions">
-              <WatchlistButton
-                item={{
-                  id: anime.id,
-                  title,
-                  posterUrl: anime.coverImage?.extraLarge,
-                  category: 'anime',
-                }}
-                className="streaming-secondary-button"
-                label="Save"
-              />
+          <div className="streaming-detail-actions">
+            <WatchlistButton
+              item={{
+                id: anime.id,
+                title,
+                posterUrl: anime.coverImage?.extraLarge,
+                category: 'anime',
+              }}
+              className="streaming-secondary-button"
+              label="Save"
+            />
 
-              <StreamCalendarButton
-                category="anime"
-                media={{
-                  title,
-                  releaseDate: anime.seasonYear ? `${anime.seasonYear}-01-01` : null,
-                  year: anime.seasonYear,
-                  poster: anime.coverImage?.extraLarge,
-                  genres: anime.genres || [],
-                  rating: anime.averageScore ? Math.round(anime.averageScore / 20) : 0,
-                  description: anime.description?.replace(/<[^>]+>/g, ''),
-                  imdbLink: null,
-                }}
-              />
-            </div>
+            <StreamCalendarButton
+              category="anime"
+              media={{
+                title,
+                releaseDate: anime.seasonYear ? `${anime.seasonYear}-01-01` : null,
+                year: anime.seasonYear,
+                poster: anime.coverImage?.extraLarge,
+                genres: anime.genres || [],
+                rating: anime.averageScore ? Math.round(anime.averageScore / 20) : 0,
+                description: anime.description?.replace(/<[^>]+>/g, ''),
+                imdbLink: null,
+              }}
+            />
           </div>
         </section>
 

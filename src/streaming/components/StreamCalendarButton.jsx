@@ -15,7 +15,7 @@ const categoryLabel = {
   anime: 'Anime',
 }
 
-export default function StreamCalendarButton({ media, category, className = 'streaming-secondary-button' }) {
+export default function StreamCalendarButton({ media, category, className = 'streaming-secondary-button streaming-calendar-button' }) {
   const navigate = useNavigate()
   const toast = useToast()
   const { user, isGuest, addEntry, setYear, setCategory, setSelectedGenres, setSelectedMonth } = useStore()

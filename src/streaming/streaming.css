@@ -143,6 +143,8 @@
   cursor: pointer;
   transition: transform 160ms ease, filter 160ms ease, background 160ms ease;
   white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .streaming-primary-button {
@@ -449,16 +451,22 @@
 }
 
 .streaming-detail-actions {
+  grid-column: 2;
   margin-top: 22px;
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .streaming-detail-actions .streaming-primary-button {
   width: auto;
   min-width: 166px;
+}
+
+.streaming-detail-actions .streaming-calendar-button {
+  min-width: 170px;
 }
 
 .streaming-detail-section {
@@ -771,11 +779,40 @@
   .streaming-detail-actions {
     grid-column: 1 / -1;
     margin-top: 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    gap: 10px;
+    width: 100%;
   }
 
   .streaming-detail-actions .streaming-primary-button {
+    grid-column: 1 / 2;
     flex: 1;
+    width: 100%;
     min-width: 0;
+    min-height: 50px;
+    padding: 0 16px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
+
+  .streaming-detail-actions .streaming-watchlist-button {
+    grid-column: 2 / 3;
+    width: 48px;
+    height: 50px;
+    border-radius: 16px;
+  }
+
+  .streaming-detail-actions .streaming-secondary-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    min-height: 50px;
+    padding: 0 18px;
+    border-radius: 14px;
+    font-size: 15px;
+    white-space: nowrap;
+    justify-content: center;
   }
 
   .streaming-episode-row {

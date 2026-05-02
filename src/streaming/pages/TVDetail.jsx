@@ -87,33 +87,33 @@ export default function TVDetail() {
                 <Tv size={15} /> {tv.number_of_seasons} Seasons
               </div>
             </div>
+          </div>
 
-            <div className="streaming-detail-actions">
-              <WatchlistButton
-                item={{
-                  id: tv.id,
-                  title: tv.name,
-                  posterUrl: imageUrl(tv.poster_path, 'w500'),
-                  category: 'tv',
-                }}
-                className="streaming-secondary-button"
-                label="Save"
-              />
+          <div className="streaming-detail-actions">
+            <WatchlistButton
+              item={{
+                id: tv.id,
+                title: tv.name,
+                posterUrl: imageUrl(tv.poster_path, 'w500'),
+                category: 'tv',
+              }}
+              className="streaming-secondary-button"
+              label="Save"
+            />
 
-              <StreamCalendarButton
-                category="tv"
-                media={{
-                  title: tv.name,
-                  releaseDate: tv.first_air_date,
-                  year: tv.first_air_date ? Number(tv.first_air_date.slice(0, 4)) : undefined,
-                  poster: imageUrl(tv.poster_path, 'w500'),
-                  genres: tv.genres || [],
-                  rating: Math.round((tv.vote_average || 0) / 2),
-                  description: tv.overview,
-                  imdbLink: tv.external_ids?.imdb_id ? `https://www.imdb.com/title/${tv.external_ids.imdb_id}/` : null,
-                }}
-              />
-            </div>
+            <StreamCalendarButton
+              category="tv"
+              media={{
+                title: tv.name,
+                releaseDate: tv.first_air_date,
+                year: tv.first_air_date ? Number(tv.first_air_date.slice(0, 4)) : undefined,
+                poster: imageUrl(tv.poster_path, 'w500'),
+                genres: tv.genres || [],
+                rating: Math.round((tv.vote_average || 0) / 2),
+                description: tv.overview,
+                imdbLink: tv.external_ids?.imdb_id ? `https://www.imdb.com/title/${tv.external_ids.imdb_id}/` : null,
+              }}
+            />
           </div>
         </section>
 

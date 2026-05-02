@@ -48,6 +48,11 @@
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
 }
 
+.cinebot-panel,
+.cinebot-panel * {
+    box-sizing: border-box;
+}
+
 /* Panel Header */
 .cinebot-header {
     display: flex;
@@ -62,6 +67,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
 }
 
 .cinebot-avatar {
@@ -82,6 +88,10 @@
     font-weight: 700;
     color: #FFFFFF;
     letter-spacing: 0.3px;
+}
+
+.cinebot-header-text {
+    min-width: 0;
 }
 
 .cinebot-header-text p {
@@ -112,6 +122,7 @@
 .cinebot-messages {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 16px 16px 8px;
     display: flex;
     flex-direction: column;
@@ -391,25 +402,67 @@
 
 /* Input Area */
 .cinebot-input-area {
-    display: flex;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
     align-items: center;
     gap: 10px;
     padding: 12px 16px;
     border-top: 1px solid #2A2F45;
     background: #1F2233;
+    width: 100%;
+    min-width: 0;
 }
 
 .cinebot-planner-chip {
-    flex: 0 0 auto;
-    border: 1px solid rgba(229, 9, 20, 0.34);
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.22), rgba(120, 10, 20, 0.18));
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(229, 9, 20, 0.45);
+    background:
+        radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.16), transparent 30%),
+        linear-gradient(145deg, rgba(229, 9, 20, 0.34), rgba(28, 29, 42, 0.96));
     color: #fff;
-    border-radius: 14px;
-    padding: 0 12px;
-    font-size: 11px;
+    border-radius: 15px;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 10px 22px rgba(229, 9, 20, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    transition: transform 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
+}
+
+.cinebot-planner-chip:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 94, 103, 0.82);
+    filter: brightness(1.08);
+}
+
+.cinebot-planner-chip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 8px);
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: rgba(10, 10, 14, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.04em;
-    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.cinebot-planner-chip:hover::after {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .cinebot-planner-chip:disabled {
@@ -418,7 +471,8 @@
 }
 
 .cinebot-input-area input {
-    flex: 1;
+    width: 100%;
+    min-width: 0;
     background: #1A1B26;
     border: 1px solid #2A2F45;
     border-radius: 12px;
@@ -440,8 +494,8 @@
 }
 
 .cinebot-send-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     background: #6C63FF;
     border: none;
@@ -451,7 +505,6 @@
     justify-content: center;
     color: #FFFFFF;
     transition: all 0.2s;
-    flex-shrink: 0;
 }
 
 .cinebot-send-btn:hover {
@@ -512,5 +565,60 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@media (max-width: 640px) {
+    .cinebot-fab {
+        right: 18px;
+        bottom: 22px;
+        width: 62px;
+        height: 62px;
+    }
+
+    .cinebot-panel {
+        left: 14px;
+        right: 14px;
+        bottom: 92px;
+        width: auto;
+        max-width: none;
+        height: min(560px, calc(100dvh - 128px));
+        max-height: calc(100dvh - 128px);
+        border-radius: 20px;
+    }
+
+    .cinebot-header {
+        padding: 14px 16px;
+    }
+
+    .cinebot-messages {
+        padding: 14px 14px 8px;
+    }
+
+    .cinebot-msg {
+        max-width: 88%;
+    }
+
+    .cinebot-input-area {
+        grid-template-columns: 42px minmax(0, 1fr) 42px;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .cinebot-planner-chip,
+    .cinebot-send-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+    }
+
+    .cinebot-input-area input {
+        height: 42px;
+        padding: 9px 12px;
+        font-size: 13px;
+    }
+
+    .cinebot-planner-chip::after {
+        display: none;
     }
 }

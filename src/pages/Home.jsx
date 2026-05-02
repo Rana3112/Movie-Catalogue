@@ -204,7 +204,7 @@ export default function Home() {
         </div>
 
         {/* ── StreamZone Button ── */}
-        <div style={{ padding: '0 16px', marginBottom: 12, zIndex: 20, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ padding: '0 16px', marginBottom: 12, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
           <button
             onClick={() => navigate('/streaming')}
             className="pressable"
@@ -216,6 +216,30 @@ export default function Home() {
             }}
           >
             <Play size={18} fill="#e50914" /> Enter StreamZone
+          </button>
+          <button
+            onClick={() => navigate('/taste-dna')}
+            className="pressable"
+            style={{
+              ...netflixRaisedStyle,
+              minHeight: 38,
+              borderRadius: 999,
+              padding: '9px 18px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              color: netflixNeumorphic.textSoft,
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: '0.13em',
+              textTransform: 'uppercase',
+              border: `1px solid ${netflixNeumorphic.borderStrong}`,
+            }}
+            aria-label="Taste DNA"
+          >
+            <BarChart3 size={14} />
+            Taste DNA
           </button>
         </div>
 

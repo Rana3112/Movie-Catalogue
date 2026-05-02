@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
+import { CalendarClock } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import './CineBot.css'
 
@@ -739,8 +740,11 @@ export default function CineBot() {
                                 className="cinebot-planner-chip"
                                 onClick={handleBuildPlanner}
                                 disabled={isLoading}
+                                aria-label="Build watch planner"
+                                title="Build watch planner"
+                                data-tooltip="Watch planner"
                             >
-                                Watch Planner
+                                <CalendarClock size={18} strokeWidth={2.3} />
                             </button>
                             <input
                                 ref={inputRef}
