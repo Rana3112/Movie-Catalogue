@@ -319,6 +319,12 @@ app.post('/api/auth/firebase', async (req, res) => {
 
 // Get all entries
 // Get all entries for a specific user
+const groupEntriesByDate = (entries) => entries.reduce((acc, entry) => {
+    if (!acc[entry.date]) acc[entry.date] = [];
+    acc[entry.date].push(entry);
+    return acc;
+}, {});
+
 app.get('/api/entries', async (req, res) => {
     try {
         const { userEmail } = req.query;
@@ -331,11 +337,7 @@ app.get('/api/entries', async (req, res) => {
         const entries = await Entry.find({ userEmail }).sort({ createdAt: -1 }).lean();
 
         // Group by date for frontend compatibility
-        const entriesByDate = entries.reduce((acc, entry) => {
-            if (!acc[entry.date]) acc[entry.date] = [];
-            acc[entry.date].push(entry);
-            return acc;
-        }, {});
+        const entriesByDate = groupEntriesByDate(entries);
 
         res.json(entriesByDate);
     } catch (err) {
@@ -451,7 +453,7 @@ app.get('/api/trailer', async (req, res) => {
 // Add new entry
 app.post('/api/entries', async (req, res) => {
     try {
-        const { date, title, status, rating, poster, genre, genres, category, userEmail, rtCriticScore, rtAudienceScore, trailer } = req.body;
+        const { date, title, status, rating, poster, genre, genres, category, userEmail, rtCriticScore, rtAudienceScore, trailer, year, description, imdbLink, source } = req.body;
 
         // Ensure genres is an array
         const finalGenres = genres && Array.isArray(genres) ? genres : [genre || 'General'];
@@ -468,7 +470,11 @@ app.post('/api/entries', async (req, res) => {
             userEmail, // Save the email
             rtCriticScore,
             rtAudienceScore,
-            trailer
+            trailer,
+            year,
+            description,
+            imdbLink,
+            source
         });
 
         const savedEntry = await newEntry.save();
@@ -532,6 +538,114 @@ app.delete('/api/entries/:id', async (req, res) => {
 // ============================================================
 
 // POST /api/movie-lookup — Search for movie details via SerpAPI
+// ============================================================
+// WATCH PLANNER + SHARE ROUTES
+// ============================================================
+
+const toIsoDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const buildFallbackWatchPlan = (entries = [], days = 5) => {
+    const now = new Date();
+    const candidates = entries
+        .filter(entry => entry?.title)
+        .sort((a, b) => {
+            const statusScore = (value) => value === 'watching' ? 0 : value === 'upcoming' ? 1 : 2;
+            return statusScore(a.status) - statusScore(b.status);
+        });
+
+    const pool = candidates.length
+        ? candidates
+        : [
+            { title: 'The Boys', category: 'Series', genres: ['Action', 'Superhero'], status: 'upcoming' },
+            { title: 'Project Hail Mary', category: 'Movies', genres: ['Sci-Fi'], status: 'upcoming' },
+            { title: 'Solo Leveling', category: 'Anime', genres: ['Action', 'Fantasy'], status: 'upcoming' },
+            { title: 'Daredevil: Born Again', category: 'Series', genres: ['Crime', 'Superhero'], status: 'upcoming' },
+            { title: 'Dr. Stone', category: 'Anime', genres: ['Adventure', 'Sci-Fi'], status: 'upcoming' },
+        ];
+
+    return Array.from({ length: Math.max(1, Math.min(Number(days) || 5, 10)) }).map((_, index) => {
+        const item = pool[index % pool.length];
+        const scheduled = new Date(now);
+        scheduled.setDate(now.getDate() + index + 1);
+        const genres = Array.isArray(item.genres) && item.genres.length ? item.genres : [item.genre || 'General'];
+        return {
+            date: toIsoDate(scheduled),
+            title: item.title,
+            category: item.category || 'Movies',
+            genres,
+            status: item.status === 'watching' ? 'watching' : 'upcoming',
+            poster: item.poster || null,
+            rating: item.rating || 0,
+            year: item.year || scheduled.getFullYear(),
+            description: item.description || `Recommended for this watch slot based on your ${genres.slice(0, 2).join(' and ')} taste.`,
+            reason: item.status === 'watching'
+                ? 'Continue this because it is already in progress.'
+                : `Fits your ${genres.slice(0, 2).join(' / ')} pattern.`,
+            source: 'cinebot-watch-planner'
+        };
+    });
+};
+
+app.post('/api/watch-planner', async (req, res) => {
+    try {
+        const { userEmail, days = 5 } = req.body || {};
+        if (!userEmail) return res.status(400).json({ error: 'Missing userEmail' });
+
+        const entries = await Entry.find({ userEmail }).sort({ createdAt: -1 }).limit(80).lean();
+        const plan = buildFallbackWatchPlan(entries, days);
+
+        res.json({
+            title: `${plan.length}-Day CineBot Watch Plan`,
+            generatedAt: new Date().toISOString(),
+            source: entries.length ? 'calendar-history' : 'starter-plan',
+            items: plan,
+        });
+    } catch (err) {
+        console.error('[WATCH PLANNER] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/calendar/share', async (req, res) => {
+    try {
+        const { userEmail } = req.body || {};
+        if (!userEmail) return res.status(400).json({ error: 'Missing userEmail' });
+
+        const token = jwt.sign(
+            { userEmail, scope: 'calendar-share' },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        res.json({ token, expiresInDays: 30 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/calendar/share/:token', async (req, res) => {
+    try {
+        const decoded = jwt.verify(req.params.token, JWT_SECRET);
+        if (decoded.scope !== 'calendar-share' || !decoded.userEmail) {
+            return res.status(403).json({ error: 'Invalid share token' });
+        }
+
+        const entries = await Entry.find({ userEmail: decoded.userEmail }).sort({ date: 1 }).lean();
+        res.json({
+            owner: decoded.userEmail,
+            entriesByDate: groupEntriesByDate(entries),
+            total: entries.length,
+        });
+    } catch {
+        res.status(403).json({ error: 'Share link is invalid or expired' });
+    }
+});
+
 const normalizeCineBotCategory = (info = {}) => {
     const rawGenres = Array.isArray(info.genres)
         ? info.genres

@@ -8,6 +8,8 @@ import Calendar from './pages/Calendar'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import MySpace from './pages/MySpace'
+import TasteDNA from './pages/TasteDNA'
+import SharedCalendar from './pages/SharedCalendar'
 import { useStore } from './store/useStore'
 import CineBot from './components/CineBot'
 import BottomNav from './components/ui/BottomNav'
@@ -66,13 +68,21 @@ const StrictRoute = ({ children }) => {
 }
 
 function App() {
-  const { user, isGuest, fetchEntries } = useStore()
+  const { user, isGuest, fetchEntries, syncOfflineQueue } = useStore()
 
   useEffect(() => {
     if (user?.email && !isGuest) {
       fetchEntries().catch(() => {})
     }
   }, [fetchEntries, isGuest, user?.email])
+
+  useEffect(() => {
+    if (!user?.email || isGuest) return undefined
+    const sync = () => syncOfflineQueue().catch(() => {})
+    window.addEventListener('online', sync)
+    sync()
+    return () => window.removeEventListener('online', sync)
+  }, [isGuest, syncOfflineQueue, user?.email])
 
   return (
     <ToastProvider>
@@ -86,6 +96,7 @@ function App() {
 
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/shared/:token" element={<SharedCalendar />} />
 
         {/* Protected Routes (Guests Allowed) */}
         <Route path="/home" element={
@@ -106,6 +117,11 @@ function App() {
         <Route path="/calendar" element={
           <ProtectedRoute>
             <Calendar />
+          </ProtectedRoute>
+        } />
+        <Route path="/taste-dna" element={
+          <ProtectedRoute>
+            <TasteDNA />
           </ProtectedRoute>
         } />
 

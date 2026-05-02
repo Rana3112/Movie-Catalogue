@@ -35,7 +35,7 @@ export const getNowPlayingMovies = () =>
 
 export const getMovieDetail = (id) =>
   tmdb.get(`/movie/${id}`, {
-    params: { append_to_response: 'credits,videos,similar' }
+    params: { append_to_response: 'credits,videos,similar,external_ids' }
   }).then(r => r.data);
 
 export const searchMovies = (query) =>
@@ -61,7 +61,7 @@ export const getTopRatedTV = () =>
 
 export const getTVDetail = (id) =>
   tmdb.get(`/tv/${id}`, {
-    params: { append_to_response: 'credits,videos,similar' }
+    params: { append_to_response: 'credits,videos,similar,external_ids' }
   }).then(r => r.data);
 
 export const getTVSeasonEpisodes = (tvId, season) =>

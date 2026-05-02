@@ -279,6 +279,116 @@
     background: #4A537A;
 }
 
+.cinebot-plan-card {
+    background: linear-gradient(145deg, rgba(33, 33, 42, 0.96), rgba(18, 18, 24, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 14px;
+    color: #fff;
+    box-shadow: 0 18px 32px rgba(0, 0, 0, 0.28);
+}
+
+.cinebot-plan-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.cinebot-plan-head h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.cinebot-plan-head p {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 12px;
+}
+
+.cinebot-plan-head span {
+    border-radius: 999px;
+    border: 1px solid rgba(229, 9, 20, 0.28);
+    background: rgba(229, 9, 20, 0.12);
+    color: #ffb4b9;
+    padding: 5px 8px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.cinebot-plan-list {
+    display: grid;
+    gap: 10px;
+}
+
+.cinebot-plan-item {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 10px;
+    align-items: stretch;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    padding: 10px;
+}
+
+.cinebot-plan-date {
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: rgba(229, 9, 20, 0.16);
+    border: 1px solid rgba(229, 9, 20, 0.22);
+}
+
+.cinebot-plan-date strong {
+    font-size: 17px;
+    line-height: 1;
+}
+
+.cinebot-plan-date span {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.cinebot-plan-copy h5 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.cinebot-plan-copy p {
+    margin: 4px 0 7px;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.cinebot-plan-copy div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.cinebot-plan-copy span {
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.68);
+    padding: 3px 7px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cinebot-plan-save {
+    margin-top: 12px;
+    width: 100%;
+    justify-content: center;
+}
+
 /* Input Area */
 .cinebot-input-area {
     display: flex;
@@ -287,6 +397,24 @@
     padding: 12px 16px;
     border-top: 1px solid #2A2F45;
     background: #1F2233;
+}
+
+.cinebot-planner-chip {
+    flex: 0 0 auto;
+    border: 1px solid rgba(229, 9, 20, 0.34);
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.22), rgba(120, 10, 20, 0.18));
+    color: #fff;
+    border-radius: 14px;
+    padding: 0 12px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+.cinebot-planner-chip:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 .cinebot-input-area input {

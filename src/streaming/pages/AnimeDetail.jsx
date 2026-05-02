@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Calendar, ListVideo } from 'lucide-react';
 import { useAnimeDetail } from '../hooks/useAnime';
-import { getAnimeEmbedUrl, preconnectStreamingProviders, prewarmStreamUrl } from '../api/streams';
+import { getAnimeEmbedUrl, getAnimeStreamCandidates, preconnectStreamingProviders, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
+import StreamCalendarButton from '../components/StreamCalendarButton';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
 
 export default function AnimeDetail() {
@@ -27,6 +28,7 @@ export default function AnimeDetail() {
 
   const handleEpisodeSelect = (epNumber) => {
     const streamUrl = getAnimeEmbedUrl(anime.id, epNumber, { dub: false });
+    const streamCandidates = getAnimeStreamCandidates(anime.id, epNumber, { dub: false });
     navigate('/streaming/player', {
       state: {
         mode: 'iframe',
@@ -38,12 +40,14 @@ export default function AnimeDetail() {
         episode: epNumber,
         posterUrl: anime.coverImage?.extraLarge,
         category: 'anime',
+        candidates: streamCandidates,
       }
     });
   };
 
   const handleEpisodePrewarm = (epNumber) => {
     prewarmStreamUrl(getAnimeEmbedUrl(anime.id, epNumber, { dub: false }));
+    prewarmStreamCandidates(getAnimeStreamCandidates(anime.id, epNumber, { dub: false }));
   };
 
   return (
@@ -95,6 +99,20 @@ export default function AnimeDetail() {
                 }}
                 className="streaming-secondary-button"
                 label="Save"
+              />
+
+              <StreamCalendarButton
+                category="anime"
+                media={{
+                  title,
+                  releaseDate: anime.seasonYear ? `${anime.seasonYear}-01-01` : null,
+                  year: anime.seasonYear,
+                  poster: anime.coverImage?.extraLarge,
+                  genres: anime.genres || [],
+                  rating: anime.averageScore ? Math.round(anime.averageScore / 20) : 0,
+                  description: anime.description?.replace(/<[^>]+>/g, ''),
+                  imdbLink: null,
+                }}
               />
             </div>
           </div>

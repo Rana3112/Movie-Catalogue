@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Calendar, Tv } from 'lucide-react';
 import { useTVDetail } from '../hooks/useTVShows';
 import { imageUrl } from '../api/tmdb';
-import { getTVEmbedUrl, preconnectStreamingProviders, prewarmStreamUrl } from '../api/streams';
+import { getTVEmbedUrl, getTVStreamCandidates, preconnectStreamingProviders, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
+import StreamCalendarButton from '../components/StreamCalendarButton';
 import EpisodeList from '../components/EpisodeList';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
 
@@ -25,6 +26,7 @@ export default function TVDetail() {
 
   const handleEpisodeSelect = (season, episode, epName) => {
     const streamUrl = getEpisodeStreamUrl(season, episode);
+    const streamCandidates = getTVStreamCandidates(id, season, episode);
     navigate('/streaming/player', {
       state: {
         mode: 'iframe',
@@ -36,6 +38,7 @@ export default function TVDetail() {
         episode,
         posterUrl: imageUrl(tv.poster_path, 'w500'),
         category: 'tv',
+        candidates: streamCandidates,
       }
     });
   };
@@ -43,6 +46,7 @@ export default function TVDetail() {
   const handleEpisodePrewarm = (season, episode) => {
     preconnectStreamingProviders();
     prewarmStreamUrl(getEpisodeStreamUrl(season, episode));
+    prewarmStreamCandidates(getTVStreamCandidates(id, season, episode));
   };
 
   return (
@@ -94,6 +98,20 @@ export default function TVDetail() {
                 }}
                 className="streaming-secondary-button"
                 label="Save"
+              />
+
+              <StreamCalendarButton
+                category="tv"
+                media={{
+                  title: tv.name,
+                  releaseDate: tv.first_air_date,
+                  year: tv.first_air_date ? Number(tv.first_air_date.slice(0, 4)) : undefined,
+                  poster: imageUrl(tv.poster_path, 'w500'),
+                  genres: tv.genres || [],
+                  rating: Math.round((tv.vote_average || 0) / 2),
+                  description: tv.overview,
+                  imdbLink: tv.external_ids?.imdb_id ? `https://www.imdb.com/title/${tv.external_ids.imdb_id}/` : null,
+                }}
               />
             </div>
           </div>

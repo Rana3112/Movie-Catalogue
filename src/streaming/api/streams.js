@@ -62,6 +62,16 @@ export const getMovieEmbedUrlV2 = (tmdbId) =>
 export const getTVEmbedUrlV2 = (tmdbId, season, episode) =>
   `${VIDZEE}/v2/embed/tv/${tmdbId}/${season}/${episode}`;
 
+export const getMovieStreamCandidates = (tmdbId) => ([
+  { label: 'VidZee', src: getMovieEmbedUrl(tmdbId) },
+  { label: 'VidZee V2', src: getMovieEmbedUrlV2(tmdbId) },
+]);
+
+export const getTVStreamCandidates = (tmdbId, season, episode) => ([
+  { label: 'VidZee', src: getTVEmbedUrl(tmdbId, season, episode) },
+  { label: 'VidZee V2', src: getTVEmbedUrlV2(tmdbId, season, episode) },
+]);
+
 export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
   const params = new URLSearchParams({
     servericon: 'true',
@@ -70,6 +80,30 @@ export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
   const language = dub ? 'dub' : 'sub';
 
   return `${ANIME_PLAYER}/animepahe/${anilistId}/${episode}/${language}?${params.toString()}`;
+};
+
+export const getAnimeStreamCandidates = (anilistId, episode, options = {}) => ([
+  { label: 'Anime Provider', src: getAnimeEmbedUrl(anilistId, episode, options) },
+]);
+
+export const prewarmStreamCandidates = (candidates = []) => {
+  candidates.forEach(candidate => prewarmStreamUrl(candidate?.src));
+};
+
+export const checkStreamProviderHealth = async (url) => {
+  const origin = getOrigin(url);
+  if (!origin) return { status: 'unknown', label: 'Unknown provider' };
+
+  try {
+    await fetch(origin, {
+      method: 'GET',
+      mode: 'no-cors',
+      cache: 'no-store',
+    });
+    return { status: 'online', label: 'Provider reachable' };
+  } catch {
+    return { status: 'degraded', label: 'Provider may be slow' };
+  }
 };
 
 export const resolveAnimePlayback = async ({ anilistId, title, titles = [], episode = 1, language = 'sub' }) => {

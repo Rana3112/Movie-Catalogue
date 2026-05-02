@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Play, Star, Calendar, Clock } from 'lucide-react';
 import { useMovieDetail } from '../hooks/useMovies';
 import { imageUrl } from '../api/tmdb';
-import { getMovieEmbedUrl, prewarmStreamUrl } from '../api/streams';
+import { getMovieEmbedUrl, getMovieStreamCandidates, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
+import StreamCalendarButton from '../components/StreamCalendarButton';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
 
 export default function MovieDetail() {
@@ -12,10 +13,12 @@ export default function MovieDetail() {
   const navigate = useNavigate();
   const { data: movie, isLoading } = useMovieDetail(id);
   const streamUrl = useMemo(() => getMovieEmbedUrl(id), [id]);
+  const streamCandidates = useMemo(() => getMovieStreamCandidates(id), [id]);
 
   useEffect(() => {
     prewarmStreamUrl(streamUrl);
-  }, [streamUrl]);
+    prewarmStreamCandidates(streamCandidates);
+  }, [streamUrl, streamCandidates]);
 
   if (isLoading || !movie) return <DetailSkeleton />;
 
@@ -28,6 +31,7 @@ export default function MovieDetail() {
         title: movie.title,
         posterUrl: imageUrl(movie.poster_path, 'w500'),
         category: 'movie',
+        candidates: streamCandidates,
       }
     });
   };
@@ -89,6 +93,20 @@ export default function MovieDetail() {
                   category: 'movie',
                 }}
                 className="streaming-watchlist-button"
+              />
+
+              <StreamCalendarButton
+                category="movie"
+                media={{
+                  title: movie.title,
+                  releaseDate: movie.release_date,
+                  year: movie.release_date ? Number(movie.release_date.slice(0, 4)) : undefined,
+                  poster: imageUrl(movie.poster_path, 'w500'),
+                  genres: movie.genres || [],
+                  rating: Math.round((movie.vote_average || 0) / 2),
+                  description: movie.overview,
+                  imdbLink: movie.external_ids?.imdb_id ? `https://www.imdb.com/title/${movie.external_ids.imdb_id}/` : null,
+                }}
               />
             </div>
           </div>

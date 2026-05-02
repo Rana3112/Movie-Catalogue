@@ -1,10 +1,18 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import {
+    enqueueOfflineEntry,
+    loadEntriesOfflineCache,
+    loadOfflineQueue,
+    saveEntriesOfflineCache,
+    saveOfflineQueue,
+} from '../lib/offlineCache'
 
 const ENTRY_CACHE_TTL_MS = 1000 * 60 * 5
 
 let inflightEntriesFetch = null
 let inflightEntriesUserEmail = null
+let inflightOfflineSync = null
 
 const isDataPoster = (poster) => typeof poster === 'string' && poster.startsWith('data:')
 
@@ -33,6 +41,7 @@ export const useStore = create(persist((set, get) => ({
     entriesUserEmail: null,
     isEntriesLoading: false,
     entriesError: null,
+    offlineQueueCount: 0,
     cineBotPendingEntry: null, // CineBot auto-add: { title, imdbLink, genres, releaseDate, category }
 
     user: JSON.parse(localStorage.getItem('user')) || null,
@@ -147,9 +156,22 @@ export const useStore = create(persist((set, get) => ({
                     isEntriesLoading: false,
                     entriesError: null,
                 })
+                saveEntriesOfflineCache(userEmail, data).catch(() => {})
+                get().syncOfflineQueue().catch(() => {})
                 return data
             } catch (error) {
                 console.error('Failed to fetch entries:', error)
+                const cached = await loadEntriesOfflineCache(userEmail)
+                if (cached?.entriesByDate) {
+                    set({
+                        calendarEntries: cached.entriesByDate,
+                        entriesUpdatedAt: cached.savedAt || Date.now(),
+                        entriesUserEmail: userEmail,
+                        isEntriesLoading: false,
+                        entriesError: null,
+                    })
+                    return cached.entriesByDate
+                }
                 const stillHasCachedEntries = get().entriesUserEmail === userEmail && Object.keys(get().calendarEntries || {}).length > 0
                 set({
                     isEntriesLoading: false,
@@ -197,12 +219,108 @@ export const useStore = create(persist((set, get) => ({
                     entriesUpdatedAt: Date.now(),
                     entriesUserEmail: user?.email || state.entriesUserEmail,
                 }))
+                saveEntriesOfflineCache(user?.email, get().calendarEntries).catch(() => {})
+                return savedEntry
             } else {
                 console.error('Failed to save entry to DB')
+                throw new Error(`Failed to save entry (${response.status})`)
             }
         } catch (error) {
             console.error('Error saving entry:', error)
+            const { selectedCategory, selectedGenres, user } = get()
+            const finalGenres = entryData.genres && entryData.genres.length > 0 ? entryData.genres : (selectedGenres.length > 0 ? selectedGenres : ['General'])
+            const offlineEntry = {
+                ...entryData,
+                _id: `offline-${Date.now()}`,
+                date,
+                category: entryData.category || selectedCategory || 'Movies',
+                genres: finalGenres,
+                genre: finalGenres[0] || 'General',
+                userEmail: user?.email,
+                offlinePending: true,
+                createdAt: new Date().toISOString(),
+            }
+            set((state) => ({
+                calendarEntries: {
+                    ...state.calendarEntries,
+                    [date]: [...(state.calendarEntries[date] || []), offlineEntry]
+                },
+                entriesUpdatedAt: Date.now(),
+                entriesUserEmail: user?.email || state.entriesUserEmail,
+            }))
+            if (user?.email) {
+                await enqueueOfflineEntry(user.email, date, offlineEntry)
+                const queue = await loadOfflineQueue(user.email)
+                set({ offlineQueueCount: queue.length })
+                saveEntriesOfflineCache(user.email, get().calendarEntries).catch(() => {})
+            }
+            return offlineEntry
         }
+    },
+
+    syncOfflineQueue: async () => {
+        if (inflightOfflineSync) return inflightOfflineSync
+
+        const { user } = get()
+        const userEmail = user?.email
+        if (!userEmail) return
+        inflightOfflineSync = (async () => {
+            try {
+                const queue = await loadOfflineQueue(userEmail)
+                if (!queue.length) {
+                    set({ offlineQueueCount: 0 })
+                    return
+                }
+
+                const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
+                const remaining = []
+                const savedEntries = []
+
+                for (const item of queue) {
+                    try {
+                        const payload = {
+                            ...item.payload,
+                            _id: undefined,
+                            offlinePending: undefined,
+                            date: item.date,
+                            userEmail,
+                        }
+                        const response = await fetch(`${API_URL}/api/entries`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                        })
+                        if (!response.ok) throw new Error(`Sync failed (${response.status})`)
+                        savedEntries.push({ tempId: item.payload?._id, date: item.date, entry: await response.json() })
+                    } catch (error) {
+                        console.warn('Offline queue sync skipped item:', error)
+                        remaining.push(item)
+                    }
+                }
+
+                await saveOfflineQueue(userEmail, remaining)
+                set((state) => {
+                    const nextEntries = { ...state.calendarEntries }
+                    savedEntries.forEach(({ tempId, date, entry }) => {
+                        const current = nextEntries[date] || []
+                        const withoutTemp = tempId ? current.filter(existing => existing._id !== tempId) : current
+                        const alreadyExists = withoutTemp.some(existing => existing._id === entry._id)
+                        nextEntries[date] = alreadyExists ? withoutTemp : [...withoutTemp, entry]
+                    })
+                    return {
+                        calendarEntries: nextEntries,
+                        entriesUpdatedAt: Date.now(),
+                        entriesUserEmail: userEmail,
+                        offlineQueueCount: remaining.length,
+                    }
+                })
+                saveEntriesOfflineCache(userEmail, get().calendarEntries).catch(() => {})
+            } finally {
+                inflightOfflineSync = null
+            }
+        })()
+
+        return inflightOfflineSync
     },
 
     // Update entry in Backend

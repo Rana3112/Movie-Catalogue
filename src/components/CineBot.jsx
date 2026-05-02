@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '../store/useStore'
 import './CineBot.css'
 
@@ -153,7 +153,7 @@ export default function CineBot() {
     const messagesContainerRef = useRef(null)
     const inputRef = useRef(null)
 
-    const { user, setYear, setCategory, setSelectedGenres, setSelectedMonth, setCineBotPendingEntry } = useStore()
+    const { user, addEntry, setYear, setCategory, setSelectedGenres, setSelectedMonth, setCineBotPendingEntry } = useStore()
     const navigate = useNavigate()
     const location = useLocation()
 
@@ -395,6 +395,65 @@ export default function CineBot() {
         }
     }
 
+    const handleBuildPlanner = async () => {
+        if (isLoading) return
+        if (!user?.email) {
+            setMessages(prev => [...prev, { role: 'bot', content: 'Sign in first so I can build a planner from your saved calendar.' }])
+            return
+        }
+
+        setIsLoading(true)
+        setMessages(prev => [...prev, { role: 'user', content: 'Build my CineBot watch planner' }])
+
+        try {
+            const response = await fetch(`${API_URL}/api/watch-planner`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userEmail: user.email, days: 5 })
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || 'Planner request failed')
+
+            setMessages(prev => [
+                ...prev,
+                { role: 'bot', content: 'I built a focused watch plan from your catalogue.' },
+                { role: 'plan', data }
+            ])
+        } catch (err) {
+            console.error('[CineBot Planner] Error:', err)
+            setMessages(prev => [...prev, { role: 'bot', content: `Planner failed: ${err.message}. Try again in a moment.` }])
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleAddPlanToCalendar = async (plan) => {
+        const items = Array.isArray(plan?.items) ? plan.items : []
+        if (!items.length) return
+        setIsLoading(true)
+        try {
+            for (const item of items) {
+                await addEntry(item.date, {
+                    title: item.title,
+                    status: item.status || 'upcoming',
+                    rating: item.rating || 0,
+                    poster: item.poster || null,
+                    category: item.category || 'Movies',
+                    genres: item.genres?.length ? item.genres : ['General'],
+                    genre: item.genres?.[0] || 'General',
+                    year: item.year || Number(String(item.date).slice(0, 4)),
+                    description: item.description || item.reason || null,
+                    source: 'cinebot-watch-planner',
+                })
+            }
+            setMessages(prev => [...prev, { role: 'bot', content: `Saved ${items.length} planner entries to your calendar.` }])
+        } catch (err) {
+            setMessages(prev => [...prev, { role: 'bot', content: `I saved what I could, but one planner item failed: ${err.message}` }])
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     // Handle adding movie to calendar — navigates through the proper app flow
     const handleAddToCalendar = (movieData) => {
         if (!movieData.releaseDate && !movieData.year) {
@@ -533,7 +592,7 @@ export default function CineBot() {
             {/* Chat Panel */}
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
+                    <Motion.div
                         className="cinebot-panel"
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -612,6 +671,45 @@ export default function CineBot() {
                                     )
                                 }
 
+                                if (msg.role === 'plan') {
+                                    const plan = msg.data || {}
+                                    const items = Array.isArray(plan.items) ? plan.items : []
+                                    return (
+                                        <div key={idx} className="cinebot-plan-card">
+                                            <div className="cinebot-plan-head">
+                                                <div>
+                                                    <h4>{plan.title || 'CineBot Watch Plan'}</h4>
+                                                    <p>{plan.source === 'starter-plan' ? 'Starter recommendations' : 'Based on your calendar history'}</p>
+                                                </div>
+                                                <span>{items.length} days</span>
+                                            </div>
+                                            <div className="cinebot-plan-list">
+                                                {items.map((item, planIndex) => (
+                                                    <div key={`${item.date}-${item.title}-${planIndex}`} className="cinebot-plan-item">
+                                                        <div className="cinebot-plan-date">
+                                                            <strong>{String(item.date || '').slice(8, 10) || planIndex + 1}</strong>
+                                                            <span>{String(item.date || '').slice(5, 7) || 'Day'}</span>
+                                                        </div>
+                                                        <div className="cinebot-plan-copy">
+                                                            <h5>{item.title}</h5>
+                                                            <p>{item.reason || item.description}</p>
+                                                            <div>
+                                                                <span>{item.category || 'Movies'}</span>
+                                                                {(item.genres || ['General']).slice(0, 2).map(genre => (
+                                                                    <span key={genre}>{genre}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <button className="cinebot-add-btn cinebot-plan-save" onClick={() => handleAddPlanToCalendar(plan)} disabled={isLoading}>
+                                                Save Full Plan
+                                            </button>
+                                        </div>
+                                    )
+                                }
+
                                 // Regular messages
                                 return (
                                     <div
@@ -636,6 +734,14 @@ export default function CineBot() {
 
                         {/* Input Area */}
                         <div className="cinebot-input-area">
+                            <button
+                                type="button"
+                                className="cinebot-planner-chip"
+                                onClick={handleBuildPlanner}
+                                disabled={isLoading}
+                            >
+                                Watch Planner
+                            </button>
                             <input
                                 ref={inputRef}
                                 type="text"
@@ -655,7 +761,7 @@ export default function CineBot() {
                                 </svg>
                             </button>
                         </div>
-                    </motion.div>
+                    </Motion.div>
                 )}
             </AnimatePresence>
         </>

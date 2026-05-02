@@ -11,7 +11,7 @@ const EntrySchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['watched', 'upcoming', 'watching'],
+        enum: ['watched', 'upcoming', 'watching', 'watchlist'],
         default: 'watched'
     },
     year: {
@@ -58,6 +58,18 @@ const EntrySchema = new mongoose.Schema({
     },
     trailer: {
         type: String, // URL
+        default: null
+    },
+    description: {
+        type: String,
+        default: null
+    },
+    imdbLink: {
+        type: String,
+        default: null
+    },
+    source: {
+        type: String,
         default: null
     },
     createdAt: {

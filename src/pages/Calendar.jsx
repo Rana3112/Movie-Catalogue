@@ -2,14 +2,13 @@ import { lazy, Suspense } from 'react'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
-import { X, Star, Upload, Calendar as CalIcon, ChevronLeft, ChevronRight, Trash, LayoutGrid, Settings, LogOut } from 'lucide-react'
+import { X, Star, Upload, Calendar as CalIcon, ChevronLeft, ChevronRight, Trash, Share2, LayoutGrid, Settings, LogOut } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import { useNavigate } from 'react-router-dom'
 import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../lib/platform'
 import {
     netflixNeumorphic,
-    netflixPageStyle,
     netflixRaisedStyle,
     netflixRedButtonStyle,
     netflixSurfaceStyle,
@@ -33,6 +32,7 @@ const MONTHS = [
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const GENRES = ["Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery", "Romance", "Sci-Fi", "TV Movie", "Thriller", "War", "Western", "General"]
+const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
 
 // ──────────────────────────────────────────────
 // Shared font injection (Montserrat)
@@ -144,7 +144,10 @@ export default function Calendar() {
                 rtAudienceScore: cineBotPendingEntry.rtAudienceScore || '',
                 poster: null,
                 category: cineBotPendingEntry.category || selectedCategory || 'Movies',
-                genres: cineBotPendingEntry.genres || selectedGenres.length > 0 ? [...(cineBotPendingEntry.genres || selectedGenres)] : ['General']
+                genres: (cineBotPendingEntry.genres || selectedGenres).length > 0 ? [...(cineBotPendingEntry.genres || selectedGenres)] : ['General'],
+                year: cineBotPendingEntry.year,
+                description: cineBotPendingEntry.description || null,
+                imdbLink: cineBotPendingEntry.imdbLink || null,
             })
             if (cineBotPendingEntry.imdbLink) {
                 setImdbLinkValue(cineBotPendingEntry.imdbLink)
@@ -190,6 +193,8 @@ export default function Calendar() {
             rtCriticScore: '',
             rtAudienceScore: '',
             poster: null,
+            category: selectedCategory || 'Movies',
+            year: selectedYear,
             genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
         })
         setIsFetching(false)
@@ -222,6 +227,34 @@ export default function Calendar() {
         }
         setShowModal(false)
         setEditingId(null)
+    }
+
+    const handleShareCalendar = async () => {
+        const userEmail = useStore.getState().user?.email
+        if (!userEmail || isGuest) {
+            alert('Sign in to create a shareable calendar link.')
+            return
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/calendar/share`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userEmail })
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || 'Share link failed')
+            const shareUrl = `${window.location.origin}/shared/${data.token}`
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(shareUrl)
+                alert('Shared calendar link copied. It expires in 30 days.')
+            } else {
+                window.prompt('Copy this shared calendar link:', shareUrl)
+            }
+        } catch (error) {
+            console.error('Share calendar failed:', error)
+            alert(`Could not create share link: ${error.message}`)
+        }
     }
 
     const handleFetchPoster = async (link) => {
@@ -1012,6 +1045,16 @@ export default function Calendar() {
                                  {selectedCategory || "My Calendar"}
                              </h1>
                              <div className="flex items-center gap-3">
+                                {!isGuest && (
+                                    <button
+                                        onClick={handleShareCalendar}
+                                        className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90"
+                                        style={nativeFastRaisedStyle}
+                                        aria-label="Share calendar"
+                                    >
+                                        <Share2 size={18} style={{ color: netflixNeumorphic.textSoft }} />
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => changeMonth('prev')}
                                     disabled={currentMonthIndex === 0}
@@ -1388,6 +1431,15 @@ export default function Calendar() {
                         )}
                     </div>
                     <div className="flex items-center gap-3">
+                        {!isGuest && (
+                            <button
+                                onClick={handleShareCalendar}
+                                className="flex items-center px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-colors gap-2"
+                                style={useDesktopNeumorphic ? { ...netflixRaisedStyle, color: netflixNeumorphic.textSoft } : undefined}
+                            >
+                                <Share2 size={16} /> Share
+                            </button>
+                        )}
                         <button
                             onClick={() => changeMonth('prev')}
                             disabled={currentMonthIndex === 0}
