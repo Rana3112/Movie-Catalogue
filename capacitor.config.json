@@ -22,7 +22,15 @@
       "*.aniwatch.to",
       "*.themoviedb.org",
       "*.tmdb.org",
-      "*.hianimez.to"
+      "*.hianimez.to",
+      "*.moviesapi.club",
+      "*.vidsrc.me",
+      "*.multiembed.mov",
+      "*.2embed.cc",
+      "*.autoembed.cc",
+      "*.primesrc.me",
+      "*.vidsrc.vip",
+      "*.vidsrc.xyz"
     ]
   },
   "android": {

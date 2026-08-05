@@ -3,6 +3,14 @@ const VIDSRC_MOV = (import.meta.env.VITE_VIDSRC_MOV_PLAYER || 'https://vidsrc.mo
 const ANIME_PLAYER = (import.meta.env.VITE_ANIME_PLAYER || 'https://vidnest.fun').replace(/\/+$/, '');
 const API_URL = (import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com').replace(/\/+$/, '');
 
+const MOVIESAPI_BASE = 'https://moviesapi.club';
+const VIDSRC_ME_BASE = 'https://vidsrc.me';
+const SUPEREMBED_BASE = 'https://multiembed.mov';
+const EMBED2_BASE = 'https://www.2embed.cc';
+const AUTOEMBED_BASE = 'https://player.autoembed.cc';
+const PRIMESRC_BASE = 'https://primesrc.me';
+const VIDSRC_VIP_BASE = 'https://vidsrc.vip';
+
 const preconnectedOrigins = new Set();
 const prefetchedUrls = new Set();
 
@@ -26,7 +34,19 @@ const addHeadLink = ({ rel, href, as }) => {
 };
 
 export const preconnectStreamingProviders = () => {
-  [VIDZEE, VIDSRC_MOV, ANIME_PLAYER, API_URL]
+  [
+    VIDZEE,
+    VIDSRC_MOV,
+    ANIME_PLAYER,
+    API_URL,
+    MOVIESAPI_BASE,
+    VIDSRC_ME_BASE,
+    SUPEREMBED_BASE,
+    EMBED2_BASE,
+    AUTOEMBED_BASE,
+    PRIMESRC_BASE,
+    VIDSRC_VIP_BASE,
+  ]
     .map(getOrigin)
     .filter(Boolean)
     .forEach(origin => {
@@ -51,6 +71,7 @@ export const prewarmStreamUrl = (url) => {
   addHeadLink({ rel: 'prefetch', href: url, as: 'document' });
 };
 
+// Base Embed Generators
 export const getMovieEmbedUrl = (tmdbId) =>
   `${VIDZEE}/embed/movie/${tmdbId}`;
 
@@ -69,16 +90,51 @@ export const getVidSrcMovieEmbedUrl = (tmdbId) =>
 export const getVidSrcTVEmbedUrl = (tmdbId, season, episode) =>
   `${VIDSRC_MOV}/embed/tv/${tmdbId}/${season}/${episode}`;
 
+export const getMoviesApiMovieUrl = (tmdbId) => `${MOVIESAPI_BASE}/movie/${tmdbId}`;
+export const getMoviesApiTVUrl = (tmdbId, season, episode) => `${MOVIESAPI_BASE}/tv/${tmdbId}-${season}-${episode}`;
+
+export const getVidsrcMeMovieUrl = (tmdbId) => `${VIDSRC_ME_BASE}/embed/movie/${tmdbId}`;
+export const getVidsrcMeTVUrl = (tmdbId, season, episode) => `${VIDSRC_ME_BASE}/embed/tv/${tmdbId}/${season}/${episode}`;
+
+export const getSuperEmbedMovieUrl = (tmdbId) => `${SUPEREMBED_BASE}/directstream.php?video_id=${tmdbId}&tmdb=1`;
+export const getSuperEmbedTVUrl = (tmdbId, season, episode) => `${SUPEREMBED_BASE}/directstream.php?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`;
+
+export const get2EmbedMovieUrl = (tmdbId) => `${EMBED2_BASE}/embed/${tmdbId}`;
+export const get2EmbedTVUrl = (tmdbId, season, episode) => `${EMBED2_BASE}/embedtv/${tmdbId}&s=${season}&e=${episode}`;
+
+export const getAutoEmbedMovieUrl = (tmdbId) => `${AUTOEMBED_BASE}/embed/movie/${tmdbId}`;
+export const getAutoEmbedTVUrl = (tmdbId, season, episode) => `${AUTOEMBED_BASE}/embed/tv/${tmdbId}/${season}/${episode}`;
+
+export const getPrimeSrcMovieUrl = (tmdbId) => `${PRIMESRC_BASE}/embed/movie?tmdb=${tmdbId}`;
+export const getPrimeSrcTVUrl = (tmdbId, season, episode) => `${PRIMESRC_BASE}/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+
+export const getVidSrcVipMovieUrl = (tmdbId) => `${VIDSRC_VIP_BASE}/embed/movie/${tmdbId}`;
+export const getVidSrcVipTVUrl = (tmdbId, season, episode) => `${VIDSRC_VIP_BASE}/embed/tv/${tmdbId}/${season}/${episode}`;
+
 export const getMovieStreamCandidates = (tmdbId) => ([
-  { label: 'VidZee', src: getMovieEmbedUrl(tmdbId) },
-  { label: 'VidZee V2', src: getMovieEmbedUrlV2(tmdbId) },
-  { label: 'VidSrc', src: getVidSrcMovieEmbedUrl(tmdbId) },
+  { label: 'MoviesApi', src: getMoviesApiMovieUrl(tmdbId), style: 'orange' },
+  { label: 'Vidsrc Me', src: getVidsrcMeMovieUrl(tmdbId), style: 'orange' },
+  { label: 'SuperEmbed', src: getSuperEmbedMovieUrl(tmdbId), style: 'orange' },
+  { label: '2Embed', src: get2EmbedMovieUrl(tmdbId), style: 'orange' },
+  { label: 'AutoEmbed', src: getAutoEmbedMovieUrl(tmdbId), style: 'orange' },
+  { label: 'Primesrc', src: getPrimeSrcMovieUrl(tmdbId), style: 'purple' },
+  { label: 'VidZee', src: getMovieEmbedUrl(tmdbId), style: 'orange' },
+  { label: 'VidZee V2', src: getMovieEmbedUrlV2(tmdbId), style: 'orange' },
+  { label: 'VidSrc', src: getVidSrcMovieEmbedUrl(tmdbId), style: 'orange' },
+  { label: 'VidSrc VIP', src: getVidSrcVipMovieUrl(tmdbId), style: 'purple' },
 ]);
 
 export const getTVStreamCandidates = (tmdbId, season, episode) => ([
-  { label: 'VidZee', src: getTVEmbedUrl(tmdbId, season, episode) },
-  { label: 'VidZee V2', src: getTVEmbedUrlV2(tmdbId, season, episode) },
-  { label: 'VidSrc', src: getVidSrcTVEmbedUrl(tmdbId, season, episode) },
+  { label: 'MoviesApi', src: getMoviesApiTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Vidsrc Me', src: getVidsrcMeTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'SuperEmbed', src: getSuperEmbedTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: '2Embed', src: get2EmbedTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'AutoEmbed', src: getAutoEmbedTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Primesrc', src: getPrimeSrcTVUrl(tmdbId, season, episode), style: 'purple' },
+  { label: 'VidZee', src: getTVEmbedUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'VidZee V2', src: getTVEmbedUrlV2(tmdbId, season, episode), style: 'orange' },
+  { label: 'VidSrc', src: getVidSrcTVEmbedUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'VidSrc VIP', src: getVidSrcVipTVUrl(tmdbId, season, episode), style: 'purple' },
 ]);
 
 export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
@@ -92,7 +148,8 @@ export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
 };
 
 export const getAnimeStreamCandidates = (anilistId, episode, options = {}) => ([
-  { label: 'Anime Provider', src: getAnimeEmbedUrl(anilistId, episode, options) },
+  { label: 'VidNest', src: getAnimeEmbedUrl(anilistId, episode, options), style: 'purple' },
+  { label: 'AniWatch', src: `https://hianimez.to/watch/${anilistId}?ep=${episode}`, style: 'orange' },
 ]);
 
 export const prewarmStreamCandidates = (candidates = []) => {
@@ -104,14 +161,21 @@ export const checkStreamProviderHealth = async (url) => {
   if (!origin) return { status: 'unknown', label: 'Unknown provider' };
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     await fetch(origin, {
-      method: 'GET',
+      method: 'HEAD',
       mode: 'no-cors',
       cache: 'no-store',
+      signal: controller.signal,
     });
-    return { status: 'online', label: 'Provider reachable' };
-  } catch {
-    return { status: 'degraded', label: 'Provider may be slow' };
+    clearTimeout(timeoutId);
+    return { status: 'online', label: 'Provider Online' };
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { status: 'degraded', label: 'Provider Slow / Timeout' };
+    }
+    return { status: 'unreachable', label: 'Provider Unreachable' };
   }
 };
 
@@ -145,12 +209,24 @@ export const buildEmbedUrl = (config) => {
   switch (category) {
     case 'movie':
       if (provider === 'vidsrc') return getVidSrcMovieEmbedUrl(tmdbId);
+      if (provider === 'moviesapi') return getMoviesApiMovieUrl(tmdbId);
+      if (provider === 'vidsrcme') return getVidsrcMeMovieUrl(tmdbId);
+      if (provider === 'superembed') return getSuperEmbedMovieUrl(tmdbId);
+      if (provider === '2embed') return get2EmbedMovieUrl(tmdbId);
+      if (provider === 'autoembed') return getAutoEmbedMovieUrl(tmdbId);
+      if (provider === 'primesrc') return getPrimeSrcMovieUrl(tmdbId);
       return useV2
         ? getMovieEmbedUrlV2(tmdbId)
         : getMovieEmbedUrl(tmdbId);
 
     case 'tv':
       if (provider === 'vidsrc') return getVidSrcTVEmbedUrl(tmdbId, season, episode);
+      if (provider === 'moviesapi') return getMoviesApiTVUrl(tmdbId, season, episode);
+      if (provider === 'vidsrcme') return getVidsrcMeTVUrl(tmdbId, season, episode);
+      if (provider === 'superembed') return getSuperEmbedTVUrl(tmdbId, season, episode);
+      if (provider === '2embed') return get2EmbedTVUrl(tmdbId, season, episode);
+      if (provider === 'autoembed') return getAutoEmbedTVUrl(tmdbId, season, episode);
+      if (provider === 'primesrc') return getPrimeSrcTVUrl(tmdbId, season, episode);
       return useV2
         ? getTVEmbedUrlV2(tmdbId, season, episode)
         : getTVEmbedUrl(tmdbId, season, episode);
@@ -164,3 +240,4 @@ export const buildEmbedUrl = (config) => {
       throw new Error(`Unknown or non-iframe category: ${category}`);
   }
 };
+
