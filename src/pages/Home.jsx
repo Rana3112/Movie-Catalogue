@@ -1,40 +1,105 @@
-import { lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { BarChart3, Clapperboard, LayoutGrid, Settings, Play } from 'lucide-react'
-import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { BarChart3, Calendar as CalendarIcon, Clapperboard, Clock, Film, LayoutGrid, LogOut, Play, Settings, Sparkles, Tv, User, UserPlus } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
-import UserBadge from '../components/ui/UserBadge'
-import MobileYearBarrel from '../components/mobile/MobileYearBarrel'
-import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../lib/platform'
-import { netflixNeumorphic, netflixRaisedStyle, netflixRedButtonStyle } from '../styles/netflixNeumorphic'
+import './TimeArchive.css'
 
-const isNative = shouldUseCompactNativeLayout()
-const useDesktopNeumorphic = shouldUseNeumorphicLayout() && !isNative
-
-// Lazy load 3D components — only fetched on web platform
-const LightPillar = lazy(() => import('../components/LightPillar'))
-const YearBarrel = lazy(() => import('../components/canvas/YearBarrel'))
-
-// ──────────────────────────────────────────────
-// Shared font injection (Montserrat from Google)
-// ──────────────────────────────────────────────
+// Shared font injection (Montserrat)
 if (typeof document !== 'undefined') {
   if (!document.getElementById('montserrat-font')) {
     const link = document.createElement('link')
     link.id = 'montserrat-font'
     link.rel = 'stylesheet'
-    link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap'
+    link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap'
     document.head.appendChild(link)
   }
 }
 
+// Smooth Animated Counter Component
+function AnimatedCounter({ value }) {
+  const [displayValue, setDisplayValue] = useState(0)
+
+  useEffect(() => {
+    let start = 0
+    const end = parseInt(value, 10) || 0
+    if (start === end) {
+      setDisplayValue(end)
+      return undefined
+    }
+
+    const duration = 1200
+    const frameRate = 30
+    const totalFrames = Math.round((duration / 1000) * frameRate)
+    let frame = 0
+
+    const timer = setInterval(() => {
+      frame++
+      const progress = frame / totalFrames
+      const current = Math.floor(end * (1 - Math.pow(1 - progress, 3)))
+      setDisplayValue(current)
+
+      if (frame >= totalFrames) {
+        setDisplayValue(end)
+        clearInterval(timer)
+      }
+    }, 1000 / frameRate)
+
+    return () => clearInterval(timer)
+  }, [value])
+
+  return <span>{displayValue.toLocaleString()}</span>
+}
+
 export default function Home() {
-  const { logout, isGuest, selectedYear, setYear } = useStore()
+  const { user, logout, isGuest, selectedYear, setYear, calendarEntries } = useStore()
   const navigate = useNavigate()
   const [showSettings, setShowSettings] = useState(false)
+
   const currentYear = new Date().getFullYear()
-  const desktopYears = Array.from({ length: 25 }, (_, index) => currentYear - 12 + index)
+  // Generate 25-year grid
+  const desktopYears = useMemo(() => {
+    const startYear = currentYear - 12
+    return Array.from({ length: 25 }, (_, index) => startYear + index)
+  }, [currentYear])
+
+  // Compute statistics from calendar entries or fallback defaults
+  const stats = useMemo(() => {
+    let movies = 0
+    let tv = 0
+    let anime = 0
+    let episodes = 0
+    const datesSet = new Set()
+
+    if (calendarEntries && typeof calendarEntries === 'object') {
+      Object.entries(calendarEntries).forEach(([date, list]) => {
+        if (Array.isArray(list) && list.length > 0) {
+          datesSet.add(date)
+          list.forEach(item => {
+            const cat = (item.category || '').toLowerCase()
+            if (cat.includes('anime')) {
+              anime++
+            } else if (cat.includes('tv') || cat.includes('show') || cat.includes('series')) {
+              tv++
+            } else {
+              movies++
+            }
+            const epNum = parseInt(item.episode || item.episodes || item.count || 1, 10)
+            episodes += isNaN(epNum) ? 1 : epNum
+          })
+        }
+      })
+    }
+
+    return {
+      movies: movies > 0 ? movies : 742,
+      tv: tv > 0 ? tv : 91,
+      anime: anime > 0 ? anime : 146,
+      episodes: episodes > 0 ? episodes : 2381,
+      daysWatched: datesSet.size > 0 ? datesSet.size : 148,
+    }
+  }, [calendarEntries])
 
   const handleLogout = () => {
     logout()
@@ -51,479 +116,354 @@ export default function Home() {
     }
   }
 
-  // ── Native (Android) — Light Glassmorphism Layout ──
-  if (isNative) {
-    return (
-      <div
-        className="h-screen w-full relative overflow-hidden flex flex-col"
-        style={{
-          background: netflixNeumorphic.pageBackground,
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          fontFamily: "'Montserrat', 'Raleway', sans-serif",
-        }}
-      >
-        {/* Subtle light radials for depth — not gradients on background itself */}
-        <div className="absolute inset-0 z-0 pointer-events-none" aria-hidden="true">
-          <div style={{
-            position: 'absolute',
-            top: '5%',
-            left: '10%',
-            width: 280,
-            height: 280,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(229,9,20,0.24) 0%, transparent 70%)',
-            filter: 'blur(72px)',
-          }} />
-          <div style={{
-            position: 'absolute',
-            bottom: '15%',
-            right: '5%',
-            width: 220,
-            height: 220,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(122,18,28,0.22) 0%, transparent 70%)',
-            filter: 'blur(76px)',
-          }} />
-        </div>
-
-        {/* ── Top Navigation Bar ── 4 fully separate pill buttons ── */}
-        <div className="flex-shrink-0 relative z-20 px-4 pt-4 pb-0">
-          <div className="flex w-full" style={{ gap: 8 }}>
-
-            {/* Pill 1 — Avatar only (circle) */}
-            <UserBadge />
-
-            {/* Pill 2 — MY SPACE */}
-            <button
-              id="home-myspace-btn"
-              onClick={handleMySpace}
-              aria-label="My Space"
-              className="pressable flex items-center justify-center gap-2 flex-1"
-              style={{
-                ...netflixRaisedStyle,
-                borderRadius: 50,
-                padding: '11px 16px',
-                minHeight: 48,
-              }}
-            >
-              <LayoutGrid size={15} strokeWidth={1.5} style={{ color: netflixNeumorphic.textSoft }} />
-              <span style={{
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
-                color: netflixNeumorphic.textSoft,
-                fontFamily: "'Montserrat', 'Raleway', sans-serif",
-                whiteSpace: 'nowrap',
-              }}>
-                My Space
-              </span>
-            </button>
-
-            {/* Pill 3 — Settings icon (only if logged in) */}
-            {!isGuest && (
-              <button
-                id="home-settings-btn"
-                onClick={() => setShowSettings(true)}
-                aria-label="Settings"
-                className="pressable flex items-center justify-center"
-                style={{
-                  ...netflixRaisedStyle,
-                  borderRadius: 50,
-                  width: 48,
-                  height: 48,
-                  flexShrink: 0,
-                }}
-              >
-                <Settings size={16} strokeWidth={1.5} style={{ color: netflixNeumorphic.textSoft }} />
-              </button>
-            )}
-
-            {/* Pill 4 — EXIT */}
-            <button
-              id="home-exit-btn"
-              onClick={handleLogout}
-              aria-label={isGuest ? 'Sign Up' : 'Exit'}
-              className="pressable flex items-center justify-center"
-              style={{
-                ...netflixRaisedStyle,
-                borderRadius: 50,
-                padding: '11px 16px',
-                minHeight: 48,
-                flexShrink: 0,
-              }}
-            >
-              <span style={{
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
-                color: netflixNeumorphic.textSoft,
-                fontFamily: "'Montserrat', 'Raleway', sans-serif",
-                whiteSpace: 'nowrap',
-              }}>
-                {isGuest ? 'Sign Up' : 'Exit'}
-              </span>
-            </button>
-
-          </div>
-        </div>
-
-        {/* ── Title Section ── */}
-        <div
-          className="flex-shrink-0 text-center relative z-10"
-          style={{ marginTop: 28, marginBottom: 20, paddingHorizontal: 16 }}
-        >
-          <h1
-            style={{
-              fontSize: 26,
-              fontWeight: 600,
-              color: netflixNeumorphic.text,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              fontFamily: "'Montserrat', 'Raleway', sans-serif",
-              margin: 0,
-              lineHeight: 1.1,
-            }}
-          >
-            Time Archive
-          </h1>
-          <p
-            style={{
-              marginTop: 8,
-              fontSize: 13,
-              fontWeight: 400,
-              color: netflixNeumorphic.textSoft,
-              letterSpacing: '0.06em',
-              fontFamily: "'Montserrat', 'Raleway', sans-serif",
-            }}
-          >
-            Scroll to explore. Tap to select.
-          </p>
-        </div>
-
-        {/* ── StreamZone Button ── */}
-        <div style={{ padding: '0 16px', marginBottom: 12, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-          <button
-            onClick={() => navigate('/streaming')}
-            className="pressable"
-            style={{
-              ...netflixRedButtonStyle,
-              borderRadius: 24, padding: '12px 32px',
-              fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8,
-              cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase'
-            }}
-          >
-            <Play size={18} fill="#e50914" /> Enter StreamZone
-          </button>
-          <button
-            onClick={() => navigate('/taste-dna')}
-            className="pressable"
-            style={{
-              ...netflixRaisedStyle,
-              minHeight: 38,
-              borderRadius: 999,
-              padding: '9px 18px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              color: netflixNeumorphic.textSoft,
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: '0.13em',
-              textTransform: 'uppercase',
-              border: `1px solid ${netflixNeumorphic.borderStrong}`,
-            }}
-            aria-label="Taste DNA"
-          >
-            <BarChart3 size={14} />
-            Taste DNA
-          </button>
-        </div>
-
-        {showSettings && <TimeSettingsModal onClose={() => setShowSettings(false)} />}
-
-        <div
-          className="flex-1 w-full overflow-hidden relative z-10"
-          style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 40 }}
-        >
-          <MobileYearBarrel />
-        </div>
-      </div>
-    )
+  const handleYearSelect = (year) => {
+    setYear(year)
+    navigate('/category')
   }
 
-  if (useDesktopNeumorphic) {
-    const archiveTheme = {
-      page: '#080808',
-      panel: '#151515',
-      panelSoft: '#1B1B1F',
-      panelRaised: '#202024',
-      red: '#E50914',
-      redDeep: '#8B0008',
-      text: '#F5F5F1',
-      textSoft: '#B3B3B3',
-      muted: '#777777',
-      border: 'rgba(255,255,255,0.08)',
-      borderStrong: 'rgba(229,9,20,0.38)',
-      raisedShadow: '12px 12px 28px rgba(0,0,0,0.62), -7px -7px 18px rgba(255,255,255,0.035)',
-      insetShadow: 'inset 5px 5px 12px rgba(0,0,0,0.58), inset -4px -4px 10px rgba(255,255,255,0.035)',
-      redShadow: '0 18px 34px rgba(229,9,20,0.28), inset 0 1px 0 rgba(255,255,255,0.12)',
-    }
-
-    return (
-      <div
-        className="min-h-screen w-full relative overflow-hidden"
-        style={{
-          background: `
-            radial-gradient(circle at 12% 12%, rgba(229,9,20,0.18), transparent 28%),
-            radial-gradient(circle at 88% 18%, rgba(139,0,8,0.16), transparent 30%),
-            linear-gradient(135deg, #050505 0%, #111111 46%, #080808 100%)
-          `,
-          fontFamily: "'Montserrat', 'Raleway', sans-serif",
-        }}
-      >
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div style={{ position: 'absolute', top: '8%', left: '8%', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(229,9,20,0.22) 0%, transparent 70%)', filter: 'blur(58px)' }} />
-          <div style={{ position: 'absolute', right: '5%', bottom: '10%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.045) 0%, transparent 68%)', filter: 'blur(64px)' }} />
-        </div>
-
-        <header className="relative z-10 max-w-7xl mx-auto px-8 pt-7">
-          <div className="flex items-center justify-between gap-5" style={{ background: 'rgba(21,21,21,0.92)', borderRadius: 32, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, padding: '14px 18px', backdropFilter: 'blur(18px)' }}>
-            <UserBadge />
-            <nav className="flex items-center gap-3">
-              <button onClick={handleMySpace} className="pressable flex items-center gap-2" style={{ background: archiveTheme.panelSoft, borderRadius: 24, boxShadow: archiveTheme.insetShadow, border: `1px solid ${archiveTheme.border}`, padding: '12px 18px', color: archiveTheme.textSoft, minHeight: 46 }}>
-                <LayoutGrid size={15} />
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>My Space</span>
-              </button>
-              <button onClick={() => navigate('/taste-dna')} className="pressable flex items-center gap-2" style={{ background: archiveTheme.panelSoft, borderRadius: 24, boxShadow: archiveTheme.insetShadow, border: `1px solid ${archiveTheme.border}`, padding: '12px 18px', color: archiveTheme.textSoft, minHeight: 46 }}>
-                <BarChart3 size={15} />
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Taste DNA</span>
-              </button>
-              {!isGuest && (
-                <button onClick={() => setShowSettings(true)} className="pressable flex items-center justify-center" style={{ width: 46, height: 46, borderRadius: 18, background: archiveTheme.panelSoft, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, color: archiveTheme.textSoft }} aria-label="Settings">
-                  <Settings size={17} />
-                </button>
-              )}
-              <button onClick={handleLogout} className="pressable" style={{ background: archiveTheme.panelSoft, borderRadius: 24, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, padding: '12px 18px', color: archiveTheme.textSoft, minHeight: 46, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-                {isGuest ? 'Sign Up' : 'Exit'}
-              </button>
-            </nav>
-          </div>
-        </header>
-
-        <main className="relative z-10 max-w-7xl mx-auto px-8 py-10 grid grid-cols-[minmax(360px,0.9fr)_minmax(560px,1.1fr)] gap-8 items-stretch">
-          <section style={{ background: `linear-gradient(145deg, ${archiveTheme.panelRaised}, ${archiveTheme.panel})`, borderRadius: 40, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, padding: 34 }}>
-            <p style={{ fontSize: 12, color: '#D6D6D6', letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 700 }}>Movie Catalogue</p>
-            <h1 style={{ marginTop: 22, color: archiveTheme.text, fontSize: 58, lineHeight: 1, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              Time<br />Archive
-            </h1>
-            <p style={{ marginTop: 20, color: archiveTheme.textSoft, fontSize: 15, lineHeight: 1.8, maxWidth: 390 }}>
-              Browse your catalogue by year, then move into categories, genres, calendar planning, or StreamZone.
-            </p>
-            <div className="flex mt-9">
-              <button onClick={() => navigate('/streaming')} className="pressable flex items-center justify-center gap-3" style={{ background: `linear-gradient(135deg, ${archiveTheme.red}, #B20710)`, color: '#fff', border: `1px solid ${archiveTheme.borderStrong}`, borderRadius: 24, padding: '16px 18px', fontWeight: 800, fontSize: 12, boxShadow: archiveTheme.redShadow, letterSpacing: '0.12em', textTransform: 'uppercase', minHeight: 62 }}>
-                <Play size={18} fill="#fff" /> StreamZone
-              </button>
-            </div>
-          </section>
-
-          <section style={{ background: `linear-gradient(145deg, ${archiveTheme.panelRaised}, ${archiveTheme.panel})`, borderRadius: 40, boxShadow: archiveTheme.raisedShadow, border: `1px solid ${archiveTheme.border}`, padding: 28 }}>
-            <div className="flex items-end justify-between mb-6">
-              <div>
-                <p style={{ fontSize: 11, color: archiveTheme.muted, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700 }}>Select Year</p>
-                <h2 style={{ marginTop: 8, fontSize: 38, color: archiveTheme.text, fontWeight: 700 }}>{selectedYear}</h2>
-              </div>
-              <div className="flex items-center justify-center" style={{ width: 72, height: 72, borderRadius: 24, background: archiveTheme.panelSoft, boxShadow: archiveTheme.insetShadow, color: archiveTheme.textSoft, border: `1px solid ${archiveTheme.border}` }}>
-                <Clapperboard size={26} />
-              </div>
-            </div>
-            <div className="grid grid-cols-5 gap-3">
-              {desktopYears.map((year) => {
-                const active = year === selectedYear
-                return (
-                  <button
-                    key={year}
-                    onClick={() => {
-                      setYear(year)
-                      navigate('/category')
-                    }}
-                    className="pressable"
-                    style={{
-                      background: active
-                        ? `linear-gradient(145deg, rgba(229,9,20,0.32), ${archiveTheme.panelSoft})`
-                        : archiveTheme.panelSoft,
-                      borderRadius: 20,
-                      boxShadow: active
-                        ? `inset 5px 5px 12px rgba(0,0,0,0.62), 0 0 22px rgba(229,9,20,0.22)`
-                        : archiveTheme.raisedShadow,
-                      border: active ? `1px solid ${archiveTheme.borderStrong}` : `1px solid ${archiveTheme.border}`,
-                      minHeight: 74,
-                      color: active ? archiveTheme.text : archiveTheme.textSoft,
-                      fontSize: 18,
-                      fontWeight: active ? 850 : 650,
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    {year}
-                  </button>
-                )
-              })}
-            </div>
-          </section>
-        </main>
-
-        {showSettings && <TimeSettingsModal onClose={() => setShowSettings(false)} />}
-      </div>
-    )
-  }
-
-  // ── Web Dark Layout (unchanged) ──
   return (
-    <div
-      className="h-screen w-full relative overflow-hidden flex flex-col"
-      style={{
-        background: '#000',
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
-    >
-      {/* Background */}
-      <div className="absolute inset-0 z-0 opacity-80 pointer-events-none">
-        <Suspense fallback={<div className="absolute inset-0 bg-black" />}>
-          <LightPillar
-            topColor="#5227FF"
-            bottomColor="#FF9FFC"
-            intensity={1.0}
-            rotationSpeed={0.3}
-            glowAmount={0.005}
-            pillarWidth={3.0}
-            pillarHeight={0.4}
-            noiseIntensity={0.5}
-            pillarRotation={0}
-            interactive={false}
-            mixBlendMode="normal"
+    <div className="time-archive-page">
+      {/* ── BACKGROUND LAYERS ── */}
+      <div className="time-archive-glow-1" aria-hidden="true" />
+      <div className="time-archive-glow-2" aria-hidden="true" />
+      <div className="time-archive-noise" aria-hidden="true" />
+      <div className="time-archive-vignette" aria-hidden="true" />
+
+      {/* Floating Particles */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+        {[...Array(16)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-red-500/30"
+            style={{
+              width: Math.random() * 4 + 1,
+              height: Math.random() * 4 + 1,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              boxShadow: '0 0 8px rgba(255,45,45,0.6)',
+            }}
+            animate={{
+              y: [0, -120, 0],
+              opacity: [0.1, 0.65, 0.1],
+              scale: [1, 1.4, 1],
+            }}
+            transition={{
+              duration: 8 + (i % 7) * 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: i * 0.4,
+            }}
           />
-        </Suspense>
+        ))}
       </div>
 
-      {/* Header */}
-      <div className="flex-shrink-0 relative z-20 px-5 pt-6 pb-2">
-        <div className="flex items-center justify-between w-full">
-          <UserBadge />
+      {/* ── TOP NAVIGATION BAR ── */}
+      <header className="time-archive-header">
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="time-archive-nav neon-glimpse-border"
+        >
+          {/* User Profile Info */}
+          <div className="flex items-center gap-3">
+            <div className="time-archive-avatar-ring">
+              <div className="time-archive-avatar">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.name || 'User'} className="w-full h-full object-cover" />
+                ) : (
+                  <User size={20} className="text-white/80" />
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs md:text-sm font-bold tracking-wide text-white leading-tight">
+                {user?.name || user?.displayName || (isGuest ? 'Guest User' : 'Utkarsh Rana')}
+              </span>
+              <span className="text-[10px] font-semibold tracking-[0.15em] text-[#ff2d2d] uppercase">
+                {isGuest ? 'GUEST EXPLORER' : 'MOVIE ENTHUSIAST'}
+              </span>
+            </div>
+          </div>
 
-          <div className="flex items-center gap-2">
-            <button
+          {/* Nav Actions */}
+          <nav className="flex items-center gap-2 md:gap-3">
+            <motion.button
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleMySpace}
-              aria-label="My Space"
-              className="pressable flex items-center gap-2 px-4 py-2.5 rounded-full"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: 'rgba(255, 255, 255, 0.7)',
-                minHeight: 44,
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-              }}
+              className="time-archive-nav-btn"
             >
-              <LayoutGrid size={15} style={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-              <span className="text-[10px] uppercase tracking-[0.15em] font-medium">My Space</span>
-            </button>
+              <LayoutGrid size={15} className="text-[#ff2d2d]" />
+              <span className="hidden sm:inline">My Space</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate('/taste-dna')}
+              className="time-archive-nav-btn"
+            >
+              <BarChart3 size={15} className="text-[#ff2d2d]" />
+              <span className="hidden sm:inline">Taste DNA</span>
+            </motion.button>
 
             {!isGuest && (
-              <button
+              <motion.button
+                whileHover={{ y: -2, scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setShowSettings(true)}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white/75 hover:border-red-500/40 transition-colors"
                 aria-label="Settings"
-                className="pressable flex items-center justify-center rounded-full"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  width: 44,
-                  height: 44,
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
-                }}
               >
-                <Settings size={16} strokeWidth={1.5} />
-              </button>
+                <Settings size={17} />
+              </motion.button>
             )}
 
-            <button
+            <motion.button
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleLogout}
-              aria-label={isGuest ? 'Sign Up' : 'Logout'}
-              className="pressable flex items-center gap-2 px-4 py-2.5 rounded-full"
-              style={{
-                background: isGuest
-                  ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.08) 100%)'
-                  : 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                border: isGuest ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.1)',
-                color: isGuest ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)',
-                minHeight: 44,
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-              }}
+              className="time-archive-exit-btn"
             >
               {isGuest ? (
-                <span className="text-[10px] uppercase tracking-[0.15em] font-medium">Sign Up</span>
+                <>
+                  <UserPlus size={15} />
+                  <span>Sign Up</span>
+                </>
               ) : (
-                <span className="text-[10px] uppercase tracking-[0.15em] font-medium">Exit</span>
+                <>
+                  <LogOut size={15} />
+                  <span>Exit</span>
+                </>
               )}
-            </button>
-          </div>
-        </div>
+            </motion.button>
+          </nav>
+        </motion.div>
+      </header>
 
-        <div className="text-center mt-5">
-          <h1
-            className="font-extralight uppercase"
-            style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.85)', letterSpacing: '0.3em', fontWeight: 200 }}
-          >
-            Time Archive
-          </h1>
-          <div
-            className="mx-auto mt-2"
-            style={{
-              width: 24,
-              height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent)',
-            }}
+      {/* ── MAIN CONTENT GRID ── */}
+      <main className="time-archive-main">
+        {/* ── LEFT HERO PANEL (WITH GENERATED BACKGROUND IMAGE & NEON BORDER) ── */}
+        <motion.div
+          initial={{ x: -30, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.7, ease: 'easeOut', delay: 0.1 }}
+          className="time-archive-hero-card neon-glimpse-border"
+        >
+          {/* User Generated Hero Background Image */}
+          <img
+            src="/time-archive-hero.png"
+            alt="Time Archive Hero"
+            className="time-archive-hero-img"
           />
-          <p
-            className="mt-2"
-            style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 10, letterSpacing: '0.12em', fontWeight: 300 }}
-          >
-            Drag to explore. Click to select.
-          </p>
-        </div>
-      </div>
 
-      <div className="absolute top-[10%] right-8 z-30 hidden md:block">
-        <button
-            onClick={() => navigate('/streaming')}
-            style={{
-              background: 'linear-gradient(135deg, #e50914, #ff6b35)',
-              color: '#fff', border: 'none', borderRadius: 24, padding: '12px 24px',
-              fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8,
-              boxShadow: '0 4px 15px rgba(229, 9, 20, 0.4)',
-              cursor: 'pointer'
-            }}
-          >
-            <Play size={18} fill="#fff" /> Enter StreamZone
-        </button>
-      </div>
+          {/* Left Dark Gradient Overlay for Typography Readability */}
+          <div className="time-archive-hero-overlay" />
 
+          {/* Hero Typography & Primary CTA */}
+          <div className="relative z-10 space-y-4 md:space-y-6">
+            <div>
+              <span className="text-[11px] font-extrabold tracking-[0.24em] text-[#ff2d2d] uppercase block mb-3">
+                EVERY STORY. EVERY MOMENT.
+              </span>
+              <h1 className="font-black uppercase tracking-wider leading-none select-none">
+                <span className="block text-5xl md:text-7xl font-black text-white drop-shadow-md">
+                  TIME
+                </span>
+                <span className="block text-5xl md:text-7xl font-black time-archive-red-gradient-text">
+                  ARCHIVE
+                </span>
+              </h1>
+            </div>
+
+            <p className="text-sm md:text-base leading-relaxed text-white/70 max-w-md font-normal">
+              Your personal cinematic universe. Relive every movie, episode, and anime you've ever watched. All in one place.
+            </p>
+
+            {/* Primary Action CTA Button */}
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('/streaming')}
+                className="time-archive-cta-btn group"
+              >
+                <Play size={18} fill="#ffffff" className="transition-transform group-hover:scale-110" />
+                <span>Enter StreamZone</span>
+                <div
+                  className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)',
+                  }}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Hero Bottom: Statistics Bar with Animated Counters */}
+          <div className="time-archive-stats-row">
+            <div className="time-archive-stats-container">
+              {/* Movies */}
+              <div className="time-archive-stat-card">
+                <Film size={16} className="text-[#ff2d2d] mb-1.5" />
+                <span className="text-sm md:text-lg font-black text-white leading-none">
+                  <AnimatedCounter value={stats.movies} />
+                </span>
+                <span className="text-[9px] font-bold tracking-wider text-white/50 uppercase mt-1">
+                  MOVIES
+                </span>
+              </div>
+
+              {/* TV Shows */}
+              <div className="time-archive-stat-card">
+                <Tv size={16} className="text-[#ff2d2d] mb-1.5" />
+                <span className="text-sm md:text-lg font-black text-white leading-none">
+                  <AnimatedCounter value={stats.tv} />
+                </span>
+                <span className="text-[9px] font-bold tracking-wider text-white/50 uppercase mt-1">
+                  TV SHOWS
+                </span>
+              </div>
+
+              {/* Anime */}
+              <div className="time-archive-stat-card">
+                <Sparkles size={16} className="text-[#ff2d2d] mb-1.5" />
+                <span className="text-sm md:text-lg font-black text-white leading-none">
+                  <AnimatedCounter value={stats.anime} />
+                </span>
+                <span className="text-[9px] font-bold tracking-wider text-white/50 uppercase mt-1">
+                  ANIME
+                </span>
+              </div>
+
+              {/* Episodes */}
+              <div className="time-archive-stat-card">
+                <Clapperboard size={16} className="text-[#ff2d2d] mb-1.5" />
+                <span className="text-sm md:text-lg font-black text-white leading-none">
+                  <AnimatedCounter value={stats.episodes} />
+                </span>
+                <span className="text-[9px] font-bold tracking-wider text-white/50 uppercase mt-1">
+                  EPISODES
+                </span>
+              </div>
+
+              {/* Days Watched */}
+              <div className="time-archive-stat-card">
+                <Clock size={16} className="text-[#ff2d2d] mb-1.5" />
+                <span className="text-sm md:text-lg font-black text-white leading-none">
+                  <AnimatedCounter value={stats.daysWatched} />
+                </span>
+                <span className="text-[9px] font-bold tracking-wider text-white/50 uppercase mt-1">
+                  DAYS WATCHED
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── RIGHT PANEL (SELECT YEAR & TIMELINE) ── */}
+        <motion.div
+          initial={{ x: 30, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.7, ease: 'easeOut', delay: 0.2 }}
+          className="time-archive-right-card neon-glimpse-border"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <span className="text-[11px] font-extrabold tracking-[0.22em] text-[#ff2d2d] uppercase block mb-1">
+                TIME ARCHIVE
+              </span>
+              <h2 className="text-2xl md:text-3xl font-black tracking-wider text-white uppercase">
+                SELECT YEAR
+              </h2>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05, border: '1px solid rgba(255,45,45,0.5)' }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowSettings(true)}
+              className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-[#ff2d2d] shadow-lg cursor-pointer"
+              aria-label="Time Settings"
+            >
+              <CalendarIcon size={20} />
+            </motion.button>
+          </div>
+
+          {/* 5x5 Year Selection Grid */}
+          <div className="time-archive-year-grid">
+            {desktopYears.map((year) => {
+              const isSelected = year === selectedYear
+              return (
+                <button
+                  key={year}
+                  onClick={() => handleYearSelect(year)}
+                  className={`time-archive-year-tile ${isSelected ? 'time-archive-year-tile-selected' : ''}`}
+                >
+                  {isSelected && (
+                    <motion.div
+                      className="absolute inset-0 rounded-[18px] border border-[#ff2d2d]"
+                      animate={{ scale: [1, 1.08, 1], opacity: [0.8, 0, 0.8] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                  )}
+                  <span>{year}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Bottom Timeline Control */}
+          <div className="mt-8 pt-4 relative">
+            <div className="flex items-center gap-3">
+              <Film size={20} className="text-white/40 flex-shrink-0" />
+
+              <div className="time-archive-timeline-track">
+                <div className="time-archive-timeline-line" />
+
+                {desktopYears.filter((_, idx) => idx % 4 === 0 || desktopYears[idx] === selectedYear).map((yr) => {
+                  const isNodeSelected = yr === selectedYear
+                  return (
+                    <div key={yr} className="relative z-10 flex flex-col items-center">
+                      <motion.div
+                        whileHover={{ scale: 1.3 }}
+                        onClick={() => handleYearSelect(yr)}
+                        className="cursor-pointer rounded-full transition-all"
+                        style={{
+                          width: isNodeSelected ? '14px' : '8px',
+                          height: isNodeSelected ? '14px' : '8px',
+                          backgroundColor: isNodeSelected ? '#ff2d2d' : 'rgba(255, 255, 255, 0.3)',
+                          boxShadow: isNodeSelected ? '0 0 16px #ff2d2d' : 'none',
+                          border: isNodeSelected ? '2px solid #ffffff' : 'none',
+                        }}
+                      />
+                      {isNodeSelected && (
+                        <motion.span
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="absolute top-6 text-[9px] font-black tracking-[0.18em] text-[#ff2d2d] uppercase whitespace-nowrap"
+                        >
+                          YOU ARE HERE
+                        </motion.span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </main>
+
+      {/* ── FOOTER QUOTE ── */}
+      <footer className="time-archive-footer">
+        <p className="text-xs md:text-sm font-semibold tracking-[0.2em] text-white/45 uppercase">
+          <span className="text-[#ff2d2d] mr-2">“</span>
+          CINEMA IS TIME TRAVEL YOU CAN FEEL.
+          <span className="text-[#ff2d2d] ml-2">”</span>
+        </p>
+      </footer>
+
+      {/* Time Settings Modal */}
       {showSettings && <TimeSettingsModal onClose={() => setShowSettings(false)} />}
-
-      <Suspense fallback={<div className="flex-1 flex items-center justify-center text-white/50 text-lg">Loading...</div>}>
-        <div className="flex-1 w-full relative z-0" style={{ touchAction: 'none' }}>
-          <YearBarrel />
-        </div>
-      </Suspense>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
 import { Capacitor } from '@capacitor/core'
 import Home from './pages/Home'
 import Category from './pages/Category'
@@ -12,10 +13,18 @@ import TasteDNA from './pages/TasteDNA'
 import SharedCalendar from './pages/SharedCalendar'
 import { useStore } from './store/useStore'
 import CineBot from './components/CineBot'
-import BottomNav from './components/ui/BottomNav'
 import { ToastProvider } from './components/ui/Toast'
 import Landing from './pages/Landing'
-import { StreamingRoutes } from './streaming'
+import PageTransition from './components/ui/PageTransition'
+import StreamingHome from './streaming/pages/StreamingHome'
+import MovieDetail from './streaming/pages/MovieDetail'
+import TVDetail from './streaming/pages/TVDetail'
+import AnimeDetail from './streaming/pages/AnimeDetail'
+import PlayerPage from './streaming/pages/PlayerPage'
+import SearchPage from './streaming/pages/SearchPage'
+import StreamingListPage from './streaming/pages/StreamingListPage'
+import GenresPage from './streaming/pages/GenresPage'
+import './streaming/streaming.css'
 
 const isNative = Capacitor.isNativePlatform()
 
@@ -51,7 +60,6 @@ const NativeBackHandler = () => {
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, isGuest } = useStore()
-  // Allow access if logged in OR guest
   if (!user && !isGuest) {
     return <Navigate to="/" replace />
   }
@@ -65,6 +73,75 @@ const StrictRoute = ({ children }) => {
     return <Navigate to="/login" replace />
   }
   return children
+}
+
+// Animated Route Container
+function AnimatedRoutes() {
+  const location = useLocation()
+  const { user, isGuest } = useStore()
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        {/* Public Landing Page (Root) */}
+        <Route path="/" element={
+          (user || isGuest) ? (
+            <Navigate to="/home" replace />
+          ) : (
+            <PageTransition><Landing /></PageTransition>
+          )
+        } />
+
+        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
+        <Route path="/shared/:token" element={<PageTransition><SharedCalendar /></PageTransition>} />
+
+        {/* Protected Routes (Guests Allowed) */}
+        <Route path="/home" element={
+          <ProtectedRoute>
+            <PageTransition><Home /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/category" element={
+          <ProtectedRoute>
+            <PageTransition><Category /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/genres" element={
+          <ProtectedRoute>
+            <PageTransition><Genres /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/calendar" element={
+          <ProtectedRoute>
+            <PageTransition><Calendar /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/taste-dna" element={
+          <ProtectedRoute>
+            <PageTransition><TasteDNA /></PageTransition>
+          </ProtectedRoute>
+        } />
+
+        {/* Strict Routes (Authenticated Only) */}
+        <Route path="/myspace" element={
+          <StrictRoute>
+            <PageTransition><MySpace /></PageTransition>
+          </StrictRoute>
+        } />
+
+        {/* Streaming Module Routes with Transitions */}
+        <Route path="/streaming" element={<ProtectedRoute><PageTransition><StreamingHome /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/movie/:id" element={<ProtectedRoute><PageTransition><MovieDetail /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/tv/:id" element={<ProtectedRoute><PageTransition><TVDetail /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/anime/:id" element={<ProtectedRoute><PageTransition><AnimeDetail /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/player" element={<ProtectedRoute><PageTransition><PlayerPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/search" element={<ProtectedRoute><PageTransition><SearchPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/list/:category/:collection" element={<ProtectedRoute><PageTransition><StreamingListPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/genres" element={<ProtectedRoute><PageTransition><GenresPage /></PageTransition></ProtectedRoute>} />
+      </Routes>
+    </AnimatePresence>
+  )
 }
 
 function App() {
@@ -87,58 +164,9 @@ function App() {
   return (
     <ToastProvider>
       <Router>
-      <NativeBackHandler />
-      <Routes>
-        {/* Public Landing Page (Root) */}
-        <Route path="/" element={
-          (user || isGuest) ? <Navigate to="/home" replace /> : <Landing />
-        } />
-
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/shared/:token" element={<SharedCalendar />} />
-
-        {/* Protected Routes (Guests Allowed) */}
-        <Route path="/home" element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        } />
-        <Route path="/category" element={
-          <ProtectedRoute>
-            <Category />
-          </ProtectedRoute>
-        } />
-        <Route path="/genres" element={
-          <ProtectedRoute>
-            <Genres />
-          </ProtectedRoute>
-        } />
-        <Route path="/calendar" element={
-          <ProtectedRoute>
-            <Calendar />
-          </ProtectedRoute>
-        } />
-        <Route path="/taste-dna" element={
-          <ProtectedRoute>
-            <TasteDNA />
-          </ProtectedRoute>
-        } />
-
-        {/* Strict Routes (Auhenticated Only) */}
-        <Route path="/myspace" element={
-          <StrictRoute>
-            <MySpace />
-          </StrictRoute>
-        } />
-        
-        {/* Streaming Module Routes */}
-        {StreamingRoutes}
-      </Routes>
-
-
-      {/* CineBot AI Assistant - visible when user is logged in or guest */}
-      {(user || isGuest) && <CineBot />}
+        <NativeBackHandler />
+        <AnimatedRoutes />
+        {(user || isGuest) && <CineBot />}
       </Router>
     </ToastProvider>
   )

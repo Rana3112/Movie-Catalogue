@@ -1,4 +1,4 @@
-/* CineBot Floating Chat Widget - Contasting Dark/Vibrant Theme */
+/* CineBot Floating Chat Widget - Luxury Cinematic Dark Red Theme */
 
 .cinebot-fab {
     position: fixed;
@@ -8,20 +8,20 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: #6C63FF; /* Vibrant highlighting color */
-    border: none;
+    background: linear-gradient(135deg, #ff2d2d 0%, #8d1111 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 20px rgba(108, 99, 255, 0.4);
+    box-shadow: 0 8px 25px rgba(255, 45, 45, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     color: #FFFFFF;
 }
 
 .cinebot-fab:hover {
     transform: scale(1.08) translateY(-4px);
-    box-shadow: 0 12px 25px rgba(108, 99, 255, 0.6);
+    box-shadow: 0 12px 30px rgba(255, 45, 45, 0.75);
 }
 
 .cinebot-fab svg {
@@ -35,17 +35,20 @@
     bottom: 96px;
     right: 24px;
     z-index: 9998;
-    width: 400px;
+    width: 410px;
     max-width: calc(100vw - 48px);
-    height: 560px;
+    height: 570px;
     max-height: calc(100vh - 140px);
-    background: #1A1B26; /* Deep contrasting background */
-    border: 1px solid #2A2F45;
-    border-radius: 20px;
+    background: rgba(17, 17, 20, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    font-family: 'Montserrat', sans-serif;
 }
 
 .cinebot-panel,
@@ -59,8 +62,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    background: #1F2233;
-    border-bottom: 1px solid #2A2F45;
+    background: rgba(11, 11, 14, 0.85);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .cinebot-header-left {
@@ -71,23 +74,25 @@
 }
 
 .cinebot-avatar {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: #6C63FF;
+    background: linear-gradient(135deg, #ff2d2d 0%, #8d1111 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 20px;
-    box-shadow: 0 4px 10px rgba(108, 99, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 14px rgba(255, 45, 45, 0.5);
 }
 
 .cinebot-header-text h3 {
     margin: 0;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
     color: #FFFFFF;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.03em;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .cinebot-header-text {
@@ -96,14 +101,18 @@
 
 .cinebot-header-text p {
     margin: 2px 0 0;
-    font-size: 11px;
-    color: #8A92B2;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #ff2d2d;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .cinebot-close {
-    background: none;
-    border: none;
-    color: #8A92B2;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.65);
     cursor: pointer;
     padding: 6px;
     border-radius: 50%;
@@ -114,8 +123,9 @@
 }
 
 .cinebot-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #FFFFFF;
+    background: rgba(255, 45, 45, 0.2);
+    color: #ff4d4d;
+    border-color: rgba(255, 45, 45, 0.4);
 }
 
 /* Messages Area */
@@ -128,7 +138,7 @@
     flex-direction: column;
     gap: 12px;
     scrollbar-width: thin;
-    scrollbar-color: #2A2F45 transparent;
+    scrollbar-color: rgba(255, 45, 45, 0.3) transparent;
 }
 
 .cinebot-messages::-webkit-scrollbar {
@@ -136,7 +146,7 @@
 }
 
 .cinebot-messages::-webkit-scrollbar-thumb {
-    background: #2A2F45;
+    background: rgba(255, 45, 45, 0.3);
     border-radius: 4px;
 }
 
@@ -149,32 +159,37 @@
     line-height: 1.5;
     animation: cinebotFadeIn 0.3s ease-out;
     flex-shrink: 0;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .cinebot-msg.bot {
     align-self: flex-start;
-    background: #2A2F45;
-    color: #E2E8F0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #F3F4F6;
     border-bottom-left-radius: 4px;
 }
 
 .cinebot-msg.user {
     align-self: flex-end;
-    background: #6C63FF;
+    background: linear-gradient(135deg, #ff2d2d 0%, #8d1111 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: #FFFFFF;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 15px rgba(255, 45, 45, 0.35);
 }
 
 /* Movie Card in Chat */
 .cinebot-movie-card {
-    background: #2A2F45;
-    border: 1px solid #3B4261;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 45, 45, 0.3);
     border-radius: 16px;
     overflow: hidden;
     animation: cinebotFadeIn 0.4s ease-out;
     align-self: flex-start;
     max-width: 92%;
     flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 .cinebot-movie-card-inner {
@@ -189,7 +204,8 @@
     height: 110px;
     object-fit: cover;
     border-radius: 10px;
-    background: #1A1B26;
+    background: #050505;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .cinebot-movie-poster-placeholder {
@@ -197,11 +213,12 @@
     min-width: 80px;
     height: 110px;
     border-radius: 10px;
-    background: #1A1B26;
+    background: #050505;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .cinebot-movie-info {
@@ -215,22 +232,22 @@
 .cinebot-movie-info h4 {
     margin: 0;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 800;
     color: #FFFFFF;
     line-height: 1.3;
 }
 
 .cinebot-movie-info .movie-meta {
-    font-size: 11.5px;
-    color: #A9B1D6;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.65);
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
 
 .cinebot-movie-info .movie-desc {
-    font-size: 11.5px;
-    color: #9AA5CE;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -254,7 +271,7 @@
     border-radius: 10px;
     border: none;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
     text-align: center;
@@ -263,40 +280,47 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .cinebot-add-btn {
-    background: #6C63FF;
+    background: linear-gradient(135deg, #ff2d2d 0%, #8d1111 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: #FFFFFF;
+    box-shadow: 0 4px 15px rgba(255, 45, 45, 0.35);
 }
 
 .cinebot-add-btn:hover {
-    background: #5A52D5;
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(255, 45, 45, 0.55);
 }
 
 .cinebot-add-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background: #3B4261;
-    color: #8A92B2;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.4);
+    box-shadow: none;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .cinebot-imdb-btn {
-    background: #3B4261;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(245, 197, 24, 0.3);
     color: #F5C518;
 }
 
 .cinebot-imdb-btn:hover {
-    background: #4A537A;
+    background: rgba(245, 197, 24, 0.15);
 }
 
 .cinebot-plan-card {
-    background: linear-gradient(145deg, rgba(33, 33, 42, 0.96), rgba(18, 18, 24, 0.96));
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 45, 45, 0.3);
     border-radius: 20px;
     padding: 14px;
     color: #fff;
-    box-shadow: 0 18px 32px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 18px 32px rgba(0, 0, 0, 0.5);
 }
 
 .cinebot-plan-head {
@@ -309,24 +333,24 @@
 
 .cinebot-plan-head h4 {
     margin: 0;
-    font-size: 16px;
-    font-weight: 900;
+    font-size: 15px;
+    font-weight: 800;
 }
 
 .cinebot-plan-head p {
     margin: 3px 0 0;
-    color: rgba(255, 255, 255, 0.58);
-    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
 }
 
 .cinebot-plan-head span {
     border-radius: 999px;
-    border: 1px solid rgba(229, 9, 20, 0.28);
-    background: rgba(229, 9, 20, 0.12);
-    color: #ffb4b9;
-    padding: 5px 8px;
+    border: 1px solid rgba(255, 45, 45, 0.4);
+    background: rgba(255, 45, 45, 0.15);
+    color: #ff4d4d;
+    padding: 4px 8px;
     font-size: 10px;
-    font-weight: 900;
+    font-weight: 800;
     text-transform: uppercase;
 }
 
@@ -341,8 +365,8 @@
     gap: 10px;
     align-items: stretch;
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.045);
-    border: 1px solid rgba(255, 255, 255, 0.075);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 10px;
 }
 
@@ -350,30 +374,31 @@
     display: grid;
     place-items: center;
     border-radius: 14px;
-    background: rgba(229, 9, 20, 0.16);
-    border: 1px solid rgba(229, 9, 20, 0.22);
+    background: rgba(255, 45, 45, 0.16);
+    border: 1px solid rgba(255, 45, 45, 0.3);
 }
 
 .cinebot-plan-date strong {
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1;
+    color: #ff4d4d;
 }
 
 .cinebot-plan-date span {
-    color: rgba(255, 255, 255, 0.62);
-    font-size: 10px;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 9px;
     font-weight: 800;
 }
 
 .cinebot-plan-copy h5 {
     margin: 0;
     font-size: 13px;
-    font-weight: 900;
+    font-weight: 800;
 }
 
 .cinebot-plan-copy p {
     margin: 4px 0 7px;
-    color: rgba(255, 255, 255, 0.62);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 11px;
     line-height: 1.35;
 }
@@ -387,7 +412,7 @@
 .cinebot-plan-copy span {
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.68);
+    color: rgba(255, 255, 255, 0.7);
     padding: 3px 7px;
     font-size: 9px;
     font-weight: 800;
@@ -407,8 +432,8 @@
     align-items: center;
     gap: 10px;
     padding: 12px 16px;
-    border-top: 1px solid #2A2F45;
-    background: #1F2233;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(11, 11, 14, 0.85);
     width: 100%;
     min-width: 0;
 }
@@ -416,114 +441,85 @@
 .cinebot-planner-chip {
     width: 44px;
     height: 44px;
-    border: 1px solid rgba(229, 9, 20, 0.45);
-    background:
-        radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.16), transparent 30%),
-        linear-gradient(145deg, rgba(229, 9, 20, 0.34), rgba(28, 29, 42, 0.96));
+    border: 1px solid rgba(255, 45, 45, 0.45);
+    background: linear-gradient(135deg, rgba(255, 45, 45, 0.3), rgba(141, 17, 17, 0.4));
     color: #fff;
-    border-radius: 15px;
+    border-radius: 14px;
     padding: 0;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow:
-        0 10px 22px rgba(229, 9, 20, 0.24),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 15px rgba(255, 45, 45, 0.3);
     position: relative;
-    transition: transform 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .cinebot-planner-chip:hover {
-    transform: translateY(-1px);
-    border-color: rgba(255, 94, 103, 0.82);
-    filter: brightness(1.08);
-}
-
-.cinebot-planner-chip::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    left: 0;
-    bottom: calc(100% + 8px);
-    padding: 6px 9px;
-    border-radius: 999px;
-    background: rgba(10, 10, 14, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(4px);
-    transition: opacity 0.18s ease, transform 0.18s ease;
-}
-
-.cinebot-planner-chip:hover::after {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.cinebot-planner-chip:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+    transform: translateY(-2px);
+    border-color: #ff2d2d;
+    box-shadow: 0 6px 20px rgba(255, 45, 45, 0.5);
 }
 
 .cinebot-input-area input {
     width: 100%;
     min-width: 0;
-    background: #1A1B26;
-    border: 1px solid #2A2F45;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 10px 14px;
     color: #FFFFFF;
-    font-size: 13.5px;
+    font-size: 13px;
     outline: none;
     transition: all 0.2s;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .cinebot-input-area input:focus {
-    border-color: #6C63FF;
-    box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
+    border-color: #ff2d2d;
+    box-shadow: 0 0 0 2px rgba(255, 45, 45, 0.25);
 }
 
 .cinebot-input-area input::placeholder {
-    color: #565F89;
+    color: rgba(255, 255, 255, 0.4);
 }
 
 .cinebot-send-btn {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: #6C63FF;
-    border: none;
+    background: linear-gradient(135deg, #ff2d2d 0%, #8d1111 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #FFFFFF;
+    box-shadow: 0 4px 15px rgba(255, 45, 45, 0.35);
     transition: all 0.2s;
 }
 
 .cinebot-send-btn:hover {
-    background: #5A52D5;
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(255, 45, 45, 0.55);
 }
 
 .cinebot-send-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    background: #3B4261;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Typing Indicator */
 .cinebot-typing {
     align-self: flex-start;
     display: flex;
-    gap: 4px;
+    gap: 5px;
     padding: 12px 16px;
-    background: #2A2F45;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
     border-bottom-left-radius: 4px;
 }
@@ -532,7 +528,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #A9B1D6;
+    background: #ff2d2d;
     animation: cinebotBounce 1.4s infinite ease-in-out;
 }
 
@@ -545,9 +541,7 @@
 }
 
 @keyframes cinebotBounce {
-    0%,
-    80%,
-    100% {
+    0%, 80%, 100% {
         transform: scale(0.6);
         opacity: 0.4;
     }
@@ -565,60 +559,5 @@
     to {
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-@media (max-width: 640px) {
-    .cinebot-fab {
-        right: 18px;
-        bottom: 22px;
-        width: 62px;
-        height: 62px;
-    }
-
-    .cinebot-panel {
-        left: 14px;
-        right: 14px;
-        bottom: 92px;
-        width: auto;
-        max-width: none;
-        height: min(560px, calc(100dvh - 128px));
-        max-height: calc(100dvh - 128px);
-        border-radius: 20px;
-    }
-
-    .cinebot-header {
-        padding: 14px 16px;
-    }
-
-    .cinebot-messages {
-        padding: 14px 14px 8px;
-    }
-
-    .cinebot-msg {
-        max-width: 88%;
-    }
-
-    .cinebot-input-area {
-        grid-template-columns: 42px minmax(0, 1fr) 42px;
-        gap: 8px;
-        padding: 10px 12px;
-    }
-
-    .cinebot-planner-chip,
-    .cinebot-send-btn {
-        width: 42px;
-        height: 42px;
-        border-radius: 14px;
-    }
-
-    .cinebot-input-area input {
-        height: 42px;
-        padding: 9px 12px;
-        font-size: 13px;
-    }
-
-    .cinebot-planner-chip::after {
-        display: none;
     }
 }

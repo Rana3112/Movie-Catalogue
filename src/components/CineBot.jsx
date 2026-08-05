@@ -596,7 +596,7 @@ export default function CineBot() {
             <AnimatePresence>
                 {isOpen && (
                     <Motion.div
-                        className="cinebot-panel"
+                        className="cinebot-panel neon-glimpse-border"
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -644,8 +644,6 @@ export default function CineBot() {
                                                     <h4>{m.title}</h4>
                                                     <div className="movie-meta">
                                                         <span>🗂️ {calendarCategory}</span>
-                                                        {m.releaseDate && <span>📅 {m.releaseDate}</span>}
-                                                        {m.genre && <span>🎭 {m.genre}</span>}
                                                         {m.year && <span>📆 Year: {m.year}</span>}
                                                     </div>
                                                     {m.description && <p className="movie-desc">{m.description}</p>}
