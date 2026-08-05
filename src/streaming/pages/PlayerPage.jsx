@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { StatusBar } from '@capacitor/status-bar';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
-import { RotateCcw, Shuffle, X, Zap } from 'lucide-react';
+import { Check, RotateCcw, Server, Shuffle, Sliders, X, Zap } from 'lucide-react';
 import { useStreamingStore } from '../store/useStreamingStore';
 import { checkStreamProviderHealth, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
 
@@ -21,8 +21,13 @@ export default function PlayerPage() {
   const addToHistory = useStreamingStore(s => s.addToHistory);
 
   const candidates = useMemo(() => {
-    if (Array.isArray(config?.candidates) && config.candidates.length) return config.candidates;
-    return config?.src ? [{ label: 'Primary', src: config.src, style: 'orange' }] : [];
+    if (Array.isArray(config?.candidates) && config.candidates.length) {
+      return config.candidates.map((c, i) => ({
+        ...c,
+        label: c.label || `Source ${i + 1}`,
+      }));
+    }
+    return config?.src ? [{ label: 'Source 1', src: config.src, style: 'orange' }] : [];
   }, [config]);
 
   const [providerIndex, setProviderIndex] = useState(0);
@@ -31,6 +36,9 @@ export default function PlayerPage() {
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [autoShiftNotice, setAutoShiftNotice] = useState(null);
   const [failedIndices, setFailedIndices] = useState(new Set());
+  const [autoShiftEnabled, setAutoShiftEnabled] = useState(true);
+  const [isSourcesMenuOpen, setIsSourcesMenuOpen] = useState(false);
+
   const userOverriddenRef = useRef(false);
   const loadTimeoutRef = useRef(null);
 
@@ -40,10 +48,11 @@ export default function PlayerPage() {
   );
   const isHlsMode = config?.mode === 'hls';
   const hasAlternateProvider = candidates.length > 1;
-  const currentCandidate = candidates[providerIndex] || { label: 'Provider' };
+  const currentCandidate = candidates[providerIndex] || { label: 'Source 1' };
 
   // Function to auto-shift to next non-failed provider
   const triggerAutoShift = useCallback((reason = 'unreachable') => {
+    if (!autoShiftEnabled) return;
     if (userOverriddenRef.current) return;
     if (candidates.length <= 1) return;
 
@@ -51,7 +60,6 @@ export default function PlayerPage() {
       const nextFailed = new Set(prev);
       nextFailed.add(providerIndex);
 
-      // Find next candidate index that has not failed
       let nextIndex = (providerIndex + 1) % candidates.length;
       let attempts = 0;
       while (nextFailed.has(nextIndex) && attempts < candidates.length) {
@@ -60,21 +68,20 @@ export default function PlayerPage() {
       }
 
       if (attempts >= candidates.length) {
-        // All candidates attempted, reset failed set and pick next
         nextIndex = (providerIndex + 1) % candidates.length;
       }
 
-      const prevLabel = candidates[providerIndex]?.label || 'Previous provider';
-      const nextLabel = candidates[nextIndex]?.label || 'Alternate provider';
+      const prevLabel = candidates[providerIndex]?.label || `Source ${providerIndex + 1}`;
+      const nextLabel = candidates[nextIndex]?.label || `Source ${nextIndex + 1}`;
 
       setProviderIndex(nextIndex);
       setFrameKey(v => v + 1);
       setAutoShiftNotice(`⚡ Auto-shifted to ${nextLabel} (${prevLabel} was ${reason})`);
-      setTimeout(() => setAutoShiftNotice(null), 5000);
+      setTimeout(() => setAutoShiftNotice(null), 3500);
 
       return nextFailed;
     });
-  }, [candidates, providerIndex]);
+  }, [autoShiftEnabled, candidates, providerIndex]);
 
   useEffect(() => {
     if (!config || !sourceUrl) {
@@ -125,8 +132,7 @@ export default function PlayerPage() {
       if (cancelled) return;
       setHealth(result);
 
-      // Auto-shift if provider is explicitly unreachable
-      if (result.status === 'unreachable' && !userOverriddenRef.current && hasAlternateProvider) {
+      if (result.status === 'unreachable' && autoShiftEnabled && !userOverriddenRef.current && hasAlternateProvider) {
         triggerAutoShift('offline');
       }
     });
@@ -134,7 +140,7 @@ export default function PlayerPage() {
     return () => {
       cancelled = true;
     };
-  }, [hasAlternateProvider, sourceUrl, triggerAutoShift]);
+  }, [autoShiftEnabled, hasAlternateProvider, sourceUrl, triggerAutoShift]);
 
   // Loading timeout: auto-shift if frame doesn't load within 7 seconds
   useEffect(() => {
@@ -143,7 +149,7 @@ export default function PlayerPage() {
 
     loadTimeoutRef.current = setTimeout(() => {
       setShowSlowHint(true);
-      if (!userOverriddenRef.current && hasAlternateProvider) {
+      if (autoShiftEnabled && !userOverriddenRef.current && hasAlternateProvider) {
         triggerAutoShift('slow to load');
       }
     }, 7000);
@@ -151,7 +157,7 @@ export default function PlayerPage() {
     return () => {
       if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     };
-  }, [frameKey, hasAlternateProvider, providerIndex, triggerAutoShift]);
+  }, [autoShiftEnabled, frameKey, hasAlternateProvider, providerIndex, triggerAutoShift]);
 
   const handleFrameLoad = () => {
     if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
@@ -159,7 +165,9 @@ export default function PlayerPage() {
   };
 
   const handleFrameError = () => {
-    triggerAutoShift('blocked or failed');
+    if (autoShiftEnabled) {
+      triggerAutoShift('blocked or failed');
+    }
   };
 
   const retryCurrentProvider = () => {
@@ -188,9 +196,9 @@ export default function PlayerPage() {
     prewarmStreamUrl(candidates[nextIndex].src);
     setProviderIndex(nextIndex);
     setShowSlowHint(false);
+    setIsSourcesMenuOpen(false);
     setFrameKey(value => value + 1);
 
-    // Reset user override after 15s so auto-shift works if user picks a broken provider
     setTimeout(() => {
       userOverriddenRef.current = false;
     }, 15000);
@@ -239,131 +247,234 @@ export default function PlayerPage() {
         <X size={21} />
       </button>
 
-      {/* Top Bar: Provider Pills Navigation */}
+      {/* Top Right Controls (Minimal & Non-intrusive) */}
       <div
         style={{
           position: 'fixed',
           top: 'max(12px, env(safe-area-inset-top))',
-          left: 'max(64px, env(safe-area-inset-left))',
           right: 'max(12px, env(safe-area-inset-right))',
           zIndex: 10000,
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 8,
           pointerEvents: 'auto',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          paddingBottom: 4,
         }}
       >
-        {/* Render Provider Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {candidates.map((candidate, index) => {
-            const isActive = index === providerIndex;
-            const isPurple = candidate.style === 'purple' || candidate.label.toLowerCase().includes('prime');
-            
-            return (
-              <button
-                key={`${candidate.label}-${candidate.src}`}
-                onClick={() => selectProvider(index)}
-                style={{
-                  background: isPurple
-                    ? (isActive
-                      ? 'linear-gradient(135deg, #9b59b6, #8e44ad)'
-                      : 'linear-gradient(135deg, #712b9b, #5b2c6f)')
-                    : (isActive
-                      ? 'linear-gradient(135deg, #f39c12, #d35400)'
-                      : 'linear-gradient(135deg, #e67e22, #b9770e)'),
-                  color: '#ffffff',
-                  border: isActive ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.25)',
-                  borderRadius: 24,
-                  padding: '6px 16px',
-                  fontSize: 13,
-                  fontWeight: 800,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  boxShadow: isActive
-                    ? (isPurple ? '0 0 16px rgba(155,89,182,0.8), 0 4px 12px rgba(0,0,0,0.6)' : '0 0 16px rgba(243,156,18,0.8), 0 4px 12px rgba(0,0,0,0.6)')
-                    : '0 2px 6px rgba(0,0,0,0.3)',
-                  transform: isActive ? 'scale(1.04)' : 'scale(1)',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                }}
-              >
-                {isActive && <Zap size={13} fill="#fff" />}
-                {candidate.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right side controls: Health Badge & Actions */}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <div
+        {/* Current Active Source Pill & Menu Opener */}
+        <button
+          onClick={() => setIsSourcesMenuOpen(prev => !prev)}
+          style={{
+            background: 'rgba(0,0,0,0.72)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            borderRadius: 24,
+            padding: '7px 14px',
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            cursor: 'pointer',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+          }}
+        >
+          <Server size={14} className="text-amber-400" />
+          <span>{currentCandidate.label}</span>
+          <span
             style={{
-              borderRadius: 999,
-              border: '1px solid rgba(255,255,255,0.16)',
-              background: 'rgba(0,0,0,0.65)',
-              backdropFilter: 'blur(12px)',
-              padding: '7px 12px',
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              color: health.status === 'online' ? '#10B981' : health.status === 'degraded' ? '#FBBF24' : '#EF4444',
-              whiteSpace: 'nowrap',
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              backgroundColor: health.status === 'online' ? '#10B981' : health.status === 'degraded' ? '#FBBF24' : '#EF4444',
             }}
-          >
-            ● {health.status === 'checking' ? 'Checking' : health.status}
-          </div>
+          />
+        </button>
 
+        {/* Reload Current Source Button */}
+        <button
+          onClick={retryCurrentProvider}
+          aria-label="Reload source"
+          title="Reload source"
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(0,0,0,0.68)',
+            color: '#fff',
+            display: 'grid',
+            placeItems: 'center',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <RotateCcw size={16} />
+        </button>
+
+        {/* Next Source Button */}
+        {hasAlternateProvider && (
           <button
-            onClick={retryCurrentProvider}
-            aria-label="Retry current provider"
-            title="Reload provider"
+            onClick={tryAlternateProvider}
+            aria-label="Next source"
+            title="Next source"
             style={{
               width: 38,
               height: 38,
               borderRadius: '50%',
               border: '1px solid rgba(255,255,255,0.2)',
-              background: 'rgba(0,0,0,0.65)',
+              background: 'linear-gradient(135deg, #E50914, #B20710)',
               color: '#fff',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(229,9,20,0.5)',
             }}
           >
-            <RotateCcw size={16} />
+            <Shuffle size={16} />
           </button>
-
-          {hasAlternateProvider && (
-            <button
-              onClick={tryAlternateProvider}
-              aria-label="Try alternate provider"
-              title="Next provider"
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: '50%',
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: 'linear-gradient(135deg, #E50914, #B20710)',
-                color: '#fff',
-                display: 'grid',
-                placeItems: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(229,9,20,0.5)',
-              }}
-            >
-              <Shuffle size={16} />
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Auto Shift Notification Toast */}
+      {/* Sources Selection Menu Drawer / Modal */}
+      {isSourcesMenuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10005,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setIsSourcesMenuOpen(false)}
+        >
+          <div
+            style={{
+              width: 'min(92vw, 420px)',
+              background: '#141414',
+              border: '1px solid rgba(255,255,255,0.18)',
+              borderRadius: 20,
+              padding: 20,
+              color: '#fff',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Sliders size={18} className="text-red-500" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Stream Sources</h3>
+              </div>
+              <button
+                onClick={() => setIsSourcesMenuOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 0,
+                  borderRadius: '50%',
+                  width: 30,
+                  height: 30,
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Auto-Shift Toggle Control */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Zap size={16} className={autoShiftEnabled ? 'text-amber-400' : 'text-slate-500'} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>Auto-Shift Stream</div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF' }}>Automatically switch if stream fails</div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setAutoShiftEnabled(prev => !prev)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  border: 0,
+                  cursor: 'pointer',
+                  background: autoShiftEnabled
+                    ? 'linear-gradient(135deg, #10B981, #059669)'
+                    : 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  boxShadow: autoShiftEnabled ? '0 0 10px rgba(16,185,129,0.4)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {autoShiftEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            {/* Sources List Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, maxHeight: '240px', overflowY: 'auto', paddingRight: 4 }}>
+              {candidates.map((candidate, index) => {
+                const isActive = index === providerIndex;
+                const isPurple = candidate.style === 'purple';
+
+                return (
+                  <button
+                    key={`${candidate.label}-${candidate.src}`}
+                    onClick={() => selectProvider(index)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      borderRadius: 12,
+                      border: isActive
+                        ? '2px solid #E50914'
+                        : '1px solid rgba(255,255,255,0.12)',
+                      background: isActive
+                        ? (isPurple ? 'linear-gradient(135deg, rgba(142,68,173,0.3), rgba(0,0,0,0.8))' : 'linear-gradient(135deg, rgba(229,9,20,0.3), rgba(0,0,0,0.8))')
+                        : 'rgba(255,255,255,0.04)',
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: isActive ? 800 : 600,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <span>{candidate.label}</span>
+                    {isActive ? (
+                      <Check size={16} className="text-red-500" />
+                    ) : (
+                      <span style={{ fontSize: 10, color: '#6B7280' }}>Select</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto Shift Notification Toast (Disappears in 3.5s) */}
       {autoShiftNotice && (
         <div
           style={{
@@ -384,7 +495,6 @@ export default function PlayerPage() {
             fontWeight: 800,
             backdropFilter: 'blur(12px)',
             boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
-            animation: 'fadeIn 0.3s ease',
           }}
         >
           {autoShiftNotice}
@@ -441,7 +551,7 @@ export default function PlayerPage() {
                 cursor: 'pointer',
               }}
             >
-              Switch Provider
+              Next Source
             </button>
           )}
         </div>
@@ -501,4 +611,5 @@ export default function PlayerPage() {
     </div>
   );
 }
+
 

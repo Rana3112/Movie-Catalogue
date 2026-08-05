@@ -112,29 +112,29 @@ export const getVidSrcVipMovieUrl = (tmdbId) => `${VIDSRC_VIP_BASE}/embed/movie/
 export const getVidSrcVipTVUrl = (tmdbId, season, episode) => `${VIDSRC_VIP_BASE}/embed/tv/${tmdbId}/${season}/${episode}`;
 
 export const getMovieStreamCandidates = (tmdbId) => ([
-  { label: 'MoviesApi', src: getMoviesApiMovieUrl(tmdbId), style: 'orange' },
-  { label: 'Vidsrc Me', src: getVidsrcMeMovieUrl(tmdbId), style: 'orange' },
-  { label: 'SuperEmbed', src: getSuperEmbedMovieUrl(tmdbId), style: 'orange' },
-  { label: '2Embed', src: get2EmbedMovieUrl(tmdbId), style: 'orange' },
-  { label: 'AutoEmbed', src: getAutoEmbedMovieUrl(tmdbId), style: 'orange' },
-  { label: 'Primesrc', src: getPrimeSrcMovieUrl(tmdbId), style: 'purple' },
-  { label: 'VidZee', src: getMovieEmbedUrl(tmdbId), style: 'orange' },
-  { label: 'VidZee V2', src: getMovieEmbedUrlV2(tmdbId), style: 'orange' },
-  { label: 'VidSrc', src: getVidSrcMovieEmbedUrl(tmdbId), style: 'orange' },
-  { label: 'VidSrc VIP', src: getVidSrcVipMovieUrl(tmdbId), style: 'purple' },
+  { label: 'Source 1', src: getMoviesApiMovieUrl(tmdbId), style: 'orange' },
+  { label: 'Source 2', src: getVidsrcMeMovieUrl(tmdbId), style: 'orange' },
+  { label: 'Source 3', src: getSuperEmbedMovieUrl(tmdbId), style: 'orange' },
+  { label: 'Source 4', src: get2EmbedMovieUrl(tmdbId), style: 'orange' },
+  { label: 'Source 5', src: getAutoEmbedMovieUrl(tmdbId), style: 'orange' },
+  { label: 'Source 6', src: getPrimeSrcMovieUrl(tmdbId), style: 'purple' },
+  { label: 'Source 7', src: getMovieEmbedUrl(tmdbId), style: 'orange' },
+  { label: 'Source 8', src: getMovieEmbedUrlV2(tmdbId), style: 'orange' },
+  { label: 'Source 9', src: getVidSrcMovieEmbedUrl(tmdbId), style: 'orange' },
+  { label: 'Source 10', src: getVidSrcVipMovieUrl(tmdbId), style: 'purple' },
 ]);
 
 export const getTVStreamCandidates = (tmdbId, season, episode) => ([
-  { label: 'MoviesApi', src: getMoviesApiTVUrl(tmdbId, season, episode), style: 'orange' },
-  { label: 'Vidsrc Me', src: getVidsrcMeTVUrl(tmdbId, season, episode), style: 'orange' },
-  { label: 'SuperEmbed', src: getSuperEmbedTVUrl(tmdbId, season, episode), style: 'orange' },
-  { label: '2Embed', src: get2EmbedTVUrl(tmdbId, season, episode), style: 'orange' },
-  { label: 'AutoEmbed', src: getAutoEmbedTVUrl(tmdbId, season, episode), style: 'orange' },
-  { label: 'Primesrc', src: getPrimeSrcTVUrl(tmdbId, season, episode), style: 'purple' },
-  { label: 'VidZee', src: getTVEmbedUrl(tmdbId, season, episode), style: 'orange' },
-  { label: 'VidZee V2', src: getTVEmbedUrlV2(tmdbId, season, episode), style: 'orange' },
-  { label: 'VidSrc', src: getVidSrcTVEmbedUrl(tmdbId, season, episode), style: 'orange' },
-  { label: 'VidSrc VIP', src: getVidSrcVipTVUrl(tmdbId, season, episode), style: 'purple' },
+  { label: 'Source 1', src: getMoviesApiTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Source 2', src: getVidsrcMeTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Source 3', src: getSuperEmbedTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Source 4', src: get2EmbedTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Source 5', src: getAutoEmbedTVUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Source 6', src: getPrimeSrcTVUrl(tmdbId, season, episode), style: 'purple' },
+  { label: 'Source 7', src: getTVEmbedUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Source 8', src: getTVEmbedUrlV2(tmdbId, season, episode), style: 'orange' },
+  { label: 'Source 9', src: getVidSrcTVEmbedUrl(tmdbId, season, episode), style: 'orange' },
+  { label: 'Source 10', src: getVidSrcVipTVUrl(tmdbId, season, episode), style: 'purple' },
 ]);
 
 export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
@@ -148,8 +148,8 @@ export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
 };
 
 export const getAnimeStreamCandidates = (anilistId, episode, options = {}) => ([
-  { label: 'VidNest', src: getAnimeEmbedUrl(anilistId, episode, options), style: 'purple' },
-  { label: 'AniWatch', src: `https://hianimez.to/watch/${anilistId}?ep=${episode}`, style: 'orange' },
+  { label: 'Source 1', src: getAnimeEmbedUrl(anilistId, episode, options), style: 'purple' },
+  { label: 'Source 2', src: `https://hianimez.to/watch/${anilistId}?ep=${episode}`, style: 'orange' },
 ]);
 
 export const prewarmStreamCandidates = (candidates = []) => {
