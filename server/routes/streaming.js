@@ -267,6 +267,145 @@ router.get('/anime/play', async (req, res) => {
     }
 });
 
+const zlib = require('zlib');
+
+router.get('/subtitles/search', async (req, res) => {
+    try {
+        const { query = '', imdbId = '', tmdbId = '', season, episode } = req.query;
+        let targetImdbId = imdbId ? imdbId.replace(/^tt/, '') : '';
+
+        // If no IMDb ID provided, resolve via TMDB API
+        if (!targetImdbId && tmdbId) {
+            const tmdbKey = process.env.TMDB_API_KEY || 'e367800078b548b2611a129d20c5d6c8';
+            try {
+                const tmdbRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/external_ids?api_key=${tmdbKey}`);
+                if (tmdbRes.ok) {
+                    const ids = await tmdbRes.json();
+                    if (ids.imdb_id) targetImdbId = ids.imdb_id.replace(/^tt/, '');
+                }
+            } catch (e) {
+                console.warn('TMDB external_ids fetch failed:', e);
+            }
+        }
+
+        const results = [];
+
+        // 1. Search OpenSubtitles via rest.opensubtitles.org by IMDb ID
+        if (targetImdbId) {
+            try {
+                const osUrl = `https://rest.opensubtitles.org/search/imdbid-${targetImdbId}`;
+                const osRes = await fetch(osUrl, {
+                    headers: { 'User-Agent': 'TemporaryUserAgent' }
+                });
+                if (osRes.ok) {
+                    const data = await osRes.json();
+                    if (Array.isArray(data)) {
+                        data.slice(0, 25).forEach((sub) => {
+                            if (sub.SubDownloadLink || sub.IDSubtitleFile) {
+                                const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+                                const host = req.get('host');
+                                const downloadUrl = sub.SubDownloadLink || `https://dl.opensubtitles.org/en/download/src-api/filead/${sub.IDSubtitleFile}.gz`;
+                                const proxyDownloadUrl = `${proto}://${host}/api/streaming/subtitles/download?url=${encodeURIComponent(downloadUrl)}`;
+
+                                results.push({
+                                    id: String(sub.IDSubtitleFile || sub.IDSubtitle),
+                                    label: `${sub.LanguageName || 'English'} - ${sub.SubFileName || sub.MovieReleaseName || 'Subtitle'} (${sub.SubFormat || 'srt'})`,
+                                    language: sub.LanguageName || 'English',
+                                    rating: sub.SubRating || '0',
+                                    downloads: sub.SubDownloadsCnt || '0',
+                                    downloadUrl: proxyDownloadUrl,
+                                    source: 'OpenSubtitles',
+                                    format: sub.SubFormat || 'srt'
+                                });
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('OpenSubtitles IMDb search failed:', e);
+            }
+        }
+
+        // 2. Search OpenSubtitles via query if no results yet or query provided
+        if (results.length < 5 && query) {
+            try {
+                const cleanQuery = encodeURIComponent(query.trim());
+                const osUrl = `https://rest.opensubtitles.org/search/query-${cleanQuery}`;
+                const osRes = await fetch(osUrl, {
+                    headers: { 'User-Agent': 'TemporaryUserAgent' }
+                });
+                if (osRes.ok) {
+                    const data = await osRes.json();
+                    if (Array.isArray(data)) {
+                        data.slice(0, 25).forEach((sub) => {
+                            if (sub.SubDownloadLink || sub.IDSubtitleFile) {
+                                const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+                                const host = req.get('host');
+                                const downloadUrl = sub.SubDownloadLink || `https://dl.opensubtitles.org/en/download/src-api/filead/${sub.IDSubtitleFile}.gz`;
+                                const proxyDownloadUrl = `${proto}://${host}/api/streaming/subtitles/download?url=${encodeURIComponent(downloadUrl)}`;
+
+                                if (!results.some(r => r.id === String(sub.IDSubtitleFile || sub.IDSubtitle))) {
+                                    results.push({
+                                        id: String(sub.IDSubtitleFile || sub.IDSubtitle),
+                                        label: `${sub.LanguageName || 'English'} - ${sub.SubFileName || sub.MovieReleaseName || 'Subtitle'} (${sub.SubFormat || 'srt'})`,
+                                        language: sub.LanguageName || 'English',
+                                        rating: sub.SubRating || '0',
+                                        downloads: sub.SubDownloadsCnt || '0',
+                                        downloadUrl: proxyDownloadUrl,
+                                        source: 'OpenSubtitles',
+                                        format: sub.SubFormat || 'srt'
+                                    });
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('OpenSubtitles query search failed:', e);
+            }
+        }
+
+        res.json({ results });
+    } catch (error) {
+        console.error('Subtitle search error:', error);
+        res.status(500).json({ error: 'Subtitle search failed', results: [] });
+    }
+});
+
+router.get('/subtitles/download', async (req, res) => {
+    try {
+        const { url } = req.query;
+        if (!url) return res.status(400).send('Missing subtitle URL');
+
+        const upstream = await fetch(url, {
+            headers: { 'User-Agent': 'TemporaryUserAgent' }
+        });
+
+        if (!upstream.ok) {
+            return res.status(upstream.status).send('Subtitle download upstream failed');
+        }
+
+        const buffer = Buffer.from(await upstream.arrayBuffer());
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
+        // Check for GZIP header (0x1f, 0x8b)
+        if (buffer.length > 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
+            zlib.gunzip(buffer, (err, decompressed) => {
+                if (err) {
+                    return res.send(buffer.toString('utf8'));
+                }
+                return res.send(decompressed.toString('utf8'));
+            });
+        } else {
+            return res.send(buffer.toString('utf8'));
+        }
+    } catch (error) {
+        console.error('Subtitle proxy download error:', error);
+        res.status(500).send('Subtitle proxy failed');
+    }
+});
+
 router.get('/proxy', async (req, res) => {
     try {
         const payload = readToken(req.query.token);

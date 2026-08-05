@@ -65,68 +65,64 @@ export function cuesToVttBlobUrl(cues) {
 /**
  * Search online subtitles across multiple sources
  */
+const API_URL = (import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com').replace(/\/+$/, '');
+
 export async function searchOnlineSubtitles({ title = '', id = '', season, episode, category = 'movie' }) {
   const results = [];
 
-  // Source 1: Wyzie Subtitles API (TMDB ID based)
-  if (id) {
-    try {
-      let wyzieUrl = `https://sub.wyzie.ru/search?id=${id}`;
-      if (category === 'tv' && season && episode) {
-        wyzieUrl += `&season=${season}&episode=${episode}`;
+  // 1. Primary: Backend API search (OpenSubtitles via IMDb ID + TMDB resolution)
+  try {
+    const params = new URLSearchParams({
+      query: title || '',
+      tmdbId: String(id || ''),
+      imdbId: String(id || ''),
+      season: season ? String(season) : '',
+      episode: episode ? String(episode) : '',
+    });
+    const res = await fetch(`${API_URL}/api/streaming/subtitles/search?${params.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.results) && data.results.length > 0) {
+        return data.results.map(sub => ({
+          id: sub.id,
+          label: sub.label,
+          language: sub.language,
+          url: sub.downloadUrl,
+          source: sub.source || 'OpenSubtitles',
+          format: sub.format || 'srt',
+        }));
       }
-      const res = await fetch(wyzieUrl);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          data.forEach(sub => {
-            if (sub.url) {
-              results.push({
-                id: sub.id || sub.url,
-                label: `${sub.display_name || sub.language || 'English'} (${sub.format || 'vtt'})`,
-                language: sub.language || 'English',
-                url: sub.url,
-                source: 'Wyzie',
-                format: sub.format || 'vtt',
-              });
-            }
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Wyzie subtitles search failed', e);
     }
+  } catch (e) {
+    console.warn('Backend subtitle search failed:', e);
   }
 
-  // Source 2: OpenSubtitles REST API search fallback
+  // 2. Direct OpenSubtitles search fallback if backend fails or returns 0
   try {
-    const query = `${title} ${season ? `S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')}` : ''}`.trim();
-    const osUrl = `https://api.opensubtitles.com/api/v1/subtitles?query=${encodeURIComponent(query)}`;
-    const osRes = await fetch(osUrl, {
-      headers: {
-        'User-Agent': 'Categloge-StreamZone v1.0',
-      },
+    const cleanTitle = encodeURIComponent(title.trim());
+    const res = await fetch(`https://rest.opensubtitles.org/search/query-${cleanTitle}`, {
+      headers: { 'User-Agent': 'TemporaryUserAgent' }
     });
-    if (osRes.ok) {
-      const osData = await osRes.json();
-      if (Array.isArray(osData.data)) {
-        osData.data.slice(0, 10).forEach(sub => {
-          const file = sub.attributes?.files?.[0];
-          if (file) {
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        data.slice(0, 20).forEach(sub => {
+          if (sub.SubDownloadLink || sub.IDSubtitleFile) {
+            const dlUrl = sub.SubDownloadLink || `https://dl.opensubtitles.org/en/download/src-api/filead/${sub.IDSubtitleFile}.gz`;
             results.push({
-              id: String(file.file_id || sub.id),
-              label: `${sub.attributes.language || 'English'} - ${file.file_name || 'Subtitle'}`,
-              language: sub.attributes.language || 'English',
-              url: `https://dl.opensubtitles.org/en/download/sub/${file.file_id}`,
-              source: 'OpenSubtitles',
-              format: 'srt',
+              id: String(sub.IDSubtitleFile || sub.IDSubtitle),
+              label: `${sub.LanguageName || 'English'} - ${sub.SubFileName || sub.MovieReleaseName || 'Subtitle'}`,
+              language: sub.LanguageName || 'English',
+              url: dlUrl,
+              source: 'OpenSubtitles Direct',
+              format: sub.SubFormat || 'srt',
             });
           }
         });
       }
     }
   } catch (e) {
-    console.warn('OpenSubtitles search failed', e);
+    console.warn('Direct OpenSubtitles search failed:', e);
   }
 
   return results;
@@ -138,3 +134,4 @@ export async function fetchSubtitleText(url) {
   if (!response.ok) throw new Error(`Subtitle download failed (${response.status})`);
   return await response.text();
 }
+
