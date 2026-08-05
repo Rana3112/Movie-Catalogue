@@ -69,15 +69,17 @@ const API_URL = (import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.on
 
 export async function searchOnlineSubtitles({ title = '', id = '', season, episode, category = 'movie' }) {
   const results = [];
+  const cleanId = String(id || '').match(/\d+/)?.[0] || '';
 
   // 1. Primary: Backend API search (OpenSubtitles via IMDb ID + TMDB resolution)
   try {
     const params = new URLSearchParams({
       query: title || '',
-      tmdbId: String(id || ''),
-      imdbId: String(id || ''),
+      tmdbId: cleanId,
+      imdbId: cleanId,
       season: season ? String(season) : '',
       episode: episode ? String(episode) : '',
+      category: category || 'movie',
     });
     const res = await fetch(`${API_URL}/api/streaming/subtitles/search?${params.toString()}`);
     if (res.ok) {

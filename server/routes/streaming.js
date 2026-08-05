@@ -271,14 +271,15 @@ const zlib = require('zlib');
 
 router.get('/subtitles/search', async (req, res) => {
     try {
-        const { query = '', imdbId = '', tmdbId = '', season, episode } = req.query;
-        let targetImdbId = imdbId ? imdbId.replace(/^tt/, '') : '';
+        const { query = '', imdbId = '', tmdbId = '', season, episode, category = 'movie' } = req.query;
+        let targetImdbId = imdbId ? String(imdbId).replace(/^tt/, '') : '';
+        const tmdbKey = process.env.TMDB_API_KEY || 'aec06bf784ea079c469980766c06e16d';
 
-        // If no IMDb ID provided, resolve via TMDB API
-        if (!targetImdbId && tmdbId) {
-            const tmdbKey = process.env.TMDB_API_KEY || 'e367800078b548b2611a129d20c5d6c8';
+        // 1. If tmdbId is numeric (e.g. 863), resolve IMDb ID from TMDB external_ids
+        if (!targetImdbId && tmdbId && !isNaN(Number(tmdbId))) {
             try {
-                const tmdbRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/external_ids?api_key=${tmdbKey}`);
+                const type = category === 'tv' ? 'tv' : 'movie';
+                const tmdbRes = await fetch(`https://api.themoviedb.org/3/${type}/${tmdbId}/external_ids?api_key=${tmdbKey}`);
                 if (tmdbRes.ok) {
                     const ids = await tmdbRes.json();
                     if (ids.imdb_id) targetImdbId = ids.imdb_id.replace(/^tt/, '');
@@ -288,9 +289,31 @@ router.get('/subtitles/search', async (req, res) => {
             }
         }
 
+        // 2. If no IMDb ID yet, search TMDB by title to find IMDb ID
+        if (!targetImdbId && query) {
+            try {
+                const cleanSearch = encodeURIComponent(query.trim());
+                const searchRes = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${cleanSearch}`);
+                if (searchRes.ok) {
+                    const searchData = await searchRes.json();
+                    if (Array.isArray(searchData.results) && searchData.results.length > 0) {
+                        const topResult = searchData.results[0];
+                        const type = topResult.media_type === 'tv' ? 'tv' : 'movie';
+                        const extRes = await fetch(`https://api.themoviedb.org/3/${type}/${topResult.id}/external_ids?api_key=${tmdbKey}`);
+                        if (extRes.ok) {
+                            const extData = await extRes.json();
+                            if (extData.imdb_id) targetImdbId = extData.imdb_id.replace(/^tt/, '');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('TMDB multi search failed:', e);
+            }
+        }
+
         const results = [];
 
-        // 1. Search OpenSubtitles via rest.opensubtitles.org by IMDb ID
+        // 3. Search OpenSubtitles via rest.opensubtitles.org by IMDb ID
         if (targetImdbId) {
             try {
                 const osUrl = `https://rest.opensubtitles.org/search/imdbid-${targetImdbId}`;
@@ -300,7 +323,18 @@ router.get('/subtitles/search', async (req, res) => {
                 if (osRes.ok) {
                     const data = await osRes.json();
                     if (Array.isArray(data)) {
-                        data.slice(0, 25).forEach((sub) => {
+                        let filteredData = data;
+
+                        // Filter by season & episode for TV/Anime if specified
+                        if (season && episode) {
+                            const epFiltered = data.filter(s =>
+                                String(s.SeriesSeason) === String(season) &&
+                                String(s.SeriesEpisode) === String(episode)
+                            );
+                            if (epFiltered.length > 0) filteredData = epFiltered;
+                        }
+
+                        filteredData.slice(0, 40).forEach((sub) => {
                             if (sub.SubDownloadLink || sub.IDSubtitleFile) {
                                 const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
                                 const host = req.get('host');
@@ -322,46 +356,7 @@ router.get('/subtitles/search', async (req, res) => {
                     }
                 }
             } catch (e) {
-                console.warn('OpenSubtitles IMDb search failed:', e);
-            }
-        }
-
-        // 2. Search OpenSubtitles via query if no results yet or query provided
-        if (results.length < 5 && query) {
-            try {
-                const cleanQuery = encodeURIComponent(query.trim());
-                const osUrl = `https://rest.opensubtitles.org/search/query-${cleanQuery}`;
-                const osRes = await fetch(osUrl, {
-                    headers: { 'User-Agent': 'TemporaryUserAgent' }
-                });
-                if (osRes.ok) {
-                    const data = await osRes.json();
-                    if (Array.isArray(data)) {
-                        data.slice(0, 25).forEach((sub) => {
-                            if (sub.SubDownloadLink || sub.IDSubtitleFile) {
-                                const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
-                                const host = req.get('host');
-                                const downloadUrl = sub.SubDownloadLink || `https://dl.opensubtitles.org/en/download/src-api/filead/${sub.IDSubtitleFile}.gz`;
-                                const proxyDownloadUrl = `${proto}://${host}/api/streaming/subtitles/download?url=${encodeURIComponent(downloadUrl)}`;
-
-                                if (!results.some(r => r.id === String(sub.IDSubtitleFile || sub.IDSubtitle))) {
-                                    results.push({
-                                        id: String(sub.IDSubtitleFile || sub.IDSubtitle),
-                                        label: `${sub.LanguageName || 'English'} - ${sub.SubFileName || sub.MovieReleaseName || 'Subtitle'} (${sub.SubFormat || 'srt'})`,
-                                        language: sub.LanguageName || 'English',
-                                        rating: sub.SubRating || '0',
-                                        downloads: sub.SubDownloadsCnt || '0',
-                                        downloadUrl: proxyDownloadUrl,
-                                        source: 'OpenSubtitles',
-                                        format: sub.SubFormat || 'srt'
-                                    });
-                                }
-                            }
-                        });
-                    }
-                }
-            } catch (e) {
-                console.warn('OpenSubtitles query search failed:', e);
+                console.warn('OpenSubtitles search failed:', e);
             }
         }
 
