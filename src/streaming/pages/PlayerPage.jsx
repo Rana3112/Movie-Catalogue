@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { StatusBar } from '@capacitor/status-bar';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
-import { Check, RotateCcw, Server, Shuffle, Sliders, X, Zap } from 'lucide-react';
+import { Captions, Check, Clock, FileText, Globe, Minus, Plus, RotateCcw, Search, Server, Shuffle, Sliders, Upload, X, Zap } from 'lucide-react';
 import { useStreamingStore } from '../store/useStreamingStore';
 import { checkStreamProviderHealth, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
+import { cuesToVttBlobUrl, fetchSubtitleText, parseSubtitles, searchOnlineSubtitles } from '../api/subtitles';
 
 const setNativePlayerMode = (enabled) => {
   try {
@@ -39,8 +40,20 @@ export default function PlayerPage() {
   const [autoShiftEnabled, setAutoShiftEnabled] = useState(true);
   const [isSourcesMenuOpen, setIsSourcesMenuOpen] = useState(false);
 
+  // Subtitle States
+  const [isSubtitlesMenuOpen, setIsSubtitlesMenuOpen] = useState(false);
+  const [subtitleTab, setSubtitleTab] = useState('search'); // 'search' | 'device'
+  const [activeSubtitle, setActiveSubtitle] = useState(null); // { label, blobUrl, cues, language, source }
+  const [subtitleSyncOffset, setSubtitleSyncOffset] = useState(0); // in seconds
+  const [onlineSubSearchQuery, setOnlineSubSearchQuery] = useState('');
+  const [onlineSubResults, setOnlineSubResults] = useState([]);
+  const [isSearchingOnlineSubs, setIsSearchingOnlineSubs] = useState(false);
+  const [currentCueText, setCurrentCueText] = useState('');
+
   const userOverriddenRef = useRef(false);
   const loadTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
 
   const sourceUrl = useMemo(
     () => candidates[providerIndex]?.src || config?.src || config?.embedUrl || '',
@@ -101,6 +114,10 @@ export default function PlayerPage() {
     ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {});
     setNativePlayerMode(true);
 
+    // Default search query prefill
+    const initialQuery = `${config.title || ''} ${config.season ? `S${String(config.season).padStart(2, '0')}E${String(config.episode).padStart(2, '0')}` : ''}`.trim();
+    setOnlineSubSearchQuery(initialQuery);
+
     addToHistory({
       id: config.id || `${config.category}:${config.title}:${config.season || ''}:${config.episode || ''}`,
       title: config.title,
@@ -159,6 +176,31 @@ export default function PlayerPage() {
     };
   }, [autoShiftEnabled, frameKey, hasAlternateProvider, providerIndex, triggerAutoShift]);
 
+  // Subtitle Cue Sync Timer for Video/Overlay
+  useEffect(() => {
+    if (!activeSubtitle || !activeSubtitle.cues || activeSubtitle.cues.length === 0) {
+      setCurrentCueText('');
+      return undefined;
+    }
+
+    let startTime = Date.now();
+    const interval = setInterval(() => {
+      let currentTime = (Date.now() - startTime) / 1000;
+      if (videoRef.current && !isNaN(videoRef.current.currentTime)) {
+        currentTime = videoRef.current.currentTime;
+      }
+      const adjustedTime = currentTime + subtitleSyncOffset;
+
+      const activeCue = activeSubtitle.cues.find(
+        c => adjustedTime >= c.start && adjustedTime <= c.end
+      );
+
+      setCurrentCueText(activeCue ? activeCue.text : '');
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [activeSubtitle, subtitleSyncOffset]);
+
   const handleFrameLoad = () => {
     if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     setShowSlowHint(false);
@@ -202,6 +244,89 @@ export default function PlayerPage() {
     setTimeout(() => {
       userOverriddenRef.current = false;
     }, 15000);
+  };
+
+  // --- Subtitle Event Handlers ---
+  const handleLocalDeviceFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result || '';
+        const cues = parseSubtitles(text);
+        if (cues.length === 0) {
+          alert('Could not parse subtitles from this file. Make sure it is a valid .srt or .vtt file.');
+          return;
+        }
+        const blobUrl = cuesToVttBlobUrl(cues);
+        setActiveSubtitle({
+          label: file.name,
+          blobUrl,
+          cues,
+          language: 'Device File',
+          source: 'Device',
+        });
+        setAutoShiftNotice(`CC: Imported ${cues.length} cues from ${file.name}`);
+        setTimeout(() => setAutoShiftNotice(null), 4000);
+        setIsSubtitlesMenuOpen(false);
+      } catch (err) {
+        alert(`Failed to read file: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSearchOnlineSubtitles = async () => {
+    setIsSearchingOnlineSubs(true);
+    setOnlineSubResults([]);
+    try {
+      const results = await searchOnlineSubtitles({
+        title: onlineSubSearchQuery || config?.title || '',
+        id: config?.id || config?.anilistId || config?.tmdbId || '',
+        season: config?.season,
+        episode: config?.episode,
+        category: config?.category || 'movie',
+      });
+      setOnlineSubResults(results);
+    } catch (err) {
+      console.error('Online subtitle search error:', err);
+    } finally {
+      setIsSearchingOnlineSubs(false);
+    }
+  };
+
+  const handleSelectOnlineSub = async (sub) => {
+    if (sub.format === 'external') {
+      window.open(sub.url, '_blank');
+      return;
+    }
+
+    try {
+      setAutoShiftNotice(`Downloading subtitle (${sub.language})...`);
+      const text = await fetchSubtitleText(sub.url);
+      const cues = parseSubtitles(text);
+      if (cues.length === 0) {
+        alert('Downloaded subtitle was empty or could not be parsed.');
+        setAutoShiftNotice(null);
+        return;
+      }
+      const blobUrl = cuesToVttBlobUrl(cues);
+      setActiveSubtitle({
+        label: sub.label,
+        blobUrl,
+        cues,
+        language: sub.language,
+        source: sub.source,
+      });
+      setAutoShiftNotice(`CC: Subtitle applied (${sub.language})`);
+      setTimeout(() => setAutoShiftNotice(null), 4000);
+      setIsSubtitlesMenuOpen(false);
+    } catch (err) {
+      alert(`Could not download subtitle: ${err.message}`);
+      setAutoShiftNotice(null);
+    }
   };
 
   if (!config || !sourceUrl) return null;
@@ -260,6 +385,34 @@ export default function PlayerPage() {
           pointerEvents: 'auto',
         }}
       >
+        {/* Subtitles Button */}
+        <button
+          onClick={() => {
+            setIsSubtitlesMenuOpen(prev => !prev);
+            if (onlineSubResults.length === 0) handleSearchOnlineSubtitles();
+          }}
+          aria-label="Add subtitles"
+          title="Add Subtitles"
+          style={{
+            background: activeSubtitle ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : 'rgba(0,0,0,0.72)',
+            border: activeSubtitle ? '2px solid #60A5FA' : '1px solid rgba(255,255,255,0.25)',
+            borderRadius: 24,
+            padding: '7px 14px',
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            cursor: 'pointer',
+            backdropFilter: 'blur(12px)',
+            boxShadow: activeSubtitle ? '0 0 12px rgba(37,99,235,0.6)' : '0 4px 12px rgba(0,0,0,0.4)',
+          }}
+        >
+          <Captions size={15} className={activeSubtitle ? 'text-blue-300' : 'text-blue-400'} />
+          <span>{activeSubtitle ? 'CC On' : 'Subtitles'}</span>
+        </button>
+
         {/* Current Active Source Pill & Menu Opener */}
         <button
           onClick={() => setIsSourcesMenuOpen(prev => !prev)}
@@ -335,6 +488,295 @@ export default function PlayerPage() {
           </button>
         )}
       </div>
+
+      {/* Hidden Device File Picker Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".srt,.vtt,.ass,.txt"
+        style={{ display: 'none' }}
+        onChange={handleLocalDeviceFileSelect}
+      />
+
+      {/* Subtitles Drawer Modal */}
+      {isSubtitlesMenuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10005,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setIsSubtitlesMenuOpen(false)}
+        >
+          <div
+            style={{
+              width: 'min(92vw, 440px)',
+              background: '#141414',
+              border: '1px solid rgba(255,255,255,0.18)',
+              borderRadius: 20,
+              padding: 20,
+              color: '#fff',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Captions size={20} className="text-blue-500" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Subtitles</h3>
+              </div>
+              <button
+                onClick={() => setIsSubtitlesMenuOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 0,
+                  borderRadius: '50%',
+                  width: 30,
+                  height: 30,
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Active Subtitle Status & Clear/Sync Controls */}
+            {activeSubtitle && (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  borderRadius: 12,
+                  background: 'rgba(37,99,235,0.15)',
+                  border: '1px solid rgba(37,99,235,0.3)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#60A5FA' }}>Active Subtitle</div>
+                    <div style={{ fontSize: 11, color: '#D1D5DB', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240 }}>
+                      {activeSubtitle.label}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveSubtitle(null)}
+                    style={{
+                      background: 'rgba(239,68,68,0.2)',
+                      border: '1px solid rgba(239,68,68,0.4)',
+                      color: '#EF4444',
+                      padding: '4px 10px',
+                      borderRadius: 16,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Remove CC
+                  </button>
+                </div>
+
+                {/* Subtitle Sync Offset Adjuster */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9CA3AF' }}>
+                    <Clock size={12} /> Sync Delay: <strong style={{ color: '#fff' }}>{subtitleSyncOffset >= 0 ? `+${subtitleSyncOffset.toFixed(1)}s` : `${subtitleSyncOffset.toFixed(1)}s`}</strong>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      onClick={() => setSubtitleSyncOffset(s => Number((s - 0.5).toFixed(1)))}
+                      style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 12, width: 26, height: 26, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <button
+                      onClick={() => setSubtitleSyncOffset(0)}
+                      style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 12, padding: '2px 8px', color: '#fff', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={() => setSubtitleSyncOffset(s => Number((s + 0.5).toFixed(1)))}
+                      style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 12, width: 26, height: 26, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Subtitle Import Options Tabs */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <button
+                onClick={() => setSubtitleTab('search')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: 12,
+                  border: 0,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  background: subtitleTab === 'search' ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : 'rgba(255,255,255,0.08)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <Globe size={14} /> Search Online
+              </button>
+              <button
+                onClick={() => setSubtitleTab('device')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: 12,
+                  border: 0,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  background: subtitleTab === 'device' ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : 'rgba(255,255,255,0.08)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <Upload size={14} /> Import Device
+              </button>
+            </div>
+
+            {/* Tab 1: Device File Import */}
+            {subtitleTab === 'device' && (
+              <div style={{ textAlign: 'center', padding: '20px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 14, border: '1px dashed rgba(255,255,255,0.2)' }}>
+                <FileText size={32} className="mx-auto mb-2 text-blue-400" />
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Select Subtitle File</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 14 }}>Supports .srt, .vtt, .ass files from phone or PC</div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                    border: 0,
+                    borderRadius: 20,
+                    padding: '8px 20px',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(37,99,235,0.4)',
+                  }}
+                >
+                  📁 Choose Subtitle File
+                </button>
+              </div>
+            )}
+
+            {/* Tab 2: Online Search */}
+            {subtitleTab === 'search' && (
+              <div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                  <input
+                    type="text"
+                    value={onlineSubSearchQuery}
+                    onChange={e => setOnlineSubSearchQuery(e.target.value)}
+                    placeholder="Search movie/TV subtitle..."
+                    onKeyDown={e => e.key === 'Enter' && handleSearchOnlineSubtitles()}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(255,255,255,0.07)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: 10,
+                      padding: '8px 12px',
+                      color: '#fff',
+                      fontSize: 12,
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={handleSearchOnlineSubtitles}
+                    style={{
+                      background: '#2563EB',
+                      border: 0,
+                      borderRadius: 10,
+                      padding: '0 14px',
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <Search size={14} />
+                  </button>
+                </div>
+
+                {/* Subtitle Results List */}
+                <div style={{ maxHeight: 200, overflowY: 'auto', paddingRight: 4 }}>
+                  {isSearchingOnlineSubs ? (
+                    <div style={{ textAlign: 'center', padding: '20px', fontSize: 12, color: '#9CA3AF' }}>
+                      🔍 Searching subtitles online...
+                    </div>
+                  ) : onlineSubResults.length > 0 ? (
+                    onlineSubResults.map((sub, idx) => (
+                      <div
+                        key={`${sub.id}-${idx}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          background: 'rgba(255,255,255,0.04)',
+                          marginBottom: 6,
+                          border: '1px solid rgba(255,255,255,0.08)',
+                        }}
+                      >
+                        <div style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{sub.label}</div>
+                          <div style={{ fontSize: 10, color: '#9CA3AF' }}>{sub.source} • {sub.language}</div>
+                        </div>
+                        <button
+                          onClick={() => handleSelectOnlineSub(sub)}
+                          style={{
+                            background: 'rgba(37,99,235,0.8)',
+                            border: 0,
+                            borderRadius: 16,
+                            padding: '5px 12px',
+                            color: '#fff',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Use Sub
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '16px', fontSize: 12, color: '#6B7280' }}>
+                      No online subtitles loaded. Enter title and click Search.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Sources Selection Menu Drawer / Modal */}
       {isSourcesMenuOpen && (
@@ -501,6 +943,35 @@ export default function PlayerPage() {
         </div>
       )}
 
+      {/* On-Screen Active Subtitle Overlay */}
+      {currentCueText && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 'max(40px, env(safe-area-inset-bottom))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10002,
+            padding: '6px 16px',
+            background: 'rgba(0, 0, 0, 0.82)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 12,
+            color: '#FFFFFF',
+            fontSize: 'clamp(14px, 2.5vw, 22px)',
+            fontWeight: 800,
+            textAlign: 'center',
+            textShadow: '0 2px 4px rgba(0,0,0,0.9)',
+            backdropFilter: 'blur(6px)',
+            maxWidth: '85vw',
+            lineHeight: 1.35,
+            pointerEvents: 'none',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {currentCueText}
+        </div>
+      )}
+
       {/* Slow loading hint overlay */}
       {showSlowHint && (
         <div
@@ -560,6 +1031,7 @@ export default function PlayerPage() {
       {/* Video Surface */}
       {isHlsMode ? (
         <video
+          ref={videoRef}
           key={`video-${providerIndex}-${frameKey}`}
           src={sourceUrl}
           autoPlay
@@ -576,6 +1048,15 @@ export default function PlayerPage() {
             background: '#000',
           }}
         >
+          {activeSubtitle?.blobUrl && (
+            <track
+              kind="subtitles"
+              src={activeSubtitle.blobUrl}
+              srcLang="en"
+              label={activeSubtitle.label}
+              default
+            />
+          )}
           {Array.isArray(config.subtitles) && config.subtitles.map((subtitle) => (
             <track
               key={subtitle.url}
@@ -611,5 +1092,6 @@ export default function PlayerPage() {
     </div>
   );
 }
+
 
 
