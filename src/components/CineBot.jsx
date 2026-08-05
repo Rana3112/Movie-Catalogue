@@ -524,6 +524,8 @@ export default function CineBot() {
         // Step 2: Set pending entry for Calendar to auto-open modal
         setCineBotPendingEntry({
             title: movieData.title,
+            poster: movieData.poster || null,
+            description: movieData.description || null,
             imdbLink: movieData.imdbLink || null,
             genres,
             rtCriticScore: movieData.rtCriticScore || '',

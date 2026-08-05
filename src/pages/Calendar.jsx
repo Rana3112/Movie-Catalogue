@@ -257,15 +257,74 @@ export default function Calendar() {
         }
     }
 
-    const handleFetchPoster = async (link) => {
+    const handleFetchPoster = async (link, isAutoFetch = false) => {
         if (!link) return
         setIsFetching(true)
         try {
             let newTitle = null
             let posterUrl = null
             const imdbIdMatch = link.match(/tt\d+/)
-            if (imdbIdMatch) {
-                const imdbId = imdbIdMatch[0]
+            const imdbId = imdbIdMatch ? imdbIdMatch[0] : null
+            const omdbKey = import.meta.env.VITE_OMDB_API_KEY
+
+            // 1. Try OMDB API directly first (fastest, CORS-friendly, no proxy needed)
+            if (omdbKey && imdbId) {
+                try {
+                    const omdbRes = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${omdbKey}`)
+                    if (omdbRes.ok) {
+                        const omdbData = await omdbRes.json()
+                        if (omdbData.Response === 'True') {
+                            if (omdbData.Poster && omdbData.Poster !== 'N/A') {
+                                posterUrl = omdbData.Poster
+                            }
+                            if (omdbData.Title && omdbData.Title !== 'N/A') {
+                                newTitle = omdbData.Title
+                            }
+                            if (omdbData.Ratings) {
+                                const rt = omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes")
+                                if (rt) {
+                                    const rtScoreFromOMDB = rt.Value.replace('%', '')
+                                    setFormData(prev => ({ ...prev, rtCriticScore: rtScoreFromOMDB }))
+                                }
+                            }
+
+                            // Rotten Tomatoes scraping (Fallback for Critic, Primary for Audience)
+                            if (omdbData.Title || newTitle) {
+                                try {
+                                    const movieTitle = omdbData.Title || newTitle
+                                    const slug = movieTitle.toLowerCase()
+                                        .replace(/[^a-z0-9\s-]/g, '')
+                                        .replace(/\s+/g, '_')
+                                    const rtUrl = `https://www.rottentomatoes.com/m/${slug}`
+                                    const rtProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(rtUrl)}`
+                                    
+                                    fetch(rtProxy).then(res => res.text()).then(html => {
+                                        let updates = {}
+                                        const audMatch = html.match(/audience-score="(\d+)"/)
+                                        if (audMatch && audMatch[1]) {
+                                            updates.rtAudienceScore = audMatch[1]
+                                        }
+                                        const criticMatch = html.match(/tomatometerscore="(\d+)"/)
+                                        if (criticMatch && criticMatch[1]) {
+                                            updates.rtCriticScore = criticMatch[1]
+                                        }
+                                        if (Object.keys(updates).length > 0) {
+                                            setFormData(prev => ({ ...prev, ...updates }))
+                                        }
+                                    }).catch(e => console.log("RT Scrape background check failed", e))
+                                } catch (e) {
+                                    console.log("RT URL generation failed", e)
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.warn("OMDB direct fetch failed", err)
+                }
+            }
+
+            // 2. If posterUrl still missing, try IMDb suggestion endpoint via proxy
+            if (!posterUrl && imdbId) {
                 const apiEndpoint = `https://v2.sg.media-imdb.com/suggestion/${imdbId[0]}/${imdbId}.json`
                 const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(apiEndpoint)}`
                 try {
@@ -275,87 +334,50 @@ export default function Calendar() {
                         const result = data.d?.find(item => item.id === imdbId)
                         if (result) {
                             if (result.i?.imageUrl) posterUrl = result.i.imageUrl
-                            if (result.l) newTitle = result.l
-                        }
-                    }
-                    const omdbKey = import.meta.env.VITE_OMDB_API_KEY;
-                    if (omdbKey && imdbId) {
-                        try {
-                            const omdbRes = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${omdbKey}`);
-                            const omdbData = await omdbRes.json();
-                            let rtScoreFromOMDB = null;
-                            if (omdbData.Ratings) {
-                                const rt = omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes");
-                                if (rt) {
-                                    rtScoreFromOMDB = rt.Value.replace('%', '');
-                                    setFormData(prev => ({ ...prev, rtCriticScore: rtScoreFromOMDB }));
-                                }
-                            }
-                            
-                            // Rotten Tomatoes scraping (Fallback for Critic, Primary for Audience)
-                            if (omdbData.Title || newTitle) {
-                                try {
-                                    const movieTitle = omdbData.Title || newTitle;
-                                    const slug = movieTitle.toLowerCase()
-                                        .replace(/[^a-z0-9\s-]/g, '')
-                                        .replace(/\s+/g, '_');
-                                    const rtUrl = `https://www.rottentomatoes.com/m/${slug}`;
-                                    // Use allorigins to bypass basic CORS and some anti-bot protections
-                                    const rtProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(rtUrl)}`;
-                                    
-                                    fetch(rtProxy).then(res => res.text()).then(html => {
-                                        let updates = {};
-                                        const audMatch = html.match(/audience-score="(\d+)"/);
-                                        if (audMatch && audMatch[1]) {
-                                            updates.rtAudienceScore = audMatch[1];
-                                        }
-                                        // If OMDB didn't have RT Critic score, try to scrape it here
-                                        const criticMatch = html.match(/tomatometerscore="(\d+)"/);
-                                        if (!rtScoreFromOMDB && criticMatch && criticMatch[1]) {
-                                            updates.rtCriticScore = criticMatch[1];
-                                        }
-                                        
-                                        if (Object.keys(updates).length > 0) {
-                                            setFormData(prev => ({ ...prev, ...updates }));
-                                        }
-                                    }).catch(e => console.log("RT Scrape background check failed", e));
-                                } catch (e) {
-                                    console.log("RT URL generation failed", e);
-                                }
-                            }
-                        } catch (err) {
-                            console.warn("OMDB Fetch failed", err);
+                            if (result.l && !newTitle) newTitle = result.l
                         }
                     }
                 } catch (e) {
-                    console.warn("API fetch failed, falling back to scraping", e)
+                    console.warn("IMDb suggestion proxy failed", e)
                 }
             }
+
+            // 3. Fallback: Page scraping via proxy
             if (!posterUrl && !newTitle) {
-                const scrapeProxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`
-                const response = await fetch(scrapeProxyUrl)
-                if (!response.ok) throw new Error('Proxy error')
-                const html = await response.text()
-                const parser = new DOMParser()
-                const doc = parser.parseFromString(html, 'text/html')
-                posterUrl = doc.querySelector('meta[property="og:image"]')?.content
-                newTitle = doc.querySelector('meta[property="og:title"]')?.content?.replace(' - IMDb', '') || doc.title.replace(' - IMDb', '')
+                try {
+                    const scrapeProxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`
+                    const response = await fetch(scrapeProxyUrl)
+                    if (response.ok) {
+                        const html = await response.text()
+                        const parser = new DOMParser()
+                        const doc = parser.parseFromString(html, 'text/html')
+                        posterUrl = doc.querySelector('meta[property="og:image"]')?.content
+                        newTitle = doc.querySelector('meta[property="og:title"]')?.content?.replace(' - IMDb', '') || doc.title.replace(' - IMDb', '')
+                    }
+                } catch (e) {
+                    console.warn("Scrape proxy failed", e)
+                }
             }
+
             if (posterUrl || newTitle) {
                 setFormData(prev => ({
                     ...prev,
-                    poster: posterUrl || null,
+                    poster: posterUrl || prev.poster || null,
                     title: newTitle || prev.title
                 }))
-                if (!posterUrl) {
+                if (!posterUrl && !isAutoFetch) {
                     alert('Poster not found, but Title extracted. Entry will use blank background.')
                 }
             } else {
-                alert('Could not find a poster image or title. IMDb may be blocking access.')
+                if (!isAutoFetch) {
+                    alert('Could not find a poster image or title. IMDb may be blocking access.')
+                }
             }
         } catch (error) {
-            console.error(error)
-            alert('Failed to fetch. Try manually uploading.')
+            console.error('handleFetchPoster error:', error)
+            if (!isAutoFetch) {
+                alert('Failed to fetch. Try manually uploading.')
+            }
         } finally {
             setIsFetching(false)
         }
