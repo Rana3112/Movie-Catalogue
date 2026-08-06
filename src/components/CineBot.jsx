@@ -331,7 +331,7 @@ export default function CineBot() {
                                 const imdbIdMatch = movieData.imdbLink.match(/title\/(tt\d+)/);
                                 if (imdbIdMatch) {
                                     try {
-                                        const omdbKey = import.meta.env.VITE_OMDB_API_KEY;
+                                        const omdbKey = import.meta.env.VITE_OMDB_API_KEY || 'trilogy';
                                         if (omdbKey) {
                                             const omdbRes = await fetch(`https://www.omdbapi.com/?i=${imdbIdMatch[1]}&apikey=${omdbKey}`);
                                             const omdbData = await omdbRes.json();

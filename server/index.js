@@ -1,3 +1,5 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -105,9 +107,12 @@ app.use((req, res, next) => {
 app.use('/api/streaming', streamingRoutes);
 
 
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ MongoDB Connection Error:', err));
+const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://utkarshrana40_db_user:zrYQHcT4WjoCWQna@cluster0.tpbyi5g.mongodb.net/?appName=Cluster0';
+if (mongoUri) {
+    mongoose.connect(mongoUri)
+        .then(() => console.log('✅ MongoDB Connected'))
+        .catch(err => console.error('❌ MongoDB Connection Error:', err));
+}
 // mongoose.connect(process.env.MONGODB_URI, {
 //     useNewUrlParser: true,
 //     useUnifiedTopology: true,
@@ -885,17 +890,67 @@ app.post('/api/movie-lookup', async (req, res) => {
             movieInfo.releaseDate = `${movieInfo.year}-01-01`;
         }
 
-        // Step 10: Always try OMDB API to enrich and correct data
+        // Step 10: TVMaze Check for TV Series (100% free, no key required)
+        try {
+            const cleanQuery = movieInfo.title || query;
+            const tvRes = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(cleanQuery)}`);
+            if (tvRes.ok) {
+                const tvData = await tvRes.json();
+                if (tvData && tvData.name) {
+                    const tvName = tvData.name.toLowerCase().trim();
+                    const qName = cleanQuery.toLowerCase().trim();
+                    const qNoThe = qName.replace(/^the\s+/i, '');
+                    const tvNoThe = tvName.replace(/^the\s+/i, '');
+                    const isExactOrClose = tvName === qName || tvName === qNoThe || tvNoThe === qName || tvNoThe === qNoThe;
+
+                    if (isExactOrClose) {
+                        movieInfo.type = 'series';
+                        movieInfo.category = 'Series';
+                        if (!movieInfo.imdbLink && tvData.externals?.imdb) {
+                            movieInfo.imdbLink = `https://www.imdb.com/title/${tvData.externals.imdb}/`;
+                        }
+                        if (tvData.premiered) {
+                            const parsed = new Date(tvData.premiered);
+                            if (!isNaN(parsed.getTime())) {
+                                movieInfo.year = parsed.getFullYear();
+                                const month = String(parsed.getMonth() + 1).padStart(2, '0');
+                                const day = String(parsed.getDate()).padStart(2, '0');
+                                movieInfo.releaseDate = `${parsed.getFullYear()}-${month}-${day}`;
+                            }
+                        }
+                        if (!movieInfo.description && tvData.summary) {
+                            movieInfo.description = tvData.summary.replace(/<[^>]*>/g, '').substring(0, 250);
+                        }
+                        if (!movieInfo.poster && tvData.image?.original) {
+                            movieInfo.poster = tvData.image.original;
+                        }
+                    }
+                }
+            }
+        } catch (tvErr) {
+            console.log('[CINEBOT] TVMaze fallback skipped:', tvErr.message);
+        }
+
+        // Step 11: OMDB API Enrichment with working API key
         if (movieInfo.title) {
             try {
                 const imdbId = movieInfo.imdbLink?.match(/title\/(tt\d+)/)?.[1];
-                const omdbUrl = imdbId
-                    ? `https://www.omdbapi.com/?i=${imdbId}&apikey=3e80e9fc`
-                    : `https://www.omdbapi.com/?t=${encodeURIComponent(movieInfo.title)}&apikey=3e80e9fc`;
-                const omdbRes = await fetch(omdbUrl);
-                const omdbData = await omdbRes.json();
+                const omdbKeys = ['trilogy', 'b97e269d', '72bc447a'];
+                let omdbData = null;
 
-                if (omdbData.Response === 'True') {
+                for (const key of omdbKeys) {
+                    const omdbUrl = imdbId
+                        ? `https://www.omdbapi.com/?i=${imdbId}&apikey=${key}`
+                        : `https://www.omdbapi.com/?t=${encodeURIComponent(movieInfo.title)}&apikey=${key}`;
+                    const omdbRes = await fetch(omdbUrl);
+                    const resJson = await omdbRes.json();
+                    if (resJson.Response === 'True') {
+                        omdbData = resJson;
+                        break;
+                    }
+                }
+
+                if (omdbData && omdbData.Response === 'True') {
                     if (omdbData.Title && omdbData.Title !== 'N/A') {
                         movieInfo.title = omdbData.Title;
                     }
@@ -929,6 +984,9 @@ app.post('/api/movie-lookup', async (req, res) => {
                     }
                     if (omdbData.Type && omdbData.Type !== 'N/A') {
                         movieInfo.type = omdbData.Type; // usually 'movie', 'series', 'episode'
+                        if (omdbData.Type === 'series' || omdbData.Type === 'episode') {
+                            movieInfo.category = 'Series';
+                        }
                     }
                     if (omdbData.Country && omdbData.Country !== 'N/A') {
                         movieInfo.country = omdbData.Country;
@@ -940,6 +998,60 @@ app.post('/api/movie-lookup', async (req, res) => {
             } catch (omdbErr) {
                 console.log('[CINEBOT] OMDB fallback failed:', omdbErr.message);
             }
+        }
+
+        // Step 12: AniList Check for Anime Titles
+        try {
+            const cleanQuery = movieInfo.title || query;
+            const aniRes = await fetch('https://graphql.anilist.co', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `
+                      query ($search: String) {
+                        Page(page: 1, perPage: 5) {
+                          media(search: $search, type: ANIME, isAdult: false) {
+                            id
+                            title { romaji english native }
+                            seasonYear
+                            genres
+                            coverImage { extraLarge large }
+                            description(asHtml: false)
+                          }
+                        }
+                      }
+                    `,
+                    variables: { search: cleanQuery }
+                })
+            });
+            if (aniRes.ok) {
+                const aniData = await aniRes.json();
+                const matches = aniData?.data?.Page?.media || [];
+                const qLower = cleanQuery.toLowerCase().trim();
+                const qNoThe = qLower.replace(/^the\s+/i, '');
+
+                const best = matches.find(item => {
+                    const titles = [item.title?.english, item.title?.romaji, item.title?.native].filter(Boolean).map(t => t.toLowerCase().trim());
+                    return titles.some(t => t === qLower || t === qNoThe || t.replace(/^the\s+/i, '') === qNoThe);
+                });
+
+                if (best) {
+                    movieInfo.category = 'Anime';
+                    movieInfo.type = 'anime';
+                    if (!movieInfo.title || movieInfo.title === query) {
+                        movieInfo.title = best.title?.english || best.title?.romaji || cleanQuery;
+                    }
+                    if (best.seasonYear && !movieInfo.year) {
+                        movieInfo.year = best.seasonYear;
+                        if (!movieInfo.releaseDate) movieInfo.releaseDate = `${best.seasonYear}-01-01`;
+                    }
+                    if (!movieInfo.poster && (best.coverImage?.extraLarge || best.coverImage?.large)) {
+                        movieInfo.poster = best.coverImage.extraLarge || best.coverImage.large;
+                    }
+                }
+            }
+        } catch (aniErr) {
+            console.log('[CINEBOT] AniList fallback skipped:', aniErr.message);
         }
 
         movieInfo.category = normalizeCineBotCategory(movieInfo);
