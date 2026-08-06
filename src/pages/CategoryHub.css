@@ -191,31 +191,28 @@
   z-index: 30;
 }
 
-/* Feature Cards Grid (5 Horizontal Cards - Movable & Draggable) */
+/* Feature Cards Grid (4 Horizontal Cards - Movable & Draggable) */
 .hub-cards-container {
   position: relative;
   z-index: 20;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: clamp(4rem, 9vh, 6rem) auto 0 auto;
   display: flex;
   justify-content: center;
-  gap: 1.25rem;
+  gap: 1.5rem;
   padding-bottom: 1rem;
 }
 
 .hub-feature-card {
   position: relative;
   flex: 1;
-  max-width: 240px;
-  min-width: 190px;
+  max-width: 250px;
+  min-width: 200px;
   height: clamp(260px, 32vh, 320px);
   border-radius: 24px;
-  background: rgba(17, 17, 20, 0.65);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 45, 45, 0.25);
-  box-shadow: inset 0 0 20px rgba(255, 45, 45, 0.05), 0 10px 30px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -225,16 +222,83 @@
   cursor: grab;
   touch-action: none;
   user-select: none;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: all 0.25s ease;
 }
 
 .hub-feature-card:active {
   cursor: grabbing;
 }
 
-.hub-feature-card:hover {
-  border-color: rgba(255, 45, 45, 0.6);
-  box-shadow: 0 0 35px rgba(255, 45, 45, 0.45), inset 0 0 25px rgba(255, 45, 45, 0.15);
+/* Media Nodes (Movies, Series, Anime) - Highlighted Crimson Red */
+.hub-card-media {
+  background: rgba(22, 10, 12, 0.75);
+  border: 1.5px solid rgba(229, 9, 20, 0.45);
+  box-shadow: inset 0 0 20px rgba(229, 9, 20, 0.1), 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.hub-card-media:hover {
+  border-color: rgba(255, 45, 45, 0.85);
+  box-shadow: 0 0 35px rgba(255, 45, 45, 0.5), inset 0 0 25px rgba(255, 45, 45, 0.2);
+}
+
+.hub-card-media .hub-card-node {
+  background: #ff2d2d;
+  box-shadow: 0 0 14px #ff2d2d, 0 0 22px rgba(255, 45, 45, 0.85);
+  border: 2px solid #ffffff;
+}
+
+.hub-card-media .hub-icon-ring {
+  background: rgba(229, 9, 20, 0.12);
+  border: 1.5px solid rgba(229, 9, 20, 0.45);
+  box-shadow: 0 0 20px rgba(229, 9, 20, 0.3);
+  color: #ff3333;
+}
+
+.hub-card-media:hover .hub-icon-ring {
+  background: rgba(229, 9, 20, 0.25);
+  border-color: #ff2d2d;
+  box-shadow: 0 0 25px rgba(229, 9, 20, 0.75);
+  color: #ffffff;
+}
+
+.hub-card-media .hub-card-floor-glow {
+  background: radial-gradient(ellipse at center, rgba(229, 9, 20, 0.45) 0%, transparent 70%);
+}
+
+/* My Calendar Node (Distinct Electric Cyan Accent) */
+.hub-card-calendar {
+  background: rgba(8, 22, 30, 0.75);
+  border: 1.5px solid rgba(0, 229, 255, 0.5);
+  box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.12), 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.2);
+}
+
+.hub-card-calendar:hover {
+  border-color: rgba(0, 229, 255, 0.9);
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.6), inset 0 0 25px rgba(0, 229, 255, 0.25);
+}
+
+.hub-card-calendar .hub-card-node {
+  background: #00e5ff;
+  box-shadow: 0 0 14px #00e5ff, 0 0 24px rgba(0, 229, 255, 0.95);
+  border: 2px solid #ffffff;
+}
+
+.hub-card-calendar .hub-icon-ring {
+  background: rgba(0, 229, 255, 0.12);
+  border: 1.5px solid rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
+  color: #00e5ff;
+}
+
+.hub-card-calendar:hover .hub-icon-ring {
+  background: rgba(0, 229, 255, 0.28);
+  border-color: #00e5ff;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
+  color: #ffffff;
+}
+
+.hub-card-calendar .hub-card-floor-glow {
+  background: radial-gradient(ellipse at center, rgba(0, 229, 255, 0.5) 0%, transparent 70%);
 }
 
 /* Top Connection Node on Feature Card */
@@ -246,9 +310,6 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ff2d2d;
-  box-shadow: 0 0 12px #ff2d2d, 0 0 20px rgba(255, 45, 45, 0.8);
-  border: 2px solid #ffffff;
   z-index: 25;
 }
 
@@ -257,23 +318,11 @@
   width: 68px;
   height: 68px;
   border-radius: 50%;
-  background: rgba(255, 45, 45, 0.06);
-  border: 1.5px solid rgba(255, 45, 45, 0.3);
-  box-shadow: 0 0 20px rgba(255, 45, 45, 0.25), inset 0 0 15px rgba(255, 45, 45, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ff2d2d;
   transition: all 0.3s ease;
   pointer-events: none;
-}
-
-.hub-feature-card:hover .hub-icon-ring {
-  background: rgba(255, 45, 45, 0.15);
-  border-color: #ff2d2d;
-  box-shadow: 0 0 25px rgba(255, 45, 45, 0.6);
-  color: #ffffff;
-  transform: scale(1.05);
 }
 
 .hub-card-title {
@@ -302,7 +351,6 @@
   width: 120px;
   height: 30px;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(255, 45, 45, 0.4) 0%, transparent 70%);
   filter: blur(10px);
   pointer-events: none;
   transition: opacity 0.3s ease;

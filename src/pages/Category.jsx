@@ -28,7 +28,7 @@ export default function Category() {
 
   // Calculate exact SVG connecting lines between central node & card top nodes
   const updateLines = () => {
-    if (!containerRef.current || !centralNodeRef.current || cardNodeRefs.current.length < 5) return
+    if (!containerRef.current || !centralNodeRef.current || cardNodeRefs.current.length < 4) return
 
     const containerRect = containerRef.current.getBoundingClientRect()
     const centralNodeRect = centralNodeRef.current.getBoundingClientRect()
@@ -37,7 +37,7 @@ export default function Category() {
     const startX = centralNodeRect.left + centralNodeRect.width / 2 - containerRect.left
     const startY = centralNodeRect.top + centralNodeRect.height / 2 - containerRect.top
 
-    const newLines = cardNodeRefs.current.map((nodeEl) => {
+    const newLines = cardNodeRefs.current.slice(0, 4).map((nodeEl) => {
       if (!nodeEl) return null
       const nodeRect = nodeEl.getBoundingClientRect()
       
@@ -82,6 +82,7 @@ export default function Category() {
       title: 'My Calendar',
       subtitle: 'Open your complete watch plan',
       icon: CalendarIcon,
+      typeClass: 'hub-card-calendar',
       onClick: () => {
         if (isDraggingRef.current) return
         setCategory(null)
@@ -94,6 +95,7 @@ export default function Category() {
       title: 'Movies',
       subtitle: 'Feature films and cinema',
       icon: Film,
+      typeClass: 'hub-card-media',
       onClick: () => {
         if (isDraggingRef.current) return
         setCategory('Movies')
@@ -106,6 +108,7 @@ export default function Category() {
       title: 'Series',
       subtitle: 'TV shows and web series',
       icon: Tv,
+      typeClass: 'hub-card-media',
       onClick: () => {
         if (isDraggingRef.current) return
         setCategory('Series')
@@ -118,27 +121,12 @@ export default function Category() {
       title: 'Anime',
       subtitle: 'Animation and Japanese titles',
       icon: Sparkles,
+      typeClass: 'hub-card-media',
       onClick: () => {
         if (isDraggingRef.current) return
         setCategory('Anime')
         setSelectedGenres([])
         navigate('/genres')
-      },
-    },
-    {
-      id: 'MyWatchlist',
-      title: 'My Watchlist',
-      subtitle: 'Your saved favourites',
-      icon: Drama,
-      onClick: () => {
-        if (isDraggingRef.current) return
-        if (isGuest) {
-          if (confirm('Create an account to access your personal space & watchlist!')) {
-            navigate('/signup')
-          }
-        } else {
-          navigate('/myspace')
-        }
       },
     },
   ]
@@ -210,33 +198,34 @@ export default function Category() {
           <ArrowLeft size={22} />
         </motion.button>
 
-        {/* Reset Nodes Button */}
-        <button
-          onClick={handleResetNodes}
-          className="hub-reset-btn"
-          title="Reset dragged cards to default layout"
-        >
-          <RotateCcw size={15} />
-          <span>Reset Nodes</span>
-        </button>
+        {/* Header Right Action Area: Reset Nodes + User Profile Pill */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleResetNodes}
+            className="hub-reset-btn"
+            title="Reset dragged cards to default layout"
+          >
+            <RotateCcw size={15} />
+            <span>Reset Nodes</span>
+          </button>
 
-        {/* User Profile Pill */}
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="hub-user-pill cursor-pointer"
-          onClick={() => (!isGuest ? navigate('/myspace') : navigate('/signup'))}
-        >
-          <div className="hub-user-avatar">
-            {user?.avatar ? (
-              <img src={user.avatar} alt={user.name || 'User'} className="w-full h-full object-cover" />
-            ) : (
-              <User size={18} className="text-white" />
-            )}
-          </div>
-          <span className="text-sm font-semibold text-white tracking-wide">
-            {user?.name || user?.displayName || (isGuest ? 'Guest User' : 'Utkarsh Rana')}
-          </span>
-        </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="hub-user-pill cursor-pointer"
+            onClick={() => (!isGuest ? navigate('/myspace') : navigate('/signup'))}
+          >
+            <div className="hub-user-avatar">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name || 'User'} className="w-full h-full object-cover" />
+              ) : (
+                <User size={18} className="text-white" />
+              )}
+            </div>
+            <span className="text-sm font-semibold text-white tracking-wide">
+              {user?.name || user?.displayName || (isGuest ? 'Guest User' : 'Utkarsh Rana')}
+            </span>
+          </motion.div>
+        </div>
       </header>
 
       {/* ── CENTRAL YEAR CARD (STATIC) ── */}
@@ -269,31 +258,45 @@ export default function Category() {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          <filter id="neonGlowCyan" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur1" />
+            <feGaussianBlur stdDeviation="6" result="blur2" />
+            <feMerge>
+              <feMergeNode in="blur2" />
+              <feMergeNode in="blur1" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
-        {lines.map((dPath, index) => (
-          <g key={index}>
-            {/* Outer Glow Path */}
-            <path
-              d={dPath}
-              fill="none"
-              stroke="#ff2d2d"
-              strokeWidth="4.5"
-              strokeOpacity="0.45"
-              filter="url(#neonGlowRed)"
-            />
-            {/* Core Crisp Path */}
-            <path
-              d={dPath}
-              fill="none"
-              stroke="#FF2D2D"
-              strokeWidth="2.5"
-            />
-          </g>
-        ))}
+        {lines.map((dPath, index) => {
+          const isCalendarLine = index === 0
+          const strokeColor = isCalendarLine ? '#00e5ff' : '#ff2d2d'
+          const filterId = isCalendarLine ? 'url(#neonGlowCyan)' : 'url(#neonGlowRed)'
+          return (
+            <g key={index}>
+              {/* Outer Glow Path */}
+              <path
+                d={dPath}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth="4.5"
+                strokeOpacity="0.5"
+                filter={filterId}
+              />
+              {/* Core Crisp Path */}
+              <path
+                d={dPath}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth="2.5"
+              />
+            </g>
+          )
+        })}
       </svg>
 
-      {/* ── FEATURE CARDS GRID (5 MOVABLE / DRAGGABLE CARDS) ── */}
+      {/* ── FEATURE CARDS GRID (4 MOVABLE / DRAGGABLE CARDS) ── */}
       <div className="hub-cards-container">
         {featureCards.map((card, idx) => {
           const IconComponent = card.icon
@@ -306,12 +309,12 @@ export default function Category() {
               dragElastic={0.08}
               onDragStart={() => { isDraggingRef.current = true }}
               onDragEnd={() => { setTimeout(() => { isDraggingRef.current = false }, 100) }}
-              whileDrag={{ scale: 1.05, zIndex: 50, boxShadow: '0 0 45px rgba(255, 45, 45, 0.7)' }}
+              whileDrag={{ scale: 1.05, zIndex: 50, boxShadow: card.id === 'MyCalendar' ? '0 0 45px rgba(0, 229, 255, 0.7)' : '0 0 45px rgba(255, 45, 45, 0.7)' }}
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.15 + idx * 0.08, ease: 'easeOut' }}
               onClick={card.onClick}
-              className="hub-feature-card group"
+              className={`hub-feature-card ${card.typeClass} group`}
             >
               {/* Top Connection Node */}
               <div className="hub-card-node" ref={(el) => (cardNodeRefs.current[idx] = el)} />

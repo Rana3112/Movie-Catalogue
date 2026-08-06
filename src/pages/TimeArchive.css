@@ -200,6 +200,46 @@
   color: #ffffff;
 }
 
+/* My Space Wandering Neon Border Highlight (Electric Cyan Accent) */
+.myspace-highlight-btn {
+  position: relative;
+  background: rgba(0, 229, 255, 0.12) !important;
+  border: 1.5px solid rgba(0, 229, 255, 0.6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 22px rgba(0, 229, 255, 0.4), inset 0 0 14px rgba(0, 229, 255, 0.2) !important;
+  overflow: hidden;
+}
+
+.myspace-highlight-btn::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 9999px;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 45%,
+    rgba(0, 229, 255, 0.5) 65%,
+    #00e5ff 82%,
+    #ffffff 90%,
+    #00e5ff 96%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: rotateBorderGlimpse 3s linear infinite;
+  pointer-events: none;
+  z-index: 5;
+  filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.85));
+}
+
+.myspace-highlight-btn:hover {
+  background: rgba(0, 229, 255, 0.24) !important;
+  border-color: rgba(0, 229, 255, 0.9) !important;
+  box-shadow: 0 0 32px rgba(0, 229, 255, 0.65), inset 0 0 18px rgba(0, 229, 255, 0.3) !important;
+}
+
 .time-archive-exit-btn {
   display: flex;
   align-items: center;

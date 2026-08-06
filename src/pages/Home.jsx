@@ -192,20 +192,10 @@ export default function Home() {
               whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleMySpace}
-              className="time-archive-nav-btn"
+              className="time-archive-nav-btn myspace-highlight-btn"
             >
-              <LayoutGrid size={15} className="text-[#ff2d2d]" />
+              <LayoutGrid size={15} className="text-[#00e5ff]" />
               <span className="hidden sm:inline">My Space</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ y: -2, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/taste-dna')}
-              className="time-archive-nav-btn"
-            >
-              <BarChart3 size={15} className="text-[#ff2d2d]" />
-              <span className="hidden sm:inline">Taste DNA</span>
             </motion.button>
 
             {!isGuest && (
