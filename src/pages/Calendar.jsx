@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
-import { X, Star, Upload, Calendar as CalIcon, ChevronLeft, ChevronRight, Trash, Share2, LayoutGrid, Settings, LogOut } from 'lucide-react'
+import { X, Star, Upload, Calendar as CalIcon, ChevronLeft, ChevronRight, Trash, Share2, LayoutGrid, Settings, LogOut, Clapperboard, Eye, ChevronDown, Link2, Save } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import { useNavigate } from 'react-router-dom'
@@ -1117,268 +1117,264 @@ export default function Calendar() {
                 </main>
 
                 {showSettings && <TimeSettingsModal onClose={() => setShowSettings(false)} />}
-                
-                {/* ── Entry Modal (Light Theme) ── */}
+
+                {/* ── Entry Modal (Cyberpunk AAA HUD Theme) ── */}
                 <AnimatePresence>
                     {showModal && (
-                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4">
+                        <div
+                            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl overflow-hidden"
+                            onClick={(e) => {
+                                if (e.target === e.currentTarget) setShowModal(false)
+                            }}
+                        >
+                            {/* Volumetric Red Ambient Glow */}
+                            <div className="absolute w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse" />
+
                             <Motion.div
-                                initial={{ y: "100%" }}
-                                animate={{ y: 0 }}
-                                exit={{ y: "100%" }}
-                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                                className="w-full max-w-lg rounded-t-[40px] sm:rounded-[40px] px-6 pt-8 shadow-2xl overflow-y-auto max-h-[90vh] sm:max-h-[90vh]"
-                                style={{ 
-                                    ...nativeFastRaisedStyle,
-                                    background: `linear-gradient(145deg, ${netflixNeumorphic.panelRaised}, ${netflixNeumorphic.panel})`,
-                                    fontFamily: "'Montserrat', sans-serif", 
-                                    paddingBottom: 'calc(env(safe-area-inset-bottom, 100px) + 120px)' 
-                                }}
+                                initial={{ scale: 0.94, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.94, opacity: 0 }}
+                                className="w-full max-w-[850px] rounded-[28px] bg-[#0a0a0c]/95 border border-red-500/50 p-5 sm:p-7 text-white shadow-[0_0_50px_rgba(255,0,0,0.35),inset_0_0_20px_rgba(255,0,0,0.1)] relative overflow-hidden my-auto max-h-[92vh] flex flex-col font-sans"
                             >
-                                <div className="w-12 h-1.5 rounded-full mx-auto mb-8 opacity-70 block sm:hidden" style={{ background: netflixNeumorphic.dim }} />
-                                
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold" style={{ color: netflixNeumorphic.text }}>
-                                        <span style={{ color: netflixNeumorphic.red }}>{selectedDate?.day}</span> {MONTHS[selectedDate?.monthIndex]}
-                                    </h2>
-                                    <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full flex items-center justify-center active:scale-90" style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.textSoft }}><X size={20} /></button>
+                                {/* Background Scanline Grid Texture */}
+                                <div className="absolute inset-0 bg-[radial-gradient(#ff0000_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none rounded-[28px]" />
+
+                                {/* Close Button */}
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="absolute top-5 right-5 w-11 h-11 rounded-full border border-red-500/40 bg-black/60 text-white flex items-center justify-center hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:rotate-90 transition-all duration-300 z-30 group"
+                                >
+                                    <X size={20} className="text-white/80 group-hover:text-white" />
+                                </button>
+
+                                {/* Header Date & Month */}
+                                <div className="flex items-baseline mb-2 shrink-0">
+                                    <span className="text-4xl md:text-5xl font-black text-red-500 drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] tracking-tight">
+                                        {selectedDate?.day || 12}
+                                    </span>
+                                    <span className="text-4xl md:text-5xl font-black text-white ml-3 tracking-tight">
+                                        {MONTHS[selectedDate?.monthIndex] || 'March'}
+                                    </span>
                                 </div>
 
-                                {/* Existing Entries */}
-                                <div className="space-y-4 mb-10">
-                                    {(calendarEntries[selectedDate?.dateStr] || [])
-                                        .filter(entry => {
-                                            if (selectedCategory && entry.category !== selectedCategory) return false
-                                            if (selectedGenres.length === 0) return true
-                                            const entryGenres = entry.genres || [entry.genre || 'General']
-                                            return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
-                                        })
-                                        .map((entry) => (
-                                            <div
-                                                key={entry._id}
-                                                className="p-4 rounded-[32px] flex gap-4 transition-all active:scale-[0.98] group relative"
-                                                style={nativeFastInsetStyle}
-                                                onClick={() => handleEditClick(entry)}
-                                            >
-                                                <div className="absolute top-2 right-2 flex gap-1">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            handleEditClick(entry)
-                                                        }}
-                                                        className="p-2 rounded-full active:scale-90"
-                                                        style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.textSoft }}
+                                {/* Glowing Red Divider */}
+                                <div className="w-full h-[1px] bg-gradient-to-r from-red-500/50 via-red-500/20 to-transparent my-3 shadow-[0_0_10px_rgba(239,68,68,0.4)] shrink-0" />
+
+                                {/* Form Body */}
+                                <div className="overflow-y-auto flex-1 pr-1.5 space-y-4">
+                                    {/* Section Title */}
+                                    <div className="text-xs font-black tracking-[0.25em] text-red-500 uppercase mt-1 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+                                        {editingId ? "EDIT ENTRY" : "ADD NEW ENTRY"}
+                                    </div>
+
+                                    {/* Existing Entries */}
+                                    {(calendarEntries[selectedDate?.dateStr] || []).filter(entry => {
+                                        if (selectedCategory && entry.category !== selectedCategory) return false
+                                        if (selectedGenres.length === 0) return true
+                                        const entryGenres = entry.genres || [entry.genre || 'General']
+                                        return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
+                                    }).length > 0 && (
+                                        <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                                            {(calendarEntries[selectedDate?.dateStr] || [])
+                                                .filter(entry => {
+                                                    if (selectedCategory && entry.category !== selectedCategory) return false
+                                                    if (selectedGenres.length === 0) return true
+                                                    const entryGenres = entry.genres || [entry.genre || 'General']
+                                                    return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
+                                                })
+                                                .map((entry) => (
+                                                    <div
+                                                        key={entry._id}
+                                                        className="p-2.5 rounded-xl bg-black/60 border border-red-500/30 flex gap-3 transition-all hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] cursor-pointer group relative"
+                                                        onClick={() => handleEditClick(entry)}
                                                     >
-                                                        <Upload size={14} className="rotate-90" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            if (confirm('Delete this entry?')) {
-                                                                removeEntry(entry._id, selectedDate.dateStr)
-                                                            }
-                                                        }}
-                                                        className="p-2 rounded-full active:scale-90"
-                                                        style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.red }}
-                                                    >
-                                                        <Trash size={14} />
-                                                    </button>
-                                                </div>
-                                                {entry.poster ? (
-                                                    <img src={entry.poster} alt={entry.title} className="w-16 h-24 object-cover rounded-2xl flex-shrink-0" loading="lazy" decoding="async" />
-                                                ) : (
-                                                    <div className="w-16 h-24 rounded-2xl flex items-center justify-center text-[10px] text-center p-2" style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.muted }}>No Poster</div>
-                                                )}
-                                                <div className="flex-1 min-w-0 pr-12">
-                                                    <h4 className="font-bold text-base truncate" style={{ color: netflixNeumorphic.text }}>{entry.title}</h4>
-                                                    <div className="flex flex-wrap gap-1 mt-1.5 mb-2">
-                                                        {(entry.genres || [entry.genre || 'General']).map(g => (
-                                                            <span key={g} className="text-[9px] px-2 py-0.5 rounded-full border" style={{ background: 'rgba(255,255,255,0.06)', borderColor: netflixNeumorphic.border, color: netflixNeumorphic.textSoft }}>
-                                                                {g}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${entry.status === 'watched' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                            {entry.status}
-                                                        </span>
-                                                        <div className="flex">
-                                                            {Array.from({ length: 5 }).map((_, starI) => (
-                                                                <Star key={starI} size={11} fill={starI < entry.rating ? "#F59E0B" : "none"} className={starI < entry.rating ? "text-amber-500" : "text-neutral-600"} />
-                                                            ))}
+                                                        <div className="absolute top-2 right-2 flex gap-1 z-30">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    handleEditClick(entry)
+                                                                }}
+                                                                className="p-1 rounded-full text-white/70 hover:text-white"
+                                                            >
+                                                                <Upload size={12} className="rotate-90" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    if (confirm('Delete this entry?')) {
+                                                                        removeEntry(entry._id, selectedDate.dateStr)
+                                                                    }
+                                                                }}
+                                                                className="p-1 rounded-full text-red-400 hover:text-red-300"
+                                                            >
+                                                                <Trash size={12} />
+                                                            </button>
+                                                        </div>
+                                                        {entry.poster ? (
+                                                            <img src={entry.poster} alt={entry.title} className="w-9 h-12 object-cover rounded-lg flex-shrink-0 border border-red-500/30" />
+                                                        ) : (
+                                                            <div className="w-9 h-12 rounded-lg flex items-center justify-center text-[9px] text-center p-0.5 flex-shrink-0 bg-black/40 border border-red-500/20 text-white/40">No Img</div>
+                                                        )}
+                                                        <div className="flex-1 min-w-0 pr-12">
+                                                            <h4 className="font-bold text-xs truncate text-white">{entry.title}</h4>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ${entry.status === 'watched' ? 'bg-green-950/60 border border-green-500/50 text-green-400' : 'bg-amber-950/60 border border-amber-500/50 text-amber-400'}`}>
+                                                                    {entry.status}
+                                                                </span>
+                                                                <div className="flex">
+                                                                    {Array.from({ length: 5 }).map((_, starI) => (
+                                                                        <Star key={starI} size={10} fill={starI < entry.rating ? "#ef4444" : "none"} className={starI < entry.rating ? "text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.8)]" : "text-white/20"} />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                </div>
+                                                ))}
+                                        </div>
+                                    )}
 
-                                <div className="border-t pt-8" style={{ borderColor: netflixNeumorphic.border }}>
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="font-bold text-lg" style={{ color: netflixNeumorphic.text }}>{editingId ? "Edit Details" : "Add Entry"}</h3>
-                                        {editingId && (
-                                            <button
-                                                onClick={() => {
-                                                    setEditingId(null)
-                                                    setFormData({
-                                                        title: '',
-                                                        status: 'watched',
-                                                        rating: 0,
-                                                        rtCriticScore: '',
-                                                        rtAudienceScore: '',
-                                                        poster: null,
-                                                        genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
-                                                    })
-                                                }}
-                                                className="text-xs font-bold uppercase tracking-wider"
-                                                style={{ color: netflixNeumorphic.red }}
-                                            >
-                                                New Entry
-                                            </button>
-                                        )}
+                                    {/* TITLE */}
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">TITLE</label>
+                                        <div className="flex items-center gap-3.5 px-4 h-13 rounded-[16px] bg-black/70 border border-red-500/40 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_0_15px_rgba(239,68,68,0.15)] focus-within:border-red-500 focus-within:shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_0_25px_rgba(239,68,68,0.45)] transition-all duration-200">
+                                            <Clapperboard size={18} className="text-red-500 shrink-0 drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                                            <input
+                                                className="bg-transparent text-white placeholder-white/20 text-xs sm:text-sm font-semibold focus:outline-none w-full tracking-wide"
+                                                value={formData.title}
+                                                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                                placeholder="Movie or Series Name"
+                                            />
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-6">
+                                    {/* GENRES */}
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">GENRES</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {allUniqueGenres.map(g => {
+                                                const isSelected = formData.genres.some(fg => fg.toLowerCase() === g.toLowerCase());
+                                                return (
+                                                    <button
+                                                        key={g}
+                                                        onClick={() => {
+                                                            setFormData(annot => {
+                                                                const currentlySelected = annot.genres.some(fg => fg.toLowerCase() === g.toLowerCase());
+                                                                const newGenres = currentlySelected
+                                                                    ? annot.genres.filter(bg => bg.toLowerCase() !== g.toLowerCase())
+                                                                    : [...annot.genres, g];
+                                                                return { ...annot, genres: newGenres.length > 0 ? newGenres : ['General'] };
+                                                            });
+                                                        }}
+                                                        className={`h-10 px-3.5 sm:px-4 rounded-[12px] text-[11px] font-extrabold uppercase tracking-wider transition-all duration-200 flex items-center justify-center ${
+                                                            isSelected
+                                                                ? 'bg-red-950/80 border-2 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse'
+                                                                : 'bg-black/60 border border-white/15 text-white/70 hover:border-red-500/50 hover:text-white hover:bg-black/80 hover:-translate-y-0.5'
+                                                        }`}
+                                                    >
+                                                        {g}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* STATUS & RATING */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Title</label>
+                                            <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">STATUS</label>
                                             <div className="relative">
-                                                <input
-                                                    className="w-full rounded-2xl p-4 focus:outline-none transition-all font-medium placeholder:text-neutral-500"
-                                                    style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
-                                                    value={formData.title}
-                                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                                    placeholder="Enter name..."
-                                                />
+                                                <select
+                                                    className="w-full appearance-none px-10 pr-9 h-13 rounded-[16px] bg-black/70 border border-red-500/40 text-white text-xs sm:text-sm font-semibold shadow-[0_0_15px_rgba(239,68,68,0.15)] focus:outline-none focus:border-red-500 focus:shadow-[0_0_25px_rgba(239,68,68,0.4)] cursor-pointer transition-all"
+                                                    value={formData.status}
+                                                    onChange={e => setFormData({ ...formData, status: e.target.value })}
+                                                >
+                                                    <option value="watched" className="bg-[#0a0a0c] text-white">Watched</option>
+                                                    <option value="watching" className="bg-[#0a0a0c] text-white">Watching</option>
+                                                    <option value="upcoming" className="bg-[#0a0a0c] text-white">Upcoming</option>
+                                                </select>
+                                                <Eye size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                                                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none" />
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Genres</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {allUniqueGenres.map(g => {
-                                                    const isSelected = formData.genres.some(fg => fg.toLowerCase() === g.toLowerCase());
-                                                    return (
-                                                        <button
-                                                            key={g}
-                                                            onClick={() => {
-                                                                setFormData(annot => {
-                                                                    const currentlySelected = annot.genres.some(fg => fg.toLowerCase() === g.toLowerCase());
-                                                                    const newGenres = currentlySelected
-                                                                        ? annot.genres.filter(bg => bg.toLowerCase() !== g.toLowerCase())
-                                                                        : [...annot.genres, g];
-                                                                    return { ...annot, genres: newGenres.length > 0 ? newGenres : ['General'] };
-                                                                });
-                                                            }}
-                                                            className="text-[10px] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider transition-all scale-100 active:scale-95"
-                                                            style={{
-                                                                ...(isSelected ? nativeFastRedButtonStyle : nativeFastRaisedStyle),
-                                                                color: isSelected ? '#FFFFFF' : netflixNeumorphic.textSoft,
-                                                                border: isSelected ? `1px solid ${netflixNeumorphic.borderStrong}` : `1px solid ${netflixNeumorphic.border}`
-                                                            }}
-                                                        >
-                                                            {g}
-                                                        </button>
-                                                    );
-                                                })}
+                                            <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">RATING</label>
+                                            <div className="flex items-center justify-around px-4 h-13 rounded-[16px] bg-black/70 border border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                                                {[1, 2, 3, 4, 5].map(num => (
+                                                    <button
+                                                        key={num}
+                                                        onClick={() => setFormData({ ...formData, rating: num })}
+                                                        className="focus:outline-none transition-transform hover:scale-125 active:scale-110"
+                                                    >
+                                                        <Star
+                                                            size={18}
+                                                            fill={num <= formData.rating ? "#ef4444" : "none"}
+                                                            className={num <= formData.rating ? "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]" : "text-red-500/50 hover:text-red-500"}
+                                                        />
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Critic %</label>
-                                                <input
-                                                    className="w-full rounded-2xl p-4 focus:outline-none font-bold placeholder:text-neutral-500"
-                                                    style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
-                                                    value={formData.rtCriticScore}
-                                                    onChange={e => setFormData({ ...formData, rtCriticScore: e.target.value })}
-                                                    placeholder="0"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Audience %</label>
-                                                <input
-                                                    className="w-full rounded-2xl p-4 focus:outline-none font-bold placeholder:text-neutral-500"
-                                                    style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
-                                                    value={formData.rtAudienceScore}
-                                                    onChange={e => setFormData({ ...formData, rtAudienceScore: e.target.value })}
-                                                    placeholder="0"
-                                                />
-                                            </div>
+                                    {/* SCORES */}
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">SCORES (AUTO-FETCHED)</label>
+                                        <div className="flex items-center gap-3 px-4 h-13 rounded-[16px] bg-black/70 border border-red-500/30 text-white/30 text-xs font-mono select-none shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
+                                            <span>{formData.rtCriticScore ? `${formData.rtCriticScore}% Critic` : 'No Critic Score'}</span>
+                                            <span className="text-white/20">|</span>
+                                            <span>{formData.rtAudienceScore ? `${formData.rtAudienceScore}% Audience` : 'No Audience Score'}</span>
                                         </div>
+                                    </div>
 
-                                        <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>IMDb Link (Poster Fetch)</label>
-                                            <div className="flex gap-2">
+                                    {/* PASTE IMDB LINK */}
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">PASTE IMDB LINK</label>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="flex-1 flex items-center gap-3 px-4 h-13 rounded-[16px] bg-black/70 border border-red-500/40 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_0_15px_rgba(239,68,68,0.15)] focus-within:border-red-500 focus-within:shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_0_25px_rgba(239,68,68,0.45)] transition-all">
+                                                <Link2 size={16} className="text-red-500 shrink-0 drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
                                                 <input
-                                                    className="flex-1 rounded-2xl p-4 focus:outline-none text-xs placeholder:text-neutral-500"
-                                                    style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
+                                                    className="bg-transparent text-white placeholder-white/20 text-xs font-medium focus:outline-none w-full"
                                                     value={imdbLinkValue}
                                                     onChange={e => setImdbLinkValue(e.target.value)}
-                                                    placeholder="Paste URL..."
+                                                    onKeyDown={e => { if (e.key === 'Enter') handleFetchPoster(imdbLinkValue) }}
+                                                    placeholder="https://www.imdb.com/title/tt..."
                                                 />
-                                                <button
-                                                    onClick={() => handleFetchPoster(imdbLinkValue)}
-                                                    disabled={isFetching}
-                                                    className="w-14 rounded-2xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-50"
-                                                    style={nativeFastRaisedStyle}
-                                                >
-                                                    <Upload size={18} className={isFetching ? 'animate-bounce' : ''} style={{ color: netflixNeumorphic.red }} />
-                                                </button>
                                             </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-6 py-2">
-                                            <div className="flex-1">
-                                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Rating</label>
-                                                <div className="flex gap-2 p-3 rounded-2xl" style={nativeFastInsetStyle}>
-                                                    {[1, 2, 3, 4, 5].map(num => (
-                                                        <button
-                                                            key={num}
-                                                            onClick={() => setFormData({ ...formData, rating: num })}
-                                                            className="transition-transform active:scale-125"
-                                                        >
-                                                            <Star 
-                                                                size={24} 
-                                                                fill={num <= formData.rating ? "#F59E0B" : "none"} 
-                                                                className={num <= formData.rating ? "text-amber-500" : "text-neutral-600"} 
-                                                            />
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="w-24">
-                                                 <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: netflixNeumorphic.textSoft }}>Status</label>
-                                                 <button
-                                                     onClick={() => setFormData({ ...formData, status: formData.status === 'watched' ? 'watchlist' : 'watched' })}
-                                                     className="w-full py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest border transition-all active:scale-95"
-                                                     style={{ 
-                                                         background: formData.status === 'watched' ? 'rgba(34,197,94,0.16)' : 'rgba(229,9,20,0.16)',
-                                                         color: formData.status === 'watched' ? '#86EFAC' : netflixNeumorphic.text,
-                                                         borderColor: formData.status === 'watched' ? 'rgba(34,197,94,0.32)' : netflixNeumorphic.borderStrong
-                                                     }}
-                                                 >
-                                                     {formData.status}
-                                                 </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-4 flex gap-4">
-                                             <button
-                                                 onClick={() => setShowModal(false)}
-                                                 className="flex-1 py-4 rounded-3xl text-sm font-bold uppercase tracking-widest transition-all active:scale-95"
-                                                 style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.textSoft }}
-                                             >
-                                                 Back
-                                             </button>
-                                             <button
-                                                 onClick={handleSubmit}
-                                                 className="flex-[2] py-4 rounded-3xl text-sm font-bold uppercase tracking-widest text-white transition-all active:scale-95"
-                                                 style={nativeFastRedButtonStyle}
-                                             >
-                                                 {editingId ? "Update Entry" : "Save Entry"}
-                                             </button>
+                                            <button
+                                                onClick={() => handleFetchPoster(imdbLinkValue)}
+                                                disabled={isFetching}
+                                                className="h-13 px-6 rounded-[16px] bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white font-extrabold text-xs uppercase tracking-wider border border-red-400/50 shadow-[0_0_20px_rgba(239,68,68,0.5)] hover:scale-105 hover:shadow-[0_0_30px_rgba(239,68,68,0.8)] active:scale-95 disabled:opacity-50 transition-all duration-200"
+                                            >
+                                                {isFetching ? "..." : "Fetch"}
+                                            </button>
                                         </div>
                                     </div>
+
+                                    {/* POSTER (MANUAL) */}
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">POSTER (MANUAL)</label>
+                                        <div className="flex items-center gap-3">
+                                            {formData.poster && (
+                                                <img src={formData.poster} alt="Poster" className="h-12 w-9 object-cover rounded-xl border border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                                            )}
+                                            <label className="flex items-center gap-2.5 cursor-pointer px-4 h-11 rounded-[14px] border-2 border-dashed border-red-500/40 bg-black/40 hover:bg-black/60 hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all group">
+                                                <Upload size={15} className="text-red-500 group-hover:scale-110 transition-transform drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                                                <span className="text-white/70 text-xs font-extrabold uppercase tracking-wider group-hover:text-white">Upload Image</span>
+                                                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* SAVE ENTRY BUTTON */}
+                                    <button
+                                        onClick={handleSubmit}
+                                        className="w-full h-15 sm:h-16 rounded-[20px] bg-gradient-to-r from-red-800 via-red-600 to-red-800 text-white font-black text-xs sm:text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 border border-red-400/60 shadow-[0_0_35px_rgba(239,68,68,0.6)] hover:shadow-[0_0_60px_rgba(239,68,68,0.9)] hover:scale-[1.01] active:scale-[0.98] transition-all duration-200 relative overflow-hidden group mt-3 shrink-0"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                        <Save size={18} className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                                        <span>{editingId ? "UPDATE ENTRY" : "SAVE ENTRY"}</span>
+                                    </button>
                                 </div>
                             </Motion.div>
                         </div>
@@ -1511,327 +1507,263 @@ export default function Calendar() {
                 )}
             </main>
 
-            {/* Entry Modal */}
+            {/* Entry Modal (Cyberpunk AAA HUD Theme) */}
             <AnimatePresence>
                 {showModal && (
                     <div
-                        className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
-                            useDesktopNeumorphic ? 'bg-black/70 backdrop-blur-md' : 'bg-black/90 backdrop-blur-md'
-                        }`}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl overflow-hidden"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) setShowModal(false)
+                        }}
                     >
+                        {/* Volumetric Red Ambient Glow */}
+                        <div className="absolute w-[700px] h-[700px] bg-red-600/10 rounded-full blur-[160px] pointer-events-none -z-10 animate-pulse" />
+
                         <Motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
+                            initial={{ scale: 0.94, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className={`p-6 md:p-8 rounded-[32px] w-full max-w-2xl relative max-h-[90vh] overflow-y-auto ${
-                                useDesktopNeumorphic
-                                    ? 'text-white'
-                                    : 'bg-[#1a1a1a] border border-white/20 shadow-2xl text-white'
-                            }`}
-                            style={useDesktopNeumorphic ? netflixSurfaceStyle : undefined}
+                            exit={{ scale: 0.94, opacity: 0 }}
+                            className="w-full max-w-[850px] rounded-[28px] bg-[#0a0a0c]/95 border border-red-500/50 p-6 md:p-8 text-white shadow-[0_0_50px_rgba(255,0,0,0.35),inset_0_0_20px_rgba(255,0,0,0.1)] relative overflow-hidden my-auto max-h-[92vh] flex flex-col font-sans"
                         >
+                            {/* Background Scanline Grid Texture */}
+                            <div className="absolute inset-0 bg-[radial-gradient(#ff0000_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none rounded-[28px]" />
+
+                            {/* Close Button */}
                             <button
                                 onClick={() => setShowModal(false)}
-                                className={`absolute top-4 md:top-6 right-4 md:right-6 rounded-full flex items-center justify-center transition-all ${
-                                    useDesktopNeumorphic ? 'w-11 h-11 text-neutral-400 hover:text-white' : 'text-white/50 hover:text-white'
-                                }`}
-                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
+                                className="absolute top-6 right-6 w-11 h-11 rounded-full border border-red-500/40 bg-black/60 text-white flex items-center justify-center hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:rotate-90 transition-all duration-300 z-30 group"
                             >
-                                <X size={useDesktopNeumorphic ? 18 : 24} />
+                                <X size={20} className="text-white/80 group-hover:text-white" />
                             </button>
 
-                            <h2 className={`text-xl md:text-3xl font-bold mb-6 ${useDesktopNeumorphic ? 'text-white' : ''}`}>
-                                <span className={useDesktopNeumorphic ? 'text-red-500' : ''}>{selectedDate?.day}</span> {MONTHS[selectedDate?.monthIndex]}
-                            </h2>
-
-                            {/* Existing Entries */}
-                            <div className="space-y-4 mb-8">
-                                {(calendarEntries[selectedDate?.dateStr] || [])
-                                    .filter(entry => {
-                                        if (selectedCategory && entry.category !== selectedCategory) return false
-                                        if (selectedGenres.length === 0) return true
-                                        const entryGenres = entry.genres || [entry.genre || 'General']
-                                        return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
-                                    })
-                                    .map((entry) => (
-                                        <div
-                                            key={entry._id}
-                                            className={`p-4 rounded-[24px] flex gap-4 transition-all cursor-pointer group relative ${
-                                                useDesktopNeumorphic ? 'hover:-translate-y-0.5' : 'bg-white/5 hover:bg-white/10'
-                                            }`}
-                                            style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
-                                            onClick={() => handleEditClick(entry)}
-                                        >
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleEditClick(entry)
-                                                }}
-                                                className={`absolute top-2 right-11 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30 ${
-                                                    useDesktopNeumorphic ? 'text-red-400' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-                                                }`}
-                                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
-                                            >
-                                                <Upload size={14} className="rotate-90" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    if (confirm('Delete this entry?')) {
-                                                        removeEntry(entry._id, selectedDate.dateStr)
-                                                    }
-                                                }}
-                                                className={`absolute top-2 right-2 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30 ${
-                                                    useDesktopNeumorphic ? 'text-red-500' : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                                }`}
-                                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
-                                            >
-                                                <Trash size={14} />
-                                            </button>
-                                            {entry.poster ? (
-                                                <img src={entry.poster} alt={entry.title} className={`w-16 h-24 object-cover flex-shrink-0 ${useDesktopNeumorphic ? 'rounded-2xl' : 'rounded-md'}`} />
-                                            ) : (
-                                                <div
-                                                    className={`w-16 h-24 rounded-2xl flex items-center justify-center text-xs text-center flex-shrink-0 ${useDesktopNeumorphic ? 'text-neutral-500' : 'bg-white/10'}`}
-                                                    style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
-                                                >
-                                                    No Poster
-                                                </div>
-                                            )}
-                                            <div className="min-w-0">
-                                                <h4 className={`font-bold text-lg pr-16 ${useDesktopNeumorphic ? 'text-white' : ''}`}>{entry.title}</h4>
-                                                <div className="flex flex-wrap gap-1 mt-1 mb-2">
-                                                    {(entry.genres || [entry.genre || 'General']).map(g => (
-                                                        <span
-                                                            key={g}
-                                                            className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                                                                useDesktopNeumorphic ? 'bg-white/5 text-neutral-400 border-white/10' : 'bg-white/10 text-white/70 border-white/20'
-                                                            }`}
-                                                        >
-                                                            {g}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                                <div className={`flex items-center gap-2 text-sm ${useDesktopNeumorphic ? 'text-neutral-400' : 'text-white/70'}`}>
-                                                    <span className={`px-2 py-0.5 rounded text-xs ${entry.status === 'watched' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                                                        {entry.status}
-                                                    </span>
-                                                    <div className="flex">
-                                                        {Array.from({ length: 5 }).map((_, starI) => (
-                                                            <Star key={starI} size={12} fill={starI < entry.rating ? "currentColor" : "none"} className={starI < entry.rating ? "text-yellow-400" : useDesktopNeumorphic ? "text-neutral-600" : "text-gray-600"} />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="flex mt-2 gap-3">
-                                                    {(entry.rtCriticScore || entry.rottenTomatoesScore) && (
-                                                        <span className={`text-[10px] flex items-center gap-1 font-bold px-1.5 py-0.5 rounded border ${getScoreColor(entry.rtCriticScore || entry.rottenTomatoesScore)}`}>
-                                                            {entry.rtCriticScore || entry.rottenTomatoesScore}%
-                                                        </span>
-                                                    )}
-                                                    {entry.rtAudienceScore && (
-                                                        <span className="text-[10px] flex items-center gap-1 text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20 font-bold">
-                                                            {entry.rtAudienceScore}%
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                            {/* Header Date & Month */}
+                            <div className="flex items-baseline mb-2 shrink-0">
+                                <span className="text-4xl md:text-5xl font-black text-red-500 drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] tracking-tight">
+                                    {selectedDate?.day || 12}
+                                </span>
+                                <span className="text-4xl md:text-5xl font-black text-white ml-3 tracking-tight">
+                                    {MONTHS[selectedDate?.monthIndex] || 'March'}
+                                </span>
                             </div>
 
-                            <div className={`pt-6 ${useDesktopNeumorphic ? 'border-t border-white/10' : 'border-t border-white/10'}`}>
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className={`font-bold ${useDesktopNeumorphic ? 'text-white/90' : 'text-white/80'}`}>{editingId ? "Edit Entry" : "Add New Entry"}</h3>
-                                    {editingId && (
-                                        <button
-                                            onClick={() => {
-                                                setEditingId(null)
-                                                setFormData({
-                                                    title: '',
-                                                    status: 'watched',
-                                                    rating: 0,
-                                                    rtCriticScore: '',
-                                                    rtAudienceScore: '',
-                                                    poster: null,
-                                                    genres: selectedGenres.length > 0 ? [...selectedGenres] : ['General']
-                                                })
-                                            }}
-                                            className={`text-xs font-bold uppercase tracking-wider ${useDesktopNeumorphic ? 'text-red-400 hover:text-red-300' : 'text-white/50 hover:text-white'}`}
-                                        >
-                                            Cancel Edit
-                                        </button>
-                                    )}
+                            {/* Glowing Red Divider */}
+                            <div className="w-full h-[1px] bg-gradient-to-r from-red-500/50 via-red-500/20 to-transparent my-3 shadow-[0_0_10px_rgba(239,68,68,0.4)] shrink-0" />
+
+                            {/* Form Body */}
+                            <div className="overflow-y-auto flex-1 pr-2 space-y-4">
+                                {/* Section Title */}
+                                <div className="text-xs font-black tracking-[0.25em] text-red-500 uppercase mt-1 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+                                    {editingId ? "EDIT ENTRY" : "ADD NEW ENTRY"}
                                 </div>
 
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Title</label>
+                                {/* Existing Entries */}
+                                {(calendarEntries[selectedDate?.dateStr] || []).filter(entry => {
+                                    if (selectedCategory && entry.category !== selectedCategory) return false
+                                    if (selectedGenres.length === 0) return true
+                                    const entryGenres = entry.genres || [entry.genre || 'General']
+                                    return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
+                                }).length > 0 && (
+                                    <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                                        {(calendarEntries[selectedDate?.dateStr] || [])
+                                            .filter(entry => {
+                                                if (selectedCategory && entry.category !== selectedCategory) return false
+                                                if (selectedGenres.length === 0) return true
+                                                const entryGenres = entry.genres || [entry.genre || 'General']
+                                                return selectedGenres.some(sg => entryGenres.map(eg => eg.toLowerCase()).includes(sg.toLowerCase()))
+                                            })
+                                            .map((entry) => (
+                                                <div
+                                                    key={entry._id}
+                                                    className="p-2.5 rounded-xl bg-black/60 border border-red-500/30 flex gap-3 transition-all hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] cursor-pointer group relative"
+                                                    onClick={() => handleEditClick(entry)}
+                                                >
+                                                    <div className="absolute top-2 right-2 flex gap-1 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleEditClick(entry)
+                                                            }}
+                                                            className="p-1 rounded-full text-white/70 hover:text-white"
+                                                        >
+                                                            <Upload size={12} className="rotate-90" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                if (confirm('Delete this entry?')) {
+                                                                    removeEntry(entry._id, selectedDate.dateStr)
+                                                                }
+                                                            }}
+                                                            className="p-1 rounded-full text-red-400 hover:text-red-300"
+                                                        >
+                                                            <Trash size={12} />
+                                                        </button>
+                                                    </div>
+                                                    {entry.poster ? (
+                                                        <img src={entry.poster} alt={entry.title} className="w-9 h-12 object-cover rounded-lg flex-shrink-0 border border-red-500/30" />
+                                                    ) : (
+                                                        <div className="w-9 h-12 rounded-lg flex items-center justify-center text-[9px] text-center p-0.5 flex-shrink-0 bg-black/40 border border-red-500/20 text-white/40">No Img</div>
+                                                    )}
+                                                    <div className="flex-1 min-w-0 pr-12">
+                                                        <h4 className="font-bold text-xs truncate text-white">{entry.title}</h4>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ${entry.status === 'watched' ? 'bg-green-950/60 border border-green-500/50 text-green-400' : 'bg-amber-950/60 border border-amber-500/50 text-amber-400'}`}>
+                                                                {entry.status}
+                                                            </span>
+                                                            <div className="flex">
+                                                                {Array.from({ length: 5 }).map((_, starI) => (
+                                                                    <Star key={starI} size={10} fill={starI < entry.rating ? "#ef4444" : "none"} className={starI < entry.rating ? "text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.8)]" : "text-white/20"} />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
+
+                                {/* TITLE */}
+                                <div>
+                                    <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">TITLE</label>
+                                    <div className="flex items-center gap-3.5 px-4 h-14 rounded-[18px] bg-black/70 border border-red-500/40 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_0_15px_rgba(239,68,68,0.15)] focus-within:border-red-500 focus-within:shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_0_25px_rgba(239,68,68,0.45)] transition-all duration-200">
+                                        <Clapperboard size={20} className="text-red-500 shrink-0 drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
                                         <input
-                                            className={`w-full rounded-2xl p-3 focus:outline-none ${
-                                                useDesktopNeumorphic ? 'text-white placeholder:text-neutral-500' : 'bg-black/50 border border-white/20 focus:border-blue-500 text-white'
-                                            }`}
-                                            style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
+                                            className="bg-transparent text-white placeholder-white/20 text-sm font-semibold focus:outline-none w-full tracking-wide"
                                             value={formData.title}
                                             onChange={e => setFormData({ ...formData, title: e.target.value })}
                                             placeholder="Movie or Series Name"
                                         />
                                     </div>
+                                </div>
 
-                                    <div>
-                                        <label className={`block text-xs uppercase mb-2 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Genres</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {allUniqueGenres.map(g => {
-                                                const isSelected = formData.genres.some(fg => fg.toLowerCase() === g.toLowerCase())
-                                                return (
-                                                    <button
-                                                        key={g}
-                                                        onClick={() => {
-                                                            setFormData(annot => {
-                                                                const currentlySelected = annot.genres.some(fg => fg.toLowerCase() === g.toLowerCase())
-                                                                const newGenres = currentlySelected
-                                                                    ? annot.genres.filter(bg => bg.toLowerCase() !== g.toLowerCase())
-                                                                    : [...annot.genres, g]
-                                                                return { ...annot, genres: newGenres }
-                                                            })
-                                                        }}
-                                                        className={`text-xs px-3 py-1.5 rounded-full border transition-all ${isSelected
-                                                            ? useDesktopNeumorphic
-                                                                ? 'text-red-300 border-red-500/40'
-                                                                : 'bg-blue-600 text-white border-blue-500 shadow-blue-500/30 shadow-lg'
-                                                            : useDesktopNeumorphic
-                                                                ? 'text-neutral-400 border-white/10 hover:border-white/20'
-                                                                : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10'
-                                                            }`}
-                                                        style={useDesktopNeumorphic ? {
-                                                            ...(isSelected ? netflixInsetStyle : netflixRaisedStyle),
-                                                        } : undefined}
-                                                    >
-                                                        {g}
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
+                                {/* GENRES */}
+                                <div>
+                                    <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">GENRES</label>
+                                    <div className="flex flex-wrap gap-2.5">
+                                        {allUniqueGenres.map(g => {
+                                            const isSelected = formData.genres.some(fg => fg.toLowerCase() === g.toLowerCase());
+                                            return (
+                                                <button
+                                                    key={g}
+                                                    onClick={() => {
+                                                        setFormData(annot => {
+                                                            const currentlySelected = annot.genres.some(fg => fg.toLowerCase() === g.toLowerCase());
+                                                            const newGenres = currentlySelected
+                                                                ? annot.genres.filter(bg => bg.toLowerCase() !== g.toLowerCase())
+                                                                : [...annot.genres, g];
+                                                            return { ...annot, genres: newGenres.length > 0 ? newGenres : ['General'] };
+                                                        });
+                                                    }}
+                                                    className={`h-11 px-4 sm:px-5 rounded-[14px] text-xs font-extrabold uppercase tracking-wider transition-all duration-200 flex items-center justify-center ${
+                                                        isSelected
+                                                            ? 'bg-red-950/80 border-2 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse'
+                                                            : 'bg-black/60 border border-white/15 text-white/70 hover:border-red-500/50 hover:text-white hover:bg-black/80 hover:-translate-y-0.5'
+                                                    }`}
+                                                >
+                                                    {g}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
+                                </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Status</label>
+                                {/* STATUS & RATING */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">STATUS</label>
+                                        <div className="relative">
                                             <select
-                                                className={`w-full rounded-2xl p-3 focus:outline-none appearance-none ${
-                                                    useDesktopNeumorphic ? 'text-white' : 'bg-black/50 border border-white/20 focus:border-blue-500 text-white'
-                                                }`}
-                                                style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
+                                                className="w-full appearance-none px-11 pr-10 h-14 rounded-[18px] bg-black/70 border border-red-500/40 text-white text-sm font-semibold shadow-[0_0_15px_rgba(239,68,68,0.15)] focus:outline-none focus:border-red-500 focus:shadow-[0_0_25px_rgba(239,68,68,0.4)] cursor-pointer transition-all"
                                                 value={formData.status}
                                                 onChange={e => setFormData({ ...formData, status: e.target.value })}
                                             >
-                                                <option value="watched">Watched</option>
-                                                <option value="watching">Watching</option>
-                                                <option value="upcoming">Upcoming</option>
+                                                <option value="watched" className="bg-[#0a0a0c] text-white">Watched</option>
+                                                <option value="watching" className="bg-[#0a0a0c] text-white">Watching</option>
+                                                <option value="upcoming" className="bg-[#0a0a0c] text-white">Upcoming</option>
                                             </select>
-                                        </div>
-                                        <div>
-                                            <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Rating</label>
-                                            <div
-                                                className={`flex items-center gap-1 rounded-2xl p-3 ${useDesktopNeumorphic ? '' : 'bg-black/50 border border-white/20'}`}
-                                                style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
-                                            >
-                                                {[1, 2, 3, 4, 5].map((_, i) => (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => setFormData({ ...formData, rating: i + 1 })}
-                                                        className="focus:outline-none"
-                                                    >
-                                                        <Star
-                                                            size={16}
-                                                            fill={i < formData.rating ? "currentColor" : "none"}
-                                                            className={i < formData.rating ? "text-yellow-400" : "text-gray-600 hover:text-gray-400"}
-                                                        />
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <Eye size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-red-500 pointer-events-none drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                                            <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none" />
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className={`block text-xs uppercase mb-2 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Scores (Auto-Fetched)</label>
-                                        <div
-                                            className={`flex gap-4 p-3 rounded-2xl min-h-[50px] items-center ${useDesktopNeumorphic ? '' : 'bg-black/50 border border-white/20'}`}
-                                            style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
-                                        >
-                                            {formData.rtCriticScore ? (
-                                                <span className={`flex items-center gap-2 font-bold px-3 py-1 rounded border ${getScoreColor(formData.rtCriticScore)}`}>
-                                                    {formData.rtCriticScore}% (Critic)
-                                                </span>
-                                            ) : (
-                                                <span className={`${useDesktopNeumorphic ? 'text-neutral-500' : 'text-white/30'} text-xs italic`}>No Critic Score</span>
-                                            )}
-                                            {formData.rtAudienceScore ? (
-                                                <span className="flex items-center gap-2 text-orange-400 font-bold bg-orange-500/10 px-3 py-1 rounded border border-orange-500/20">
-                                                    {formData.rtAudienceScore}% (Audience)
-                                                </span>
-                                            ) : (
-                                                <span className={`${useDesktopNeumorphic ? 'text-neutral-500' : 'text-white/30'} text-xs italic`}>No Audience Score</span>
-                                            )}
+                                        <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">RATING</label>
+                                        <div className="flex items-center justify-around px-5 h-14 rounded-[18px] bg-black/70 border border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                                            {[1, 2, 3, 4, 5].map(num => (
+                                                <button
+                                                    key={num}
+                                                    onClick={() => setFormData({ ...formData, rating: num })}
+                                                    className="focus:outline-none transition-transform hover:scale-125 active:scale-110"
+                                                >
+                                                    <Star
+                                                        size={20}
+                                                        fill={num <= formData.rating ? "#ef4444" : "none"}
+                                                        className={num <= formData.rating ? "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]" : "text-red-500/50 hover:text-red-500"}
+                                                    />
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
-
-                                    <div>
-                                        <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Paste IMDb Link</label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                className={`flex-1 rounded-2xl p-3 focus:outline-none text-sm ${
-                                                    useDesktopNeumorphic ? 'text-white placeholder:text-neutral-500' : 'bg-black/50 border border-white/20 focus:border-blue-500'
-                                                }`}
-                                                style={useDesktopNeumorphic ? neumorphicInsetStyle : undefined}
-                                                placeholder="https://www.imdb.com/title/tt..."
-                                                value={imdbLinkValue}
-                                                onChange={(e) => setImdbLinkValue(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') handleFetchPoster(imdbLinkValue)
-                                                }}
-                                            />
-                                            <button
-                                                onClick={() => handleFetchPoster(imdbLinkValue)}
-                                                disabled={isFetching}
-                                                className={`disabled:opacity-50 px-4 rounded-2xl text-sm font-bold transition-colors ${
-                                                    useDesktopNeumorphic ? 'text-red-300' : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400'
-                                                }`}
-                                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
-                                            >
-                                                {isFetching ? "..." : "Fetch"}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className={`block text-xs uppercase mb-1 ${useDesktopNeumorphic ? 'text-neutral-500 font-bold tracking-widest' : 'text-white/50'}`}>Poster (Manual)</label>
-                                        <div className="flex items-center gap-4">
-                                            {formData.poster && (
-                                                <img src={formData.poster} className={`h-20 w-14 object-cover ${useDesktopNeumorphic ? 'rounded-2xl' : 'rounded border border-white/20'}`} />
-                                            )}
-                                            <label
-                                                className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-2xl transition-colors ${
-                                                    useDesktopNeumorphic ? 'text-neutral-300' : 'bg-white/10 hover:bg-white/20'
-                                                }`}
-                                                style={useDesktopNeumorphic ? neumorphicRaisedStyle : undefined}
-                                            >
-                                                <Upload size={16} />
-                                                <span className="text-sm">Upload Image</span>
-                                                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={handleSubmit}
-                                        className={`w-full text-white font-bold py-3 rounded-2xl mt-6 transition-colors ${
-                                            useDesktopNeumorphic ? '' : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20'
-                                        }`}
-                                        style={useDesktopNeumorphic ? netflixRedButtonStyle : undefined}
-                                    >
-                                        {editingId ? "Update Entry" : "Save Entry"}
-                                    </button>
                                 </div>
+
+                                {/* SCORES */}
+                                <div>
+                                    <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">SCORES (AUTO-FETCHED)</label>
+                                    <div className="flex items-center gap-3 px-5 h-14 rounded-[18px] bg-black/70 border border-red-500/30 text-white/30 text-xs font-mono select-none shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
+                                        <span>{formData.rtCriticScore ? `${formData.rtCriticScore}% Critic` : 'No Critic Score'}</span>
+                                        <span className="text-white/20">|</span>
+                                        <span>{formData.rtAudienceScore ? `${formData.rtAudienceScore}% Audience` : 'No Audience Score'}</span>
+                                    </div>
+                                </div>
+
+                                {/* PASTE IMDB LINK */}
+                                <div>
+                                    <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">PASTE IMDB LINK</label>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1 flex items-center gap-3 px-4 h-14 rounded-[18px] bg-black/70 border border-red-500/40 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_0_15px_rgba(239,68,68,0.15)] focus-within:border-red-500 focus-within:shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_0_25px_rgba(239,68,68,0.45)] transition-all">
+                                            <Link2 size={18} className="text-red-500 shrink-0 drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                                            <input
+                                                className="bg-transparent text-white placeholder-white/20 text-xs font-medium focus:outline-none w-full"
+                                                value={imdbLinkValue}
+                                                onChange={e => setImdbLinkValue(e.target.value)}
+                                                onKeyDown={e => { if (e.key === 'Enter') handleFetchPoster(imdbLinkValue) }}
+                                                placeholder="https://www.imdb.com/title/tt..."
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => handleFetchPoster(imdbLinkValue)}
+                                            disabled={isFetching}
+                                            className="h-14 px-7 rounded-[18px] bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white font-extrabold text-xs uppercase tracking-wider border border-red-400/50 shadow-[0_0_20px_rgba(239,68,68,0.5)] hover:scale-105 hover:shadow-[0_0_30px_rgba(239,68,68,0.8)] active:scale-95 disabled:opacity-50 transition-all duration-200"
+                                        >
+                                            {isFetching ? "..." : "Fetch"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* POSTER (MANUAL) */}
+                                <div>
+                                    <label className="block text-[11px] font-extrabold tracking-[0.2em] text-white/80 uppercase mb-1.5">POSTER (MANUAL)</label>
+                                    <div className="flex items-center gap-4">
+                                        {formData.poster && (
+                                            <img src={formData.poster} alt="Poster" className="h-14 w-10 object-cover rounded-xl border border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                                        )}
+                                        <label className="flex items-center gap-2.5 cursor-pointer px-5 h-12 rounded-[14px] border-2 border-dashed border-red-500/40 bg-black/40 hover:bg-black/60 hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all group">
+                                            <Upload size={16} className="text-red-500 group-hover:scale-110 transition-transform drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                                            <span className="text-white/70 text-xs font-extrabold uppercase tracking-wider group-hover:text-white">Upload Image</span>
+                                            <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* SAVE ENTRY BUTTON */}
+                                <button
+                                    onClick={handleSubmit}
+                                    className="w-full h-16 rounded-[22px] bg-gradient-to-r from-red-800 via-red-600 to-red-800 text-white font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 border border-red-400/60 shadow-[0_0_35px_rgba(239,68,68,0.6)] hover:shadow-[0_0_60px_rgba(239,68,68,0.9)] hover:scale-[1.01] active:scale-[0.98] transition-all duration-200 relative overflow-hidden group mt-4 shrink-0"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                    <Save size={20} className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                                    <span>{editingId ? "UPDATE ENTRY" : "SAVE ENTRY"}</span>
+                                </button>
                             </div>
                         </Motion.div>
                     </div>

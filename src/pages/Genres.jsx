@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, CheckCircle, Trash2, User, Plus, X, Zap, Heart, Rocket, Eye, Sparkles, Flame, Theater, Ghost, RotateCcw } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import { shouldUseCompactNativeLayout } from '../lib/platform'
+import { netflixNeumorphic, nativeFastRaisedStyle, nativeFastInsetStyle, nativeFastRedButtonStyle } from '../styles/netflixNeumorphic'
 import './GenresHub.css'
 
 const isNative = shouldUseCompactNativeLayout()
@@ -399,33 +400,45 @@ export default function Genres() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-md px-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-hidden"
           >
             <motion.div
-              initial={{ y: 30, scale: 0.95 }}
-              animate={{ y: 0, scale: 1 }}
-              exit={{ y: 30, scale: 0.95 }}
-              className="w-full max-w-md rounded-3xl p-8 bg-[#111114] border border-red-500/30 shadow-2xl relative neon-glimpse-border"
+              initial={{ scale: 0.94, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              className="w-[92%] max-w-[460px] rounded-[28px] p-5 sm:p-6 shadow-2xl relative border border-white/20 text-white overflow-hidden my-auto z-10"
+              style={{
+                ...nativeFastRaisedStyle,
+                background: `linear-gradient(145deg, ${netflixNeumorphic.panelRaised}, ${netflixNeumorphic.panel})`,
+                fontFamily: "'Montserrat', sans-serif"
+              }}
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black text-white uppercase tracking-wider">New Custom Genre</h3>
-                <button onClick={() => setShowCustomModal(false)} className="p-2 text-white/60 hover:text-white">
-                  <X size={20} />
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg sm:text-xl font-bold uppercase tracking-wider" style={{ color: netflixNeumorphic.text }}>New Custom Genre</h3>
+                <button
+                  onClick={() => setShowCustomModal(false)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
+                  style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.textSoft }}
+                >
+                  <X size={18} />
                 </button>
               </div>
 
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5 ml-0.5" style={{ color: netflixNeumorphic.textSoft }}>Genre Name</label>
               <input
                 type="text"
                 value={customGenreName}
                 onChange={(e) => setCustomGenreName(e.target.value)}
-                placeholder="Enter genre name..."
-                className="w-full rounded-2xl p-4 mb-6 bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-red-500"
+                placeholder="Enter custom genre name..."
+                className="w-full rounded-2xl p-3 mb-5 text-xs sm:text-sm font-medium focus:outline-none placeholder:text-neutral-500"
+                style={{ ...nativeFastInsetStyle, color: netflixNeumorphic.text }}
                 autoFocus
               />
 
               <button
                 onClick={handleAddCustom}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 to-red-900 text-white font-black uppercase tracking-widest text-xs shadow-lg hover:scale-[1.02] transition-transform"
+                className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg"
+                style={nativeFastRedButtonStyle}
               >
                 Add Genre & Connect Node
               </button>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { X, Clock, Save } from 'lucide-react'
+import { netflixNeumorphic, nativeFastRaisedStyle, nativeFastInsetStyle, nativeFastRedButtonStyle } from '../../styles/netflixNeumorphic'
 
 export default function TimeSettingsModal({ onClose }) {
     const [time, setTime] = useState('09:00')
@@ -30,47 +31,58 @@ export default function TimeSettingsModal({ onClose }) {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-hidden">
+            <div className="absolute inset-0" onClick={onClose} />
 
             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-[#1e1e1e] border border-white/10 p-6 rounded-2xl w-full max-w-sm relative z-10 shadow-2xl"
+                initial={{ scale: 0.94, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.94, opacity: 0 }}
+                className="w-[92%] max-w-[440px] rounded-[28px] p-5 sm:p-6 shadow-2xl relative border border-white/20 text-white overflow-hidden my-auto z-10"
+                style={{ 
+                    ...nativeFastRaisedStyle,
+                    background: `linear-gradient(145deg, ${netflixNeumorphic.panelRaised}, ${netflixNeumorphic.panel})`,
+                    fontFamily: "'Montserrat', sans-serif"
+                }}
             >
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold text-[#ffd700] flex items-center gap-2">
-                        <Clock size={20} />
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2" style={{ color: netflixNeumorphic.text }}>
+                        <Clock size={20} className="text-red-500" />
                         Reminder Time
                     </h3>
-                    <button onClick={onClose} className="text-white/50 hover:text-white">
-                        <X size={20} />
+                    <button
+                        onClick={onClose}
+                        className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
+                        style={{ ...nativeFastRaisedStyle, color: netflixNeumorphic.textSoft }}
+                    >
+                        <X size={18} />
                     </button>
                 </div>
 
-                <p className="text-white/60 text-sm mb-4">
-                    Set the daily time for email notifications.
+                <p className="text-xs mb-4" style={{ color: netflixNeumorphic.textSoft }}>
+                    Set the daily time for your email notifications & watch reminders.
                 </p>
 
-                <div className="bg-black/40 rounded-xl p-4 border border-white/5 mb-6 text-center">
+                <div className="rounded-2xl p-4 border mb-5 text-center" style={{ ...nativeFastInsetStyle, borderColor: netflixNeumorphic.border }}>
                     <input
                         type="time"
                         value={time}
                         onChange={(e) => setTime(e.target.value)}
-                        className="bg-transparent text-white text-4xl font-mono focus:outline-none text-center w-full"
+                        className="bg-transparent text-4xl font-mono focus:outline-none text-center w-full"
+                        style={{ color: netflixNeumorphic.text }}
                     />
                 </div>
 
                 <div className="flex items-center justify-between">
-                    <span className={`text-sm ${status === 'Error saving' ? 'text-red-400' : 'text-green-400'}`}>
+                    <span className={`text-xs font-bold ${status === 'Error saving' || status === 'Connection Error' ? 'text-red-400' : 'text-green-400'}`}>
                         {status}
                     </span>
                     <button
                         onClick={handleSave}
-                        className="bg-[#ffd700] hover:bg-[#ffed4a] text-black font-bold py-2 px-6 rounded-lg flex items-center gap-2 transition-colors"
+                        className="py-2.5 px-6 rounded-2xl text-xs font-black uppercase tracking-wider text-white transition-all active:scale-95 flex items-center gap-2 shadow-lg"
+                        style={nativeFastRedButtonStyle}
                     >
-                        Save <Save size={16} />
+                        Save <Save size={14} />
                     </button>
                 </div>
             </motion.div>
