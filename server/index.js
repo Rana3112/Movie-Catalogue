@@ -647,9 +647,26 @@ app.get('/api/calendar/share/:token', async (req, res) => {
 });
 
 const normalizeCineBotCategory = (info = {}) => {
+    const explicitCat = String(info.category || '').trim().toLowerCase();
+    if (explicitCat === 'anime') return 'Anime';
+    if (explicitCat === 'series' || explicitCat === 'tv' || explicitCat === 'tv series') return 'Series';
+    if (explicitCat === 'movies' || explicitCat === 'movie' || explicitCat === 'film') return 'Movies';
+
+    const explicitType = String(info.type || '').trim().toLowerCase();
+    if (/series|tv|tvseries|tv series|tvminiseries|tv mini series|tvspecial|tvshort|episode|show|television|web series|miniseries/.test(explicitType)) {
+        return 'Series';
+    }
+    if (/movie|feature|film/.test(explicitType)) {
+        return 'Movies';
+    }
+    if (/anime|animeseries/.test(explicitType)) {
+        return 'Anime';
+    }
+
     const rawGenres = Array.isArray(info.genres)
         ? info.genres
         : (info.genre ? String(info.genre).split(',') : []);
+
     const text = [
         info.category,
         info.type,
@@ -673,7 +690,7 @@ const normalizeCineBotCategory = (info = {}) => {
         return 'Anime';
     }
 
-    if (/\btv\b|tv series|tv mini series|tv mini-series|television|series|mini-series|miniseries|limited series|web series|\bshow\b|episode/.test(text)) {
+    if (/\btv\b|tvseries|tvminiseries|tv-series|tv series|tv mini series|tv mini-series|television|series|mini-series|miniseries|limited series|web series|\bshow\b|episode|season/i.test(text)) {
         return 'Series';
     }
 
@@ -868,7 +885,7 @@ app.post('/api/movie-lookup', async (req, res) => {
             movieInfo.releaseDate = `${movieInfo.year}-01-01`;
         }
 
-        // Step 10: Always try OMDB API to enrich any missing data
+        // Step 10: Always try OMDB API to enrich and correct data
         if (movieInfo.title) {
             try {
                 const imdbId = movieInfo.imdbLink?.match(/title\/(tt\d+)/)?.[1];
@@ -885,24 +902,24 @@ app.post('/api/movie-lookup', async (req, res) => {
                     if (!movieInfo.poster && omdbData.Poster !== 'N/A') {
                         movieInfo.poster = omdbData.Poster;
                     }
-                    // Also fill in missing data from OMDB
-                    if (!movieInfo.releaseDate && omdbData.Released !== 'N/A') {
+
+                    // Official OMDB release dates are authoritative
+                    if (omdbData.Released && omdbData.Released !== 'N/A') {
                         const parsed = new Date(omdbData.Released);
-                        if (!isNaN(parsed.getTime())) {
+                        if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1800) {
                             movieInfo.year = parsed.getFullYear();
                             const month = String(parsed.getMonth() + 1).padStart(2, '0');
                             const day = String(parsed.getDate()).padStart(2, '0');
                             movieInfo.releaseDate = `${parsed.getFullYear()}-${month}-${day}`;
                         }
-                    }
-                    // Fallback for TV Series which might only have 'Year' instead of 'Released'
-                    if (!movieInfo.year && omdbData.Year !== 'N/A') {
+                    } else if (omdbData.Year && omdbData.Year !== 'N/A') {
                         const yearMatch = omdbData.Year.match(/(\d{4})/);
                         if (yearMatch) {
                             movieInfo.year = parseInt(yearMatch[1]);
                             if (!movieInfo.releaseDate) movieInfo.releaseDate = `${yearMatch[1]}-01-01`;
                         }
                     }
+
                     if ((movieInfo.genre === 'General' || movieInfo.genres.length === 0) && omdbData.Genre && omdbData.Genre !== 'N/A') {
                         movieInfo.genres = omdbData.Genre.split(',').map(g => g.trim());
                         movieInfo.genre = movieInfo.genres[0] || 'General';

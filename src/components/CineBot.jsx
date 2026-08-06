@@ -8,10 +8,21 @@ import './CineBot.css'
 const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
 
 const normalizeCalendarCategory = (data = {}) => {
-    const explicit = String(data.category || '').trim().toLowerCase()
-    if (explicit === 'anime') return 'Anime'
-    if (explicit === 'series' || explicit === 'tv' || explicit === 'tv series') return 'Series'
-    if (explicit === 'movies' || explicit === 'movie' || explicit === 'film') return 'Movies'
+    const explicitCat = String(data.category || '').trim().toLowerCase()
+    if (explicitCat === 'anime') return 'Anime'
+    if (explicitCat === 'series' || explicitCat === 'tv' || explicitCat === 'tv series') return 'Series'
+    if (explicitCat === 'movies' || explicitCat === 'movie' || explicitCat === 'film') return 'Movies'
+
+    const explicitType = String(data.type || '').trim().toLowerCase()
+    if (/series|tv|tvseries|tv series|tvminiseries|tv mini series|tvspecial|tvshort|episode|show|television|web series|miniseries/.test(explicitType)) {
+        return 'Series'
+    }
+    if (/movie|feature|film/.test(explicitType)) {
+        return 'Movies'
+    }
+    if (/anime|animeseries/.test(explicitType)) {
+        return 'Anime'
+    }
 
     const genres = Array.isArray(data.genres)
         ? data.genres
@@ -34,7 +45,7 @@ const normalizeCalendarCategory = (data = {}) => {
         return 'Anime'
     }
 
-    if (/\btv\b|tv series|tv mini series|tv mini-series|television|series|mini-series|miniseries|limited series|web series|\bshow\b|episode/.test(text)) {
+    if (/\btv\b|tvseries|tvminiseries|tv-series|tv series|tv mini series|tv mini-series|television|series|mini-series|miniseries|limited series|web series|\bshow\b|episode|season/i.test(text)) {
         return 'Series'
     }
 
@@ -69,6 +80,8 @@ const enrichWithImdbSuggestion = async (movieData, query) => {
         if (!best) return movieData
         const yearMatch = typeof best.yr === 'string' ? best.yr.match(/\d{4}/) : null
         const yearFromRange = yearMatch ? parseInt(yearMatch[0], 10) : null
+        const imdbType = String(best.qid || best.q || '').toLowerCase()
+        const isTvSeries = /tvseries|tvminiseries|tvspecial|tvshort|series|tv/.test(imdbType)
 
         return {
             ...movieData,
@@ -76,6 +89,7 @@ const enrichWithImdbSuggestion = async (movieData, query) => {
             year: movieData.year || best.y || yearFromRange,
             imdbLink: movieData.imdbLink || (best.id ? `https://www.imdb.com/title/${best.id}/` : null),
             type: movieData.type || best.qid || best.q,
+            category: isTvSeries ? 'Series' : (movieData.category || null)
         }
     } catch (error) {
         console.warn('[CineBot] IMDb suggestion fallback failed:', error)
@@ -471,24 +485,27 @@ export default function CineBot() {
         let day = 1
 
         if (movieData.releaseDate) {
-            if (movieData.releaseDate.includes('-')) {
+            if (String(movieData.releaseDate).includes('-')) {
                 // ISO format: YYYY-MM-DD
-                const dateParts = movieData.releaseDate.split('-')
+                const dateParts = String(movieData.releaseDate).split('-')
                 year = parseInt(dateParts[0]) || year
                 month = dateParts[1] ? parseInt(dateParts[1]) - 1 : 0
                 day = dateParts[2] ? parseInt(dateParts[2]) : 1
             } else {
-                // Irregular string format (e.g., "September 1, 2022 (United States)")
-                const yearMatch = movieData.releaseDate.match(/(\d{4})/)
-                if (yearMatch) {
-                    year = parseInt(yearMatch[1])
+                // Parse date strings (e.g. "October 21, 2022")
+                const parsedDate = new Date(movieData.releaseDate)
+                if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() > 1800) {
+                    year = parsedDate.getFullYear()
+                    month = parsedDate.getMonth()
+                    day = parsedDate.getDate()
+                } else {
+                    const yearMatch = String(movieData.releaseDate).match(/(\d{4})/)
+                    if (yearMatch) year = parseInt(yearMatch[1])
                 }
             }
         }
 
         const category = normalizeCalendarCategory(movieData)
-
-        // Determine genres array
         const standardGenreMap = {
             'science fiction': 'Sci-Fi',
             'rom-com': 'Romance',
