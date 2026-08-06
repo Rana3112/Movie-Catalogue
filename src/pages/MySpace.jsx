@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/useStore'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search, Filter, X, Trash2, CalendarDays } from 'lucide-react'
+import { ArrowLeft, Search, Filter, X, Trash2, CalendarDays, Play, Loader2 } from 'lucide-react'
 import UserBadge from '../components/ui/UserBadge'
 import '../components/mobile/MobileBackground.css'
 import { shouldUseCompactNativeLayout } from '../lib/platform'
@@ -14,6 +14,18 @@ import {
     nativeFastRaisedStyle,
     nativeFastInsetStyle,
 } from '../styles/netflixNeumorphic'
+import { searchMovies, searchTV, imageUrl } from '../streaming/api/tmdb'
+import { searchAnime } from '../streaming/api/anilist'
+import {
+    getMovieEmbedUrl,
+    getMovieStreamCandidates,
+    getTVEmbedUrl,
+    getTVStreamCandidates,
+    getAnimeEmbedUrl,
+    getAnimeStreamCandidates,
+    prewarmStreamUrl,
+    prewarmStreamCandidates,
+} from '../streaming/api/streams'
 
 const isNative = shouldUseCompactNativeLayout()
 const NATIVE_GRID_COLUMNS = 2
@@ -30,7 +42,7 @@ const getScoreColor = (score) => {
         : 'text-red-400 bg-red-500/10 border-red-500/20'
 }
 
-const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
+const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunching }) => {
     const cardStyle = isNative
         ? {
             ...nativeFastRaisedStyle,
@@ -64,7 +76,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
             className={`group relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer ${
                 isNative 
                     ? 'active:scale-[0.99]' 
-                    : 'transition-all hover:scale-[1.02] hover:shadow-xl'
+                    : 'transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-950/40'
             }`}
             style={cardStyle}
         >
@@ -81,16 +93,27 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
             )}
 
             {/* Gradient Overlay */}
-            <div className={`absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent transition-opacity ${
-                isNative ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'
+            <div className={`absolute inset-0 bg-gradient-to-t from-slate-950/95 via-black/40 to-transparent transition-opacity ${
+                isNative ? 'opacity-80' : 'opacity-0 group-hover:opacity-100'
             }`} />
 
-            {/* Play Icon - Web hover only; native avoids per-card blur layers while scrolling. */}
+            {/* StreamZone Video Player Button */}
             {!isNative && (
-                <div className="absolute inset-0 flex items-center justify-center transition-all duration-500 z-30 pointer-events-none opacity-0 group-hover:opacity-100">
-                    <div className="p-3.5 rounded-full border shadow-xl bg-white/20 backdrop-blur-md border-white/20">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white" className="ml-1"><polygon points="6 3 20 12 6 21 6 3" /></svg>
-                    </div>
+                <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 z-30 opacity-0 group-hover:opacity-100">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onClick(entry)
+                        }}
+                        className="p-4 rounded-full border shadow-[0_0_25px_rgba(239,68,68,0.6)] bg-gradient-to-tr from-red-700 to-red-600 backdrop-blur-md border-red-500/50 hover:scale-110 active:scale-95 transition-all text-white flex items-center justify-center cursor-pointer"
+                        title={`Stream ${entry.title} on StreamZone`}
+                    >
+                        {isLaunching ? (
+                            <Loader2 size={26} className="animate-spin text-white" />
+                        ) : (
+                            <Play size={26} fill="white" className="ml-0.5 text-white" />
+                        )}
+                    </button>
                 </div>
             )}
 
@@ -146,7 +169,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove }) => {
     )
 })
 
-const NativeVirtualizedGrid = React.memo(({ entries, onClick, onNavigate, onRemove }) => {
+const NativeVirtualizedGrid = React.memo(({ entries, onClick, onNavigate, onRemove, launchingId }) => {
     const containerRef = useRef(null)
     const frameRef = useRef(0)
     const [containerWidth, setContainerWidth] = useState(0)
@@ -244,6 +267,7 @@ const NativeVirtualizedGrid = React.memo(({ entries, onClick, onNavigate, onRemo
                         onClick={onClick}
                         onNavigate={onNavigate}
                         onRemove={onRemove}
+                        isLaunching={launchingId === (entry._id || entry.title)}
                     />
                 ))}
             </div>
@@ -324,9 +348,7 @@ export default function MySpace() {
         )
     }
 
-    const [selectedTrailerEntry, setSelectedTrailerEntry] = useState(null)
-    const [trailerVideoId, setTrailerVideoId] = useState(null)
-    const [isLoadingTrailer, setIsLoadingTrailer] = useState(false)
+    const [launchingId, setLaunchingId] = useState(null)
     const loadingPlaceholderCount = isNative ? 6 : 8
 
     useEffect(() => {
@@ -337,28 +359,107 @@ export default function MySpace() {
 
     const pressedSurfaceStyle = useMemo(() => isNative ? nativeFastInsetStyle : netflixInsetStyle, [])
 
-    const handleEntryClick = useCallback(async (entry) => {
-        setSelectedTrailerEntry(entry)
-        setTrailerVideoId(null)
-        setIsLoadingTrailer(true)
-        try {
-            const API_URL = import.meta.env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com'
-            const res = await fetch(`${API_URL}/api/trailer?q=${encodeURIComponent(entry.title)}`)
-            const data = await res.json()
-            if (data.videoId) {
-                setTrailerVideoId(data.videoId)
-            }
-        } catch (error) {
-            console.error("Failed to fetch trailer ID", error)
-        } finally {
-            setIsLoadingTrailer(false)
-        }
-    }, [])
+    const handlePlayStream = useCallback(async (entry) => {
+        if (!entry || !entry.title) return
+        const entryKey = entry._id || entry.title
+        setLaunchingId(entryKey)
 
-    const closeTrailerModal = useCallback(() => {
-        setSelectedTrailerEntry(null)
-        setTrailerVideoId(null)
-    }, [])
+        try {
+            const cat = String(entry.category || '').toLowerCase()
+            const typeStr = String(entry.type || '').toLowerCase()
+            const isAnime = cat === 'anime' || typeStr === 'anime'
+            const isSeries = cat === 'series' || cat === 'tv' || cat === 'tv series' || typeStr === 'series'
+
+            if (isAnime) {
+                try {
+                    const animeResults = await searchAnime(entry.title)
+                    if (animeResults && animeResults.length > 0) {
+                        const anime = animeResults[0]
+                        const episode = 1
+                        const streamUrl = getAnimeEmbedUrl(anime.id, episode, { dub: false })
+                        const candidates = getAnimeStreamCandidates(anime.id, episode, { dub: false })
+                        const playerState = {
+                            mode: 'iframe',
+                            src: streamUrl,
+                            id: anime.id,
+                            anilistId: anime.id,
+                            title: entry.title || anime.title?.english || anime.title?.romaji,
+                            episodeTitle: 'Episode 1',
+                            episode,
+                            posterUrl: entry.poster || anime.coverImage?.extraLarge,
+                            category: 'anime',
+                            candidates,
+                        }
+                        prewarmStreamUrl(streamUrl)
+                        prewarmStreamCandidates(candidates)
+                        navigate('/streaming/player', { state: playerState })
+                        return
+                    }
+                } catch (err) {
+                    console.warn('Anime stream resolution error:', err)
+                }
+            } else if (isSeries) {
+                try {
+                    const tvResults = await searchTV(entry.title)
+                    if (tvResults && tvResults.length > 0) {
+                        const tv = tvResults[0]
+                        const season = 1
+                        const episode = 1
+                        const streamUrl = getTVEmbedUrl(tv.id, season, episode)
+                        const candidates = getTVStreamCandidates(tv.id, season, episode)
+                        const playerState = {
+                            mode: 'iframe',
+                            src: streamUrl,
+                            id: tv.id,
+                            title: entry.title || tv.name,
+                            episodeTitle: 'Episode 1',
+                            season,
+                            episode,
+                            posterUrl: entry.poster || imageUrl(tv.poster_path, 'w500'),
+                            category: 'tv',
+                            candidates,
+                        }
+                        prewarmStreamUrl(streamUrl)
+                        prewarmStreamCandidates(candidates)
+                        navigate('/streaming/player', { state: playerState })
+                        return
+                    }
+                } catch (err) {
+                    console.warn('TV stream resolution error:', err)
+                }
+            }
+
+            // Default: Movie search or fallback
+            try {
+                const movieResults = await searchMovies(entry.title)
+                if (movieResults && movieResults.length > 0) {
+                    const movie = movieResults[0]
+                    const streamUrl = getMovieEmbedUrl(movie.id)
+                    const candidates = getMovieStreamCandidates(movie.id)
+                    const playerState = {
+                        mode: 'iframe',
+                        src: streamUrl,
+                        id: movie.id,
+                        title: entry.title || movie.title,
+                        posterUrl: entry.poster || imageUrl(movie.poster_path, 'w500'),
+                        category: 'movie',
+                        candidates,
+                    }
+                    prewarmStreamUrl(streamUrl)
+                    prewarmStreamCandidates(candidates)
+                    navigate('/streaming/player', { state: playerState })
+                    return
+                }
+            } catch (err) {
+                console.warn('Movie stream resolution error:', err)
+            }
+
+            // Fallback to StreamZone Search Page
+            navigate(`/streaming/search?q=${encodeURIComponent(entry.title)}`)
+        } finally {
+            setLaunchingId(null)
+        }
+    }, [navigate])
 
     const handleNavigateToCalendar = useCallback((e, entry) => {
         e.stopPropagation()
@@ -583,9 +684,10 @@ export default function MySpace() {
                         isNative ? (
                             <NativeVirtualizedGrid
                                 entries={filteredEntries}
-                                onClick={handleEntryClick}
+                                onClick={handlePlayStream}
                                 onNavigate={handleNavigateToCalendar}
                                 onRemove={removeEntry}
+                                launchingId={launchingId}
                             />
                         ) : (
                             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
@@ -593,9 +695,10 @@ export default function MySpace() {
                                     <MovieCard 
                                         key={entry._id + entry.date}
                                         entry={entry}
-                                        onClick={handleEntryClick}
+                                        onClick={handlePlayStream}
                                         onNavigate={handleNavigateToCalendar}
                                         onRemove={removeEntry}
+                                        isLaunching={launchingId === (entry._id || entry.title)}
                                     />
                                 ))}
                             </div>
@@ -603,87 +706,6 @@ export default function MySpace() {
                     )}
                 </div>
             </main>
-
-            {/* Trailer Modal */}
-            {selectedTrailerEntry && (
-                <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-black/75 backdrop-blur-md"
-                    onClick={closeTrailerModal}
-                >
-                    <div
-                        className="w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl relative flex flex-col transition-all"
-                        style={netflixSurfaceStyle}
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between p-5 border-b border-white/10">
-                            <div>
-                                <h3 className="text-xl md:text-2xl font-bold max-w-md truncate text-white">{selectedTrailerEntry.title}</h3>
-                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] mt-1 text-neutral-500">
-                                    {isLoadingTrailer ? 'Searching Trailer...' : 'Official Trailer'}
-                                </p>
-                            </div>
-                            <button 
-                                onClick={closeTrailerModal} 
-                                style={surfaceStyle}
-                                className="p-2.5 rounded-2xl transition-all active:scale-90 text-neutral-300"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <div className="relative aspect-video w-full group flex items-center justify-center bg-black">
-                            {isLoadingTrailer ? (
-                                <div className="flex flex-col items-center">
-                                    <div className="w-12 h-12 border-4 rounded-full animate-spin mb-4 border-neutral-800 border-t-red-500" />
-                                    <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">Searching YouTube...</span>
-                                </div>
-                            ) : trailerVideoId ? (
-                                <iframe
-                                    className="absolute inset-0 w-full h-full"
-                                    src={`https://www.youtube.com/embed/${trailerVideoId}?autoplay=1&origin=${window.location.origin}`}
-                                    title="YouTube video player"
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                ></iframe>
-                            ) : (
-                                <div className="text-center p-10">
-                                    <div className="text-5xl mb-6">🏜️</div>
-                                    <h4 className="text-xl font-bold mb-2 text-white">No Trailer Found</h4>
-                                    <p className="text-neutral-400 text-sm mb-8">Could not locate an embeddable video for this title.</p>
-                                    <a
-                                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedTrailerEntry.title + " official trailer")}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg transition-all active:scale-95"
-                                    >
-                                        Open on YouTube ↗
-                                    </a>
-                                </div>
-                            )}
-                        </div>
-                        <div className="p-5 flex items-center justify-between bg-black/20 border-t border-white/10">
-                            <div className="flex gap-5 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-                                <span>{selectedTrailerEntry.year}</span>
-                                <span>{selectedTrailerEntry.category || 'Movie'}</span>
-                            </div>
-                            {(selectedTrailerEntry.rtCriticScore || selectedTrailerEntry.rtAudienceScore) && (
-                                <div className="flex gap-3">
-                                    {selectedTrailerEntry.rtCriticScore && (
-                                        <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold border ${getScoreColor(selectedTrailerEntry.rtCriticScore)}`}>
-                                            {selectedTrailerEntry.rtCriticScore}% CRITICS
-                                        </span>
-                                    )}
-                                    {selectedTrailerEntry.rtAudienceScore && (
-                                        <span className="text-[10px] text-orange-600 font-bold px-2.5 py-1 rounded-lg border border-orange-200 bg-orange-50">
-                                            {selectedTrailerEntry.rtAudienceScore}% AUDIENCE
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }
