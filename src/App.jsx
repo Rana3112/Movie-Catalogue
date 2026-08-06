@@ -13,6 +13,7 @@ import TasteDNA from './pages/TasteDNA'
 import SharedCalendar from './pages/SharedCalendar'
 import { useStore } from './store/useStore'
 import CineBot from './components/CineBot'
+import BottomNav from './components/ui/BottomNav'
 import { ToastProvider } from './components/ui/Toast'
 import Landing from './pages/Landing'
 import PageTransition from './components/ui/PageTransition'
@@ -166,6 +167,7 @@ function App() {
       <Router>
         <NativeBackHandler />
         <AnimatedRoutes />
+        <BottomNav />
         {(user || isGuest) && <CineBot />}
       </Router>
     </ToastProvider>

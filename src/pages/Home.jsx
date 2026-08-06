@@ -165,48 +165,53 @@ export default function Home() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="time-archive-nav neon-glimpse-border"
         >
-          {/* User Profile Info */}
-          <div className="flex items-center gap-3">
-            <div className="time-archive-avatar-ring">
+          {/* User Profile Info - Avatar Icon Only on Mobile */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="time-archive-avatar-ring flex-shrink-0">
               <div className="time-archive-avatar">
                 {user?.avatar ? (
                   <img src={user.avatar} alt={user.name || 'User'} className="w-full h-full object-cover" />
                 ) : (
-                  <User size={20} className="text-white/80" />
+                  <User size={16} className="text-white/80" />
                 )}
               </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs md:text-sm font-bold tracking-wide text-white leading-tight">
+            {/* Account Name & Subtitle - Desktop Only */}
+            <div className="hidden md:flex flex-col min-w-0">
+              <span className="text-xs md:text-sm font-bold tracking-wide text-white leading-tight truncate">
                 {user?.name || user?.displayName || (isGuest ? 'Guest User' : 'Utkarsh Rana')}
               </span>
-              <span className="text-[10px] font-semibold tracking-[0.15em] text-[#ff2d2d] uppercase">
+              <span className="text-[9px] md:text-[10px] font-semibold tracking-[0.15em] text-[#ff2d2d] uppercase">
                 {isGuest ? 'GUEST EXPLORER' : 'MOVIE ENTHUSIAST'}
               </span>
             </div>
           </div>
 
           {/* Nav Actions */}
-          <nav className="flex items-center gap-2 md:gap-3">
-            <motion.button
-              whileHover={{ y: -2, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleMySpace}
-              className="time-archive-nav-btn myspace-highlight-btn"
-            >
-              <LayoutGrid size={15} className="text-[#00e5ff]" />
-              <span className="hidden sm:inline">My Space</span>
-            </motion.button>
+          <nav className="flex items-center gap-1.5 md:gap-3 flex-shrink-0">
+            <div className="hidden md:inline-flex">
+              <motion.button
+                whileHover={{ y: -2, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleMySpace}
+                className="time-archive-nav-btn myspace-highlight-btn px-4 py-2 rounded-full flex items-center gap-1.5"
+                title="My Space"
+              >
+                <LayoutGrid size={15} className="text-[#00e5ff]" />
+                <span>My Space</span>
+              </motion.button>
+            </div>
 
             {!isGuest && (
               <motion.button
                 whileHover={{ y: -2, scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowSettings(true)}
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white/75 hover:border-red-500/40 transition-colors"
+                className="w-7 h-7 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white/75 hover:border-red-500/40 transition-colors"
                 aria-label="Settings"
+                title="Settings"
               >
-                <Settings size={17} />
+                <Settings size={14} className="md:w-[17px] md:h-[17px]" />
               </motion.button>
             )}
 
@@ -214,17 +219,18 @@ export default function Home() {
               whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleLogout}
-              className="time-archive-exit-btn"
+              className="time-archive-exit-btn p-1.5 md:px-4 md:py-2 rounded-full flex items-center gap-1.5"
+              title={isGuest ? "Sign Up" : "Exit"}
             >
               {isGuest ? (
                 <>
-                  <UserPlus size={15} />
-                  <span>Sign Up</span>
+                  <UserPlus size={14} className="md:w-[15px] md:h-[15px]" />
+                  <span className="hidden md:inline">Sign Up</span>
                 </>
               ) : (
                 <>
-                  <LogOut size={15} />
-                  <span>Exit</span>
+                  <LogOut size={14} className="md:w-[15px] md:h-[15px]" />
+                  <span className="hidden md:inline">Exit</span>
                 </>
               )}
             </motion.button>

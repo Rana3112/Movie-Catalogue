@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, Filter, X, Trash2, CalendarDays, Play, Loader2 } from 'lucide-react'
 import UserBadge from '../components/ui/UserBadge'
 import '../components/mobile/MobileBackground.css'
-import { shouldUseCompactNativeLayout } from '../lib/platform'
+import { useIsMobile } from '../lib/platform'
 import {
     netflixNeumorphic,
     netflixRaisedStyle,
@@ -27,7 +27,6 @@ import {
     prewarmStreamCandidates,
 } from '../streaming/api/streams'
 
-const isNative = shouldUseCompactNativeLayout()
 const NATIVE_GRID_COLUMNS = 2
 const NATIVE_GRID_GAP = 16
 const NATIVE_GRID_OVERSCAN_ROWS = 5
@@ -42,8 +41,8 @@ const getScoreColor = (score) => {
         : 'text-red-400 bg-red-500/10 border-red-500/20'
 }
 
-const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunching }) => {
-    const cardStyle = isNative
+const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunching, isMobile }) => {
+    const cardStyle = isMobile
         ? {
             ...nativeFastRaisedStyle,
             aspectRatio: '2/3',
@@ -62,7 +61,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
             contain: 'layout style paint'
         }
 
-    const actionButtonStyle = isNative
+    const actionButtonStyle = isMobile
         ? {
             ...nativeFastRaisedStyle,
         }
@@ -74,7 +73,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
         <div
             onClick={() => onClick(entry)}
             className={`group relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer ${
-                isNative 
+                isMobile 
                     ? 'active:scale-[0.99]' 
                     : 'transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-950/40'
             }`}
@@ -94,11 +93,11 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
 
             {/* Gradient Overlay */}
             <div className={`absolute inset-0 bg-gradient-to-t from-slate-950/95 via-black/40 to-transparent transition-opacity ${
-                isNative ? 'opacity-80' : 'opacity-0 group-hover:opacity-100'
+                isMobile ? 'opacity-80' : 'opacity-0 group-hover:opacity-100'
             }`} />
 
             {/* StreamZone Video Player Button */}
-            {!isNative && (
+            {!isMobile && (
                 <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 z-30 opacity-0 group-hover:opacity-100">
                     <button
                         onClick={(e) => {
@@ -118,7 +117,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
             )}
 
             {/* Action Buttons */}
-            <div className={`absolute top-3 right-3 flex items-center gap-2 ${isNative ? 'z-40' : 'z-20 opacity-0 group-hover:opacity-100 transition-opacity'}`}>
+            <div className={`absolute top-3 right-3 flex items-center gap-2 ${isMobile ? 'z-40' : 'z-20 opacity-0 group-hover:opacity-100 transition-opacity'}`}>
                 <button
                     onClick={(e) => {
                         e.stopPropagation()
@@ -142,24 +141,24 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
 
             {/* Info Content */}
             <div className={`absolute bottom-0 left-0 right-0 p-4 md:p-5 transform transition-transform ${
-                isNative ? 'translate-y-0' : 'translate-y-1 group-hover:translate-y-0'
+                isMobile ? 'translate-y-0' : 'translate-y-1 group-hover:translate-y-0'
             }`}>
                 <div className="flex items-center gap-2 mb-1.5">
-                    <span className={`text-[9px] font-bold text-slate-300 uppercase tracking-widest px-1.5 py-0.5 rounded ${isNative ? 'bg-black/35' : 'bg-white/10 backdrop-blur-sm'}`}>
+                    <span className={`text-[9px] font-bold text-slate-300 uppercase tracking-widest px-1.5 py-0.5 rounded ${isMobile ? 'bg-black/35' : 'bg-white/10 backdrop-blur-sm'}`}>
                         {entry.year}
                     </span>
                     {entry.rating > 0 && (
-                        <span className={`text-[9px] font-bold text-yellow-500 flex items-center gap-0.5 px-1.5 py-0.5 rounded ${isNative ? 'bg-black/35' : 'bg-white/10 backdrop-blur-sm'}`}>
+                        <span className={`text-[9px] font-bold text-yellow-500 flex items-center gap-0.5 px-1.5 py-0.5 rounded ${isMobile ? 'bg-black/35' : 'bg-white/10 backdrop-blur-sm'}`}>
                             ★ {entry.rating}
                         </span>
                     )}
                 </div>
                 <h3 className="text-white font-bold leading-tight mb-2 line-clamp-2 drop-shadow-lg text-sm md:text-base">{entry.title}</h3>
                 <div className={`flex flex-wrap gap-1 mt-2 transition-opacity duration-300 ${
-                    isNative ? 'opacity-80' : 'opacity-0 group-hover:opacity-100'
+                    isMobile ? 'opacity-80' : 'opacity-0 group-hover:opacity-100'
                 }`}>
                     {(entry.genres || []).slice(0, 2).map(g => (
-                        <span key={g} className={`text-[8px] font-bold text-white/80 uppercase tracking-tighter border px-1.5 py-0.5 rounded bg-red-500/30 border-white/20 ${isNative ? '' : 'backdrop-blur-sm'}`}>
+                        <span key={g} className={`text-[8px] font-bold text-white/80 uppercase tracking-tighter border px-1.5 py-0.5 rounded bg-red-500/30 border-white/20 ${isMobile ? '' : 'backdrop-blur-sm'}`}>
                             {g}
                         </span>
                     ))}
@@ -277,6 +276,7 @@ const NativeVirtualizedGrid = React.memo(({ entries, onClick, onNavigate, onRemo
 })
 
 export default function MySpace() {
+    const isMobile = useIsMobile()
 
     const {
         calendarEntries,
@@ -349,15 +349,15 @@ export default function MySpace() {
     }
 
     const [launchingId, setLaunchingId] = useState(null)
-    const loadingPlaceholderCount = isNative ? 6 : 8
+    const loadingPlaceholderCount = isMobile ? 6 : 8
 
     useEffect(() => {
         fetchEntries().catch(() => {})
     }, [fetchEntries])
 
-    const surfaceStyle = useMemo(() => isNative ? nativeFastRaisedStyle : netflixRaisedStyle, [])
+    const surfaceStyle = useMemo(() => isMobile ? nativeFastRaisedStyle : netflixRaisedStyle, [isMobile])
 
-    const pressedSurfaceStyle = useMemo(() => isNative ? nativeFastInsetStyle : netflixInsetStyle, [])
+    const pressedSurfaceStyle = useMemo(() => isMobile ? nativeFastInsetStyle : netflixInsetStyle, [isMobile])
 
     const handlePlayStream = useCallback(async (entry) => {
         if (!entry || !entry.title) return
@@ -478,9 +478,9 @@ export default function MySpace() {
     }, [navigate, setCategory, setGlobalSelectedGenres, setSelectedMonth, setYear])
 
     return (
-        <div className="min-h-screen w-full relative font-sans selection:bg-red-500/30" style={isNative ? nativeFastPageStyle : { background: netflixNeumorphic.pageBackgroundSoft }}>
+        <div className="min-h-screen w-full relative font-sans selection:bg-red-500/30" style={isMobile ? nativeFastPageStyle : { background: netflixNeumorphic.pageBackgroundSoft }}>
             {/* Background Ambience - Disabled on mobile for performance */}
-            {!isNative && (
+            {!isMobile && (
                 <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
                     <div 
                         className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full opacity-60" 
@@ -495,11 +495,11 @@ export default function MySpace() {
 
             {/* Header / Nav */}
             <header 
-                className={`${isNative ? 'relative' : 'sticky top-0 backdrop-blur-md'} z-50`}
+                className={`${isMobile ? 'relative' : 'sticky top-0 backdrop-blur-md'} z-50`}
                 style={{ 
-                    background: isNative ? 'rgba(12,12,13,0.98)' : 'rgba(12,12,13,0.86)', 
+                    background: isMobile ? 'rgba(12,12,13,0.98)' : 'rgba(12,12,13,0.86)', 
                     borderBottom: `1px solid ${netflixNeumorphic.border}`,
-                    boxShadow: isNative ? 'none' : '0 10px 30px rgba(0,0,0,0.34)'
+                    boxShadow: isMobile ? 'none' : '0 10px 30px rgba(0,0,0,0.34)'
                 }}
             >
                 <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
@@ -633,14 +633,14 @@ export default function MySpace() {
                     </div>
 
                     {isEntriesLoading && filteredEntries.length === 0 ? (
-                        <div className={`grid ${isNative ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4'} gap-4 md:gap-6`}>
+                        <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4'} gap-4 md:gap-6`}>
                             {Array.from({ length: loadingPlaceholderCount }).map((_, index) => (
                                 <div
                                     key={`loading-card-${index}`}
                                     className="aspect-[2/3] rounded-2xl overflow-hidden animate-pulse"
                                     style={{
                                         background: netflixNeumorphic.panelSoft,
-                                        boxShadow: isNative ? nativeFastRaisedStyle.boxShadow : netflixNeumorphic.softShadow,
+                                        boxShadow: isMobile ? nativeFastRaisedStyle.boxShadow : netflixNeumorphic.softShadow,
                                         border: `1px solid ${netflixNeumorphic.border}`,
                                     }}
                                 >
@@ -681,7 +681,7 @@ export default function MySpace() {
                             </button>
                         </div>
                     ) : (
-                        isNative ? (
+                        isMobile ? (
                             <NativeVirtualizedGrid
                                 entries={filteredEntries}
                                 onClick={handlePlayStream}
@@ -699,6 +699,7 @@ export default function MySpace() {
                                         onNavigate={handleNavigateToCalendar}
                                         onRemove={removeEntry}
                                         isLaunching={launchingId === (entry._id || entry.title)}
+                                        isMobile={isMobile}
                                     />
                                 ))}
                             </div>

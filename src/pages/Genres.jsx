@@ -4,11 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, CheckCircle, Trash2, User, Plus, X, Zap, Heart, Rocket, Eye, Sparkles, Flame, Theater, Ghost, RotateCcw } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
-import { shouldUseCompactNativeLayout } from '../lib/platform'
+import { useIsMobile } from '../lib/platform'
 import { netflixNeumorphic, nativeFastRaisedStyle, nativeFastInsetStyle, nativeFastRedButtonStyle } from '../styles/netflixNeumorphic'
 import './GenresHub.css'
-
-const isNative = shouldUseCompactNativeLayout()
 
 const DEFAULT_GENRES = [
   { id: 'Action', label: 'Action', desc: 'High energy and physical stunts', icon: Zap },
@@ -22,6 +20,8 @@ const DEFAULT_GENRES = [
 ]
 
 export default function Genres() {
+  const isMobile = useIsMobile()
+  const isNative = isMobile
   const {
     selectedYear,
     selectedCategory,

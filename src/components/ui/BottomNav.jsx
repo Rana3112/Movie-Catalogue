@@ -1,10 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Home, CalendarDays, LayoutList, PlayCircle } from 'lucide-react'
 import { motion as Motion } from 'framer-motion'
-import { shouldUseCompactNativeLayout } from '../../lib/platform'
+import { useIsMobile } from '../../lib/platform'
 import { netflixNeumorphic } from '../../styles/netflixNeumorphic'
-
-const isNative = shouldUseCompactNativeLayout()
 
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: Home },
@@ -14,11 +12,16 @@ const NAV_ITEMS = [
 ]
 
 export default function BottomNav() {
+  const isMobile = useIsMobile()
+  const isNative = isMobile
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Hide on auth pages
-  const hiddenPaths = ['/', '/login', '/signup']
+  // Only render on mobile devices / mobile screen sizes
+  if (!isMobile) return null
+
+  // Hide on auth & player pages
+  const hiddenPaths = ['/', '/login', '/signup', '/streaming/player']
   if (hiddenPaths.includes(location.pathname)) return null
 
   const isActive = (path) => {

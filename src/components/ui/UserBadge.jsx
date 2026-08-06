@@ -1,17 +1,16 @@
 import { useStore } from '../../store/useStore'
 import { User } from 'lucide-react'
-import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../../lib/platform'
+import { useIsMobile, shouldUseNeumorphicLayout } from '../../lib/platform'
 import { netflixNeumorphic, netflixRaisedStyle } from '../../styles/netflixNeumorphic'
 
-const isNative = shouldUseCompactNativeLayout()
-const useNeumorphic = shouldUseNeumorphicLayout()
-
 export default function UserBadge({ className = "" }) {
+    const isMobile = useIsMobile()
+    const useNeumorphic = shouldUseNeumorphicLayout()
     const user = useStore(state => state.user)
 
     if (!user) return null
 
-    if (isNative) {
+    if (isMobile) {
         // Native: just the avatar circle, no name — compact pill
         return (
             <div

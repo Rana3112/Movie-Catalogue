@@ -561,3 +561,25 @@
         transform: translateY(0);
     }
 }
+
+/* ── MOBILE RESPONSIVE ADAPTATIONS (<= 768px) ── */
+@media (max-width: 768px) {
+    .cinebot-fab {
+        bottom: 84px;
+        right: 16px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .cinebot-fab svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .cinebot-panel {
+        bottom: 148px;
+        right: 12px;
+        width: calc(100vw - 24px);
+        max-height: calc(100vh - 170px);
+    }
+}

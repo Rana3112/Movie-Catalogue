@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { ArrowLeft, Calendar as CalendarIcon, Film, Sparkles, Tv, User, Drama, RotateCcw } from 'lucide-react'
 import MobileCategoryBarrel from '../components/mobile/MobileCategoryBarrel'
-import { shouldUseCompactNativeLayout } from '../lib/platform'
+import { useIsMobile } from '../lib/platform'
 import { motion } from 'framer-motion'
 import './CategoryHub.css'
 
-const isNative = shouldUseCompactNativeLayout()
-
 export default function Category() {
+  const isMobile = useIsMobile()
   const year = useStore(state => state.selectedYear) || new Date().getFullYear()
   const setCategory = useStore(state => state.setCategory)
   const setSelectedGenres = useStore(state => state.setSelectedGenres)
@@ -131,8 +130,8 @@ export default function Category() {
     },
   ]
 
-  // Native (Capacitor Mobile App)
-  if (isNative) {
+  // Mobile view (Mobile Web & Capacitor Mobile App)
+  if (isMobile) {
     return (
       <div className="h-screen w-full relative overflow-hidden flex flex-col bg-[#050505] text-white">
         <div className="flex-shrink-0 relative z-20 px-4 pt-4 flex items-center justify-between">

@@ -6,7 +6,7 @@ import { X, Star, Upload, Calendar as CalIcon, ChevronLeft, ChevronRight, Trash,
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import UserBadge from '../components/ui/UserBadge'
 import { useNavigate } from 'react-router-dom'
-import { shouldUseCompactNativeLayout, shouldUseNeumorphicLayout } from '../lib/platform'
+import { useIsMobile, shouldUseNeumorphicLayout } from '../lib/platform'
 import {
     netflixNeumorphic,
     netflixRaisedStyle,
@@ -18,9 +18,6 @@ import {
     nativeFastInsetStyle,
     nativeFastRedButtonStyle,
 } from '../styles/netflixNeumorphic'
-
-const isNative = shouldUseCompactNativeLayout()
-const useDesktopNeumorphic = shouldUseNeumorphicLayout() && !isNative
 
 // Lazy import - only fetched on web
 const Background3D = lazy(() => import('../components/canvas/Background3D'))
@@ -48,6 +45,10 @@ if (typeof document !== 'undefined') {
 }
 
 export default function Calendar() {
+    const isMobile = useIsMobile()
+    const isNative = isMobile
+    const useDesktopNeumorphic = shouldUseNeumorphicLayout() && !isMobile
+
     const getScoreColor = (score) => {
         if (!score) return ''
         const val = String(score).replace(/[^0-9.]/g, '')

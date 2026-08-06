@@ -493,3 +493,72 @@
   text-align: center;
   padding: 0.75rem 0;
 }
+
+/* ── MOBILE RESPONSIVE ADAPTATIONS (<= 768px) ── */
+@media (max-width: 768px) {
+  .time-archive-page {
+    min-height: 100vh;
+    height: auto;
+    padding: 0.5rem 0 5.5rem 0;
+    justify-content: flex-start;
+    overflow-y: auto;
+  }
+
+  .time-archive-header {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .time-archive-nav {
+    height: 44px;
+    padding: 0 0.5rem;
+  }
+
+  .myspace-highlight-btn {
+    display: none !important;
+  }
+
+  .time-archive-avatar-ring {
+    width: 32px;
+    height: 32px;
+    padding: 1.5px;
+  }
+
+  .time-archive-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 0 0.5rem;
+  }
+
+  .time-archive-hero-card {
+    min-height: auto;
+    padding: 1.25rem 1rem;
+    border-radius: 22px;
+  }
+
+  .time-archive-right-card {
+    min-height: auto;
+    padding: 1.25rem 1rem;
+    border-radius: 22px;
+  }
+
+  .time-archive-stats-container {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    padding: 0.6rem;
+  }
+
+  .time-archive-year-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .time-archive-year-tile {
+    min-height: 40px;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.1rem;
+    border-radius: 12px;
+  }
+}
