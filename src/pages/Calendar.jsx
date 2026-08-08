@@ -1136,23 +1136,24 @@ export default function Calendar() {
                 {showSettings && <TimeSettingsModal onClose={() => setShowSettings(false)} />}
 
                 {/* ── Entry Modal (Cyberpunk AAA HUD Theme) ── */}
-                <AnimatePresence>
-                    {showModal && (
-                        <Motion.div
-                            key="calendar-modal-native"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-hidden"
-                            onClick={(e) => {
-                                if (e.target === e.currentTarget) setShowModal(false)
-                            }}
-                        >
-                            {/* Volumetric Red Ambient Glow */}
-                            <div className="absolute w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse" />
+                {createPortal(
+                    <AnimatePresence>
+                        {showModal && (
+                            <Motion.div
+                                key="calendar-modal-native"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-hidden"
+                                onClick={(e) => {
+                                    if (e.target === e.currentTarget) setShowModal(false)
+                                }}
+                            >
+                                {/* Volumetric Red Ambient Glow */}
+                                <div className="absolute w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse" />
 
-                            <div className="w-full max-w-[850px] rounded-[24px] sm:rounded-[28px] bg-[#0a0a0c] border-2 border-red-500/60 p-4 sm:p-7 text-white shadow-[0_0_50px_rgba(255,0,0,0.4),inset_0_0_20px_rgba(255,0,0,0.1)] relative overflow-hidden flex flex-col font-sans max-h-[80vh] md:max-h-[90vh] z-10 -translate-y-4 sm:-translate-y-6">
+                                <div className="w-full max-w-[850px] h-[calc(100dvh-3rem)] max-h-[85vh] rounded-[24px] sm:rounded-[28px] bg-[#0a0a0c] border-2 border-red-500/60 p-4 sm:p-7 text-white shadow-[0_0_50px_rgba(255,0,0,0.4),inset_0_0_20px_rgba(255,0,0,0.1)] relative overflow-hidden flex flex-col font-sans z-10 my-auto">
                                 {/* Background Scanline Grid Texture */}
                                 <div className="absolute inset-0 bg-[radial-gradient(#ff0000_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none rounded-[28px]" />
 
@@ -1396,7 +1397,9 @@ export default function Calendar() {
                             </div>
                         </Motion.div>
                     )}
-                </AnimatePresence>
+                </AnimatePresence>,
+                document.body
+            )}
             </div>
         )
     }
