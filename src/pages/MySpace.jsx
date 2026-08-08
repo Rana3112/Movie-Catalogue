@@ -71,8 +71,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
 
     return (
         <div
-            onClick={() => onClick(entry)}
-            className={`group relative aspect-[2/3] rounded-2xl overflow-hidden cursor-pointer ${
+            className={`group relative aspect-[2/3] rounded-2xl overflow-hidden ${
                 isMobile 
                     ? 'active:scale-[0.99]' 
                     : 'transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-950/40'
@@ -98,13 +97,13 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
 
             {/* StreamZone Video Player Button */}
             {!isMobile && (
-                <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 z-30 opacity-0 group-hover:opacity-100">
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center transition-all duration-300 z-30 opacity-0 group-hover:opacity-100">
                     <button
                         onClick={(e) => {
                             e.stopPropagation()
                             onClick(entry)
                         }}
-                        className="p-4 rounded-full border shadow-[0_0_25px_rgba(239,68,68,0.6)] bg-gradient-to-tr from-red-700 to-red-600 backdrop-blur-md border-red-500/50 hover:scale-110 active:scale-95 transition-all text-white flex items-center justify-center cursor-pointer"
+                        className="pointer-events-auto p-4 rounded-full border shadow-[0_0_25px_rgba(239,68,68,0.6)] bg-gradient-to-tr from-red-700 to-red-600 backdrop-blur-md border-red-500/50 hover:scale-110 active:scale-95 transition-all text-white flex items-center justify-center cursor-pointer"
                         title={`Stream ${entry.title} on StreamZone`}
                     >
                         {isLaunching ? (
@@ -117,7 +116,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
             )}
 
             {/* Action Buttons */}
-            <div className={`absolute top-3 right-3 flex items-center gap-2 ${isMobile ? 'z-40' : 'z-20 opacity-0 group-hover:opacity-100 transition-opacity'}`}>
+            <div className={`absolute top-3 right-3 flex items-center gap-2 z-40 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
                 <button
                     onClick={(e) => {
                         e.stopPropagation()
@@ -168,7 +167,7 @@ const MovieCard = React.memo(({ entry, onClick, onNavigate, onRemove, isLaunchin
     )
 })
 
-const NativeVirtualizedGrid = React.memo(({ entries, onClick, onNavigate, onRemove, launchingId }) => {
+const NativeVirtualizedGrid = React.memo(({ entries, onClick, onNavigate, onRemove, launchingId, isMobile }) => {
     const containerRef = useRef(null)
     const frameRef = useRef(0)
     const [containerWidth, setContainerWidth] = useState(0)
@@ -267,6 +266,7 @@ const NativeVirtualizedGrid = React.memo(({ entries, onClick, onNavigate, onRemo
                         onNavigate={onNavigate}
                         onRemove={onRemove}
                         isLaunching={launchingId === (entry._id || entry.title)}
+                        isMobile={isMobile}
                     />
                 ))}
             </div>
@@ -688,6 +688,7 @@ export default function MySpace() {
                                 onNavigate={handleNavigateToCalendar}
                                 onRemove={removeEntry}
                                 launchingId={launchingId}
+                                isMobile={isMobile}
                             />
                         ) : (
                             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">

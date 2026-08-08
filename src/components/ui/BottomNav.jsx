@@ -6,7 +6,6 @@ import { netflixNeumorphic } from '../../styles/netflixNeumorphic'
 
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: Home },
-  { path: '/calendar', label: 'Calendar', icon: CalendarDays },
   { path: '/streaming', label: 'Stream', icon: PlayCircle },
   { path: '/myspace', label: 'My Space', icon: LayoutList },
 ]

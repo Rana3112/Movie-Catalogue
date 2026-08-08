@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
@@ -162,6 +163,21 @@ export default function Calendar() {
 
     const [selectedDate, setSelectedDate] = useState(null)
     const [showModal, setShowModal] = useState(false)
+
+    useEffect(() => {
+        if (showModal) {
+            document.body.style.overflow = 'hidden'
+            document.body.style.touchAction = 'none'
+        } else {
+            document.body.style.overflow = ''
+            document.body.style.touchAction = ''
+        }
+        return () => {
+            document.body.style.overflow = ''
+            document.body.style.touchAction = ''
+        }
+    }, [showModal])
+
     const [editingId, setEditingId] = useState(null)
     const [formData, setFormData] = useState({
         title: '',
@@ -1122,8 +1138,13 @@ export default function Calendar() {
                 {/* ── Entry Modal (Cyberpunk AAA HUD Theme) ── */}
                 <AnimatePresence>
                     {showModal && (
-                        <div
-                            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl overflow-hidden"
+                        <Motion.div
+                            key="calendar-modal-native"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-hidden"
                             onClick={(e) => {
                                 if (e.target === e.currentTarget) setShowModal(false)
                             }}
@@ -1131,38 +1152,33 @@ export default function Calendar() {
                             {/* Volumetric Red Ambient Glow */}
                             <div className="absolute w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse" />
 
-                            <Motion.div
-                                initial={{ scale: 0.94, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.94, opacity: 0 }}
-                                className="w-full max-w-[850px] rounded-[28px] bg-[#0a0a0c]/95 border border-red-500/50 p-5 sm:p-7 text-white shadow-[0_0_50px_rgba(255,0,0,0.35),inset_0_0_20px_rgba(255,0,0,0.1)] relative overflow-hidden my-auto max-h-[92vh] flex flex-col font-sans"
-                            >
+                            <div className="w-full max-w-[850px] rounded-[24px] sm:rounded-[28px] bg-[#0a0a0c] border-2 border-red-500/60 p-4 sm:p-7 text-white shadow-[0_0_50px_rgba(255,0,0,0.4),inset_0_0_20px_rgba(255,0,0,0.1)] relative overflow-hidden flex flex-col font-sans max-h-[80vh] md:max-h-[90vh] z-10 -translate-y-4 sm:-translate-y-6">
                                 {/* Background Scanline Grid Texture */}
                                 <div className="absolute inset-0 bg-[radial-gradient(#ff0000_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none rounded-[28px]" />
 
                                 {/* Close Button */}
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    className="absolute top-5 right-5 w-11 h-11 rounded-full border border-red-500/40 bg-black/60 text-white flex items-center justify-center hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:rotate-90 transition-all duration-300 z-30 group"
+                                    className="absolute top-4 right-4 w-10 h-10 sm:w-11 sm:h-11 rounded-full border border-red-500/40 bg-black/60 text-white flex items-center justify-center hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:rotate-90 transition-all duration-300 z-30 group"
                                 >
-                                    <X size={20} className="text-white/80 group-hover:text-white" />
+                                    <X size={18} className="text-white/80 group-hover:text-white" />
                                 </button>
 
                                 {/* Header Date & Month */}
                                 <div className="flex items-baseline mb-2 shrink-0">
-                                    <span className="text-4xl md:text-5xl font-black text-red-500 drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] tracking-tight">
+                                    <span className="text-3xl sm:text-4xl md:text-5xl font-black text-red-500 drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] tracking-tight">
                                         {selectedDate?.day || 12}
                                     </span>
-                                    <span className="text-4xl md:text-5xl font-black text-white ml-3 tracking-tight">
+                                    <span className="text-3xl sm:text-4xl md:text-5xl font-black text-white ml-3 tracking-tight">
                                         {MONTHS[selectedDate?.monthIndex] || 'March'}
                                     </span>
                                 </div>
 
                                 {/* Glowing Red Divider */}
-                                <div className="w-full h-[1px] bg-gradient-to-r from-red-500/50 via-red-500/20 to-transparent my-3 shadow-[0_0_10px_rgba(239,68,68,0.4)] shrink-0" />
+                                <div className="w-full h-[1px] bg-gradient-to-r from-red-500/50 via-red-500/20 to-transparent my-2 sm:my-3 shadow-[0_0_10px_rgba(239,68,68,0.4)] shrink-0" />
 
                                 {/* Form Body */}
-                                <div className="overflow-y-auto flex-1 pr-1.5 space-y-4">
+                                <div className="min-h-0 overflow-y-auto flex-1 pr-1.5 space-y-4 overscroll-contain touch-pan-y pb-6">
                                     {/* Section Title */}
                                     <div className="text-xs font-black tracking-[0.25em] text-red-500 uppercase mt-1 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]">
                                         {editingId ? "EDIT ENTRY" : "ADD NEW ENTRY"}
@@ -1377,8 +1393,8 @@ export default function Calendar() {
                                         <span>{editingId ? "UPDATE ENTRY" : "SAVE ENTRY"}</span>
                                     </button>
                                 </div>
-                            </Motion.div>
-                        </div>
+                            </div>
+                        </Motion.div>
                     )}
                 </AnimatePresence>
             </div>
@@ -1509,10 +1525,16 @@ export default function Calendar() {
             </main>
 
             {/* Entry Modal (Cyberpunk AAA HUD Theme) */}
+            {createPortal(
             <AnimatePresence>
                 {showModal && (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl overflow-hidden"
+                    <Motion.div
+                        key="calendar-modal-web"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-hidden"
                         onClick={(e) => {
                             if (e.target === e.currentTarget) setShowModal(false)
                         }}
@@ -1520,38 +1542,33 @@ export default function Calendar() {
                         {/* Volumetric Red Ambient Glow */}
                         <div className="absolute w-[700px] h-[700px] bg-red-600/10 rounded-full blur-[160px] pointer-events-none -z-10 animate-pulse" />
 
-                        <Motion.div
-                            initial={{ scale: 0.94, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.94, opacity: 0 }}
-                            className="w-full max-w-[850px] rounded-[28px] bg-[#0a0a0c]/95 border border-red-500/50 p-6 md:p-8 text-white shadow-[0_0_50px_rgba(255,0,0,0.35),inset_0_0_20px_rgba(255,0,0,0.1)] relative overflow-hidden my-auto max-h-[92vh] flex flex-col font-sans"
-                        >
+                        <div className="w-full max-w-[850px] h-[calc(100dvh-3rem)] max-h-[900px] rounded-[24px] sm:rounded-[28px] bg-[#0a0a0c] border-2 border-red-500/60 p-4 sm:p-8 text-white shadow-[0_0_50px_rgba(255,0,0,0.4),inset_0_0_20px_rgba(255,0,0,0.1)] relative overflow-hidden flex flex-col font-sans z-10">
                             {/* Background Scanline Grid Texture */}
                             <div className="absolute inset-0 bg-[radial-gradient(#ff0000_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none rounded-[28px]" />
 
                             {/* Close Button */}
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="absolute top-6 right-6 w-11 h-11 rounded-full border border-red-500/40 bg-black/60 text-white flex items-center justify-center hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:rotate-90 transition-all duration-300 z-30 group"
+                                className="absolute top-4 right-4 w-10 h-10 sm:w-11 sm:h-11 rounded-full border border-red-500/40 bg-black/60 text-white flex items-center justify-center hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:rotate-90 transition-all duration-300 z-30 group"
                             >
-                                <X size={20} className="text-white/80 group-hover:text-white" />
+                                <X size={18} className="text-white/80 group-hover:text-white" />
                             </button>
 
                             {/* Header Date & Month */}
                             <div className="flex items-baseline mb-2 shrink-0">
-                                <span className="text-4xl md:text-5xl font-black text-red-500 drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] tracking-tight">
+                                <span className="text-3xl sm:text-4xl md:text-5xl font-black text-red-500 drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] tracking-tight">
                                     {selectedDate?.day || 12}
                                 </span>
-                                <span className="text-4xl md:text-5xl font-black text-white ml-3 tracking-tight">
+                                <span className="text-3xl sm:text-4xl md:text-5xl font-black text-white ml-3 tracking-tight">
                                     {MONTHS[selectedDate?.monthIndex] || 'March'}
                                 </span>
                             </div>
 
                             {/* Glowing Red Divider */}
-                            <div className="w-full h-[1px] bg-gradient-to-r from-red-500/50 via-red-500/20 to-transparent my-3 shadow-[0_0_10px_rgba(239,68,68,0.4)] shrink-0" />
+                            <div className="w-full h-[1px] bg-gradient-to-r from-red-500/50 via-red-500/20 to-transparent my-2 sm:my-3 shadow-[0_0_10px_rgba(239,68,68,0.4)] shrink-0" />
 
                             {/* Form Body */}
-                            <div className="overflow-y-auto flex-1 pr-2 space-y-4">
+                            <div className="min-h-0 overflow-y-auto flex-1 pr-2 space-y-4 overscroll-contain touch-pan-y pb-6">
                                 {/* Section Title */}
                                 <div className="text-xs font-black tracking-[0.25em] text-red-500 uppercase mt-1 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]">
                                     {editingId ? "EDIT ENTRY" : "ADD NEW ENTRY"}
@@ -1766,10 +1783,10 @@ export default function Calendar() {
                                     <span>{editingId ? "UPDATE ENTRY" : "SAVE ENTRY"}</span>
                                 </button>
                             </div>
-                        </Motion.div>
-                    </div>
+                        </div>
+                    </Motion.div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence>, document.body)}
 
             {/* Long Press Detail Modal Overlay */}
             <AnimatePresence>

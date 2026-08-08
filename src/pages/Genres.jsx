@@ -140,37 +140,121 @@ export default function Genres() {
     setResetKey(prev => prev + 1)
   }
 
-  // Native (Capacitor Mobile App)
+  // Mobile Responsive View
   if (isNative) {
     return (
-      <div className="min-h-screen w-full relative overflow-hidden flex flex-col bg-[#050505] text-white">
-        <div className="flex-shrink-0 relative z-20 px-4 pt-4 flex items-center justify-between">
+      <div className="min-h-screen w-full relative overflow-y-auto flex flex-col bg-[#050505] text-white pb-36">
+        {/* Sticky Mobile Header */}
+        <div className="flex-shrink-0 relative z-20 px-4 pt-4 pb-3 flex items-center justify-between border-b border-white/10 bg-[#050505]/90 sticky top-0 backdrop-blur-md">
           <button
             onClick={() => navigate('/category')}
-            className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white"
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 text-white active:scale-95 transition-transform"
           >
-            <ArrowLeft size={22} />
+            <ArrowLeft size={20} />
           </button>
-          <h1 className="text-lg font-bold uppercase tracking-wider">Select Genre</h1>
-          <div className="w-10" />
+          <h1 className="text-base font-bold uppercase tracking-wider text-white">Select Genre</h1>
+          <button
+            onClick={() => setShowCustomModal(true)}
+            className="px-3 py-1.5 rounded-full bg-white/10 text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1 active:scale-95 transition-transform"
+          >
+            <Plus size={14} /> Add
+          </button>
         </div>
-        <div className="p-4 grid grid-cols-2 gap-3 flex-1 overflow-y-auto">
+
+        {/* Scrollable Genres Grid */}
+        <div className="p-4 grid grid-cols-2 gap-3 flex-1">
           {allGenres.map((g) => {
             const isSelected = selectedGenres.includes(g.id)
+            const Icon = typeof g.icon === 'string' ? Sparkles : (g.icon || Sparkles)
+            const isCustom = categoryCustomGenres.some(cg => cg.id === g.id)
+
             return (
-              <button
+              <div
                 key={g.id}
                 onClick={() => toggleGenre(g.id)}
-                className={`p-4 rounded-2xl flex flex-col items-center justify-center text-center border ${
-                  isSelected ? 'border-red-500 bg-red-500/20' : 'border-white/10 bg-white/5'
+                className={`p-4 rounded-2xl flex flex-col justify-between border transition-all cursor-pointer min-h-[96px] active:scale-95 ${
+                  isSelected ? 'border-[#ff2d2d] bg-[#ff2d2d]/20 shadow-[0_0_20px_rgba(255,45,45,0.3)]' : 'border-white/10 bg-white/5'
                 }`}
               >
-                <span className="font-bold text-sm text-white">{g.label}</span>
-                <span className="text-xs text-white/60 mt-1">{g.desc || 'Genre'}</span>
-              </button>
+                <div className="flex justify-between items-center mb-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSelected ? 'bg-red-500 text-white' : 'bg-white/10 text-white/70'}`}>
+                    <Icon size={16} />
+                  </div>
+                  {isCustom ? (
+                    <button
+                      onClick={(e) => handleDeleteCustom(e, g.id)}
+                      className="p-1 text-red-400 hover:text-white"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  ) : isSelected ? (
+                    <CheckCircle size={18} className="text-[#ff2d2d]" />
+                  ) : null}
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white leading-tight">{g.label}</h3>
+                  <p className="text-[10px] text-white/60 mt-0.5 line-clamp-1">{g.desc || 'Genre'}</p>
+                </div>
+              </div>
             )
           })}
         </div>
+
+        {/* Fixed Floating Bottom Action Bar (Continue & View Catalogue) */}
+        <div className="fixed bottom-20 left-4 right-4 z-40">
+          <button
+            onClick={() => navigate('/calendar')}
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-red-600 via-red-500 to-red-700 text-white font-black uppercase tracking-widest text-xs shadow-2xl flex items-center justify-center gap-2 border border-red-500/50 active:scale-95 transition-transform"
+          >
+            <span>Continue to Catalogue ({selectedGenres.length})</span>
+          </button>
+        </div>
+
+        {/* Custom Genre Modal for Mobile */}
+        <AnimatePresence>
+          {showCustomModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-hidden"
+            >
+              <motion.div
+                initial={{ scale: 0.94, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.94, opacity: 0 }}
+                className="w-[92%] max-w-[460px] rounded-[28px] p-5 shadow-2xl relative border border-white/20 text-white overflow-hidden bg-[#121215] font-sans"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold uppercase tracking-wider text-white">New Custom Genre</h3>
+                  <button
+                    onClick={() => setShowCustomModal(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 text-white"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5 text-neutral-400">Genre Name</label>
+                <input
+                  type="text"
+                  value={customGenreName}
+                  onChange={(e) => setCustomGenreName(e.target.value)}
+                  placeholder="Enter custom genre name..."
+                  className="w-full rounded-2xl p-3 mb-5 text-sm font-medium bg-white/5 border border-white/10 text-white focus:outline-none placeholder:text-neutral-500"
+                  autoFocus
+                />
+
+                <button
+                  onClick={handleAddCustom}
+                  className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-white bg-red-600 hover:bg-red-500 transition-colors shadow-lg"
+                >
+                  Add Genre
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     )
   }

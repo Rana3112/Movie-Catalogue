@@ -545,6 +545,11 @@ export default function Landing() {
         <div className="landing-beam landing-beam-one" />
         <div className="landing-beam landing-beam-two" />
 
+        <div className="landing-wordmark" aria-label="Categloge">
+          <span className="landing-wordmark-mark">C</span>
+          <span>Categloge</span>
+        </div>
+
         <nav className="landing-nav" aria-label="Landing navigation">
           <button type="button" onClick={handleGuestEntry}>Demo</button>
           <button type="button" onClick={() => navigate('/login')}>Login</button>
@@ -563,6 +568,11 @@ export default function Landing() {
             <Motion.p variants={revealItem}>
               Discover movies, TV series, anime, plan your watchlist, explore genres, and enter StreamZone - all inside one immersive catalogue.
             </Motion.p>
+            <Motion.div variants={revealItem} className="landing-proof-row">
+              <span><span className="landing-live-dot" /> Live catalogue</span>
+              <span>Movies · Series · Anime</span>
+              <span>Web + Android</span>
+            </Motion.div>
             <Motion.div variants={revealItem} className="landing-cta-row">
               <Motion.button whileTap={{ scale: 0.98 }} type="button" className="landing-primary-cta" onClick={handleGuestEntry}>
                 Explore Demo <ArrowRight size={18} />
@@ -577,12 +587,24 @@ export default function Landing() {
           </Motion.section>
 
           <div className="landing-hero-visual" aria-label="Animated app preview">
+            <div className="landing-now-playing">
+              <span className="landing-now-playing-pulse"><Play size={11} fill="currentColor" /></span>
+              <div>
+                <small>Now playing</small>
+                <strong>Build your next watch night</strong>
+              </div>
+            </div>
             <div className="landing-poster-cloud">
               {posterCards.map((card, index) => (
                 <PosterCard key={card.title} card={card} index={index} />
               ))}
             </div>
             <PhoneMockup />
+            <div className="landing-hero-scorecard">
+              <span>YOUR SPACE</span>
+              <strong>Watch smarter.</strong>
+              <div><b>01</b> calendar <i /> <b>02</b> stream</div>
+            </div>
           </div>
         </div>
 
