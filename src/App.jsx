@@ -89,7 +89,7 @@ function AnimatedRoutes() {
           (user || isGuest) ? (
             <Navigate to="/home" replace />
           ) : (
-            <PageTransition><Landing /></PageTransition>
+            <Landing />
           )
         } />
 

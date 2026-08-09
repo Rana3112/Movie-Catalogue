@@ -36,7 +36,7 @@ export default function PlayerPage() {
   const [health, setHealth] = useState({ status: 'checking', label: 'Checking provider' });
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [autoShiftNotice, setAutoShiftNotice] = useState(null);
-  const [failedIndices, setFailedIndices] = useState(new Set());
+  const [, setFailedIndices] = useState(new Set());
   const [autoShiftEnabled, setAutoShiftEnabled] = useState(true);
   const [isSourcesMenuOpen, setIsSourcesMenuOpen] = useState(false);
 
@@ -1085,13 +1085,12 @@ export default function PlayerPage() {
             background: '#000',
           }}
           referrerPolicy="no-referrer"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
           allowFullScreen
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         />
       )}
     </div>
   );
 }
-
-
 

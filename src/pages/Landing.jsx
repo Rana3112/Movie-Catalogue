@@ -510,10 +510,10 @@ export default function Landing() {
         ease: 'none',
         scrollTrigger: {
           trigger: '[data-time-section]',
-          start: 'top top',
-          end: '+=900',
-          pin: true,
+          start: 'top bottom',
+          end: 'bottom top',
           scrub: 0.8,
+          invalidateOnRefresh: true,
         },
       })
 

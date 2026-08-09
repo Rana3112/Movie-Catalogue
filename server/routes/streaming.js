@@ -269,6 +269,47 @@ router.get('/anime/play', async (req, res) => {
 
 const zlib = require('zlib');
 
+const openSubtitlesHeaders = () => ({
+    'Api-Key': process.env.OPENSUBTITLES_API_KEY || '',
+    'User-Agent': 'Categloge-StreamZone/1.0',
+    Accept: 'application/json',
+});
+
+const getOpenSubtitlesV1Results = async ({ query, imdbId, season, episode, category, request }) => {
+    const apiKey = process.env.OPENSUBTITLES_API_KEY;
+    if (!apiKey || !query) return [];
+
+    const params = new URLSearchParams({ query });
+    if (imdbId) params.set('imdb_id', String(imdbId).replace(/^tt/i, ''));
+    if (season) params.set('season_number', String(season));
+    if (episode) params.set('episode_number', String(episode));
+    if (category === 'tv') params.set('type', 'tv');
+
+    const response = await fetch(`https://api.opensubtitles.com/api/v1/subtitles?${params.toString()}`, {
+        headers: openSubtitlesHeaders(),
+    });
+    if (!response.ok) throw new Error(`OpenSubtitles API search failed (${response.status})`);
+
+    const data = await response.json();
+    const proto = request.get('x-forwarded-proto') || request.protocol || 'https';
+    const host = request.get('host');
+    return (data.data || []).slice(0, 40).flatMap((item) => {
+        const attributes = item.attributes || {};
+        const file = Array.isArray(attributes.files) ? attributes.files[0] : null;
+        if (!file?.file_id) return [];
+        return [{
+            id: String(file.file_id),
+            label: `${attributes.language || 'Unknown'} - ${attributes.release || attributes.feature_details?.title || 'Subtitle'}`,
+            language: attributes.language || 'Unknown',
+            rating: String(attributes.ratings || '0'),
+            downloads: String(attributes.download_count || '0'),
+            downloadUrl: `${proto}://${host}/api/streaming/subtitles/download?fileId=${encodeURIComponent(file.file_id)}`,
+            source: 'OpenSubtitles',
+            format: file.file_name?.split('.').pop() || 'srt',
+        }];
+    });
+};
+
 router.get('/subtitles/search', async (req, res) => {
     try {
         const { query = '', imdbId = '', tmdbId = '', season, episode, category = 'movie' } = req.query;
@@ -313,7 +354,23 @@ router.get('/subtitles/search', async (req, res) => {
 
         const results = [];
 
-        // 3. Search OpenSubtitles via rest.opensubtitles.org by IMDb ID
+        // The current OpenSubtitles API is the primary integration. It requires
+        // OPENSUBTITLES_API_KEY on Render/local server configuration.
+        try {
+            const modernResults = await getOpenSubtitlesV1Results({
+                query,
+                imdbId: targetImdbId,
+                season,
+                episode,
+                category,
+                request: req,
+            });
+            if (modernResults.length > 0) return res.json({ results: modernResults });
+        } catch (error) {
+            console.warn('OpenSubtitles API search failed:', error.message);
+        }
+
+        // Legacy fallback for deployments that have not configured an API key yet.
         if (targetImdbId) {
             try {
                 const osUrl = `https://rest.opensubtitles.org/search/imdbid-${targetImdbId}`;
@@ -369,10 +426,29 @@ router.get('/subtitles/search', async (req, res) => {
 
 router.get('/subtitles/download', async (req, res) => {
     try {
-        const { url } = req.query;
-        if (!url) return res.status(400).send('Missing subtitle URL');
+        const { url, fileId } = req.query;
+        let downloadUrl = url;
 
-        const upstream = await fetch(url, {
+        if (fileId) {
+            if (!process.env.OPENSUBTITLES_API_KEY) {
+                return res.status(503).send('OpenSubtitles API key is not configured');
+            }
+            const linkResponse = await fetch('https://api.opensubtitles.com/api/v1/download', {
+                method: 'POST',
+                headers: {
+                    ...openSubtitlesHeaders(),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ file_id: Number(fileId) }),
+            });
+            if (!linkResponse.ok) return res.status(linkResponse.status).send('Subtitle link request failed');
+            const linkData = await linkResponse.json();
+            downloadUrl = linkData.link;
+        }
+
+        if (!downloadUrl) return res.status(400).send('Missing subtitle URL');
+
+        const upstream = await fetch(downloadUrl, {
             headers: { 'User-Agent': 'TemporaryUserAgent' }
         });
 
