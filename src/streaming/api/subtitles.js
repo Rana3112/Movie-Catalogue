@@ -73,7 +73,7 @@ export async function searchOnlineSubtitles({ title = '', id = '', season, episo
   const imdbId = /^tt\d+$/i.test(rawId) ? rawId : '';
   const tmdbId = /^\d+$/.test(rawId) ? rawId : '';
 
-  // 1. Primary: Backend API search (OpenSubtitles via IMDb ID + TMDB resolution)
+  // 1. Primary: backend API search (Subdl, with optional OpenSubtitles fallback).
   try {
     const params = new URLSearchParams({
       query: title || '',
@@ -92,41 +92,13 @@ export async function searchOnlineSubtitles({ title = '', id = '', season, episo
           label: sub.label,
           language: sub.language,
           url: sub.downloadUrl,
-          source: sub.source || 'OpenSubtitles',
+          source: sub.source || 'Subtitle provider',
           format: sub.format || 'srt',
         }));
       }
     }
   } catch (e) {
     console.warn('Backend subtitle search failed:', e);
-  }
-
-  // 2. Direct OpenSubtitles search fallback if backend fails or returns 0
-  try {
-    const cleanTitle = encodeURIComponent(title.trim());
-    const res = await fetch(`https://rest.opensubtitles.org/search/query-${cleanTitle}`, {
-      headers: { 'User-Agent': 'TemporaryUserAgent' }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        data.slice(0, 20).forEach(sub => {
-          if (sub.SubDownloadLink || sub.IDSubtitleFile) {
-            const dlUrl = sub.SubDownloadLink || `https://dl.opensubtitles.org/en/download/src-api/filead/${sub.IDSubtitleFile}.gz`;
-            results.push({
-              id: String(sub.IDSubtitleFile || sub.IDSubtitle),
-              label: `${sub.LanguageName || 'English'} - ${sub.SubFileName || sub.MovieReleaseName || 'Subtitle'}`,
-              language: sub.LanguageName || 'English',
-              url: dlUrl,
-              source: 'OpenSubtitles Direct',
-              format: sub.SubFormat || 'srt',
-            });
-          }
-        });
-      }
-    }
-  } catch (e) {
-    console.warn('Direct OpenSubtitles search failed:', e);
   }
 
   return results;

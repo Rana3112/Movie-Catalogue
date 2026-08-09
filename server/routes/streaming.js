@@ -310,6 +310,67 @@ const getOpenSubtitlesV1Results = async ({ query, imdbId, season, episode, categ
     });
 };
 
+const buildSubtitleDownloadUrl = (request, url) => {
+    const proto = request.get('x-forwarded-proto') || request.protocol || 'https';
+    const host = request.get('host');
+    return `${proto}://${host}/api/streaming/subtitles/download?url=${encodeURIComponent(url)}`;
+};
+
+const getSubdlResults = async ({ query, imdbId, tmdbId, season, episode, category, request }) => {
+    const apiKey = process.env.SUBDL_API_KEY;
+    if (!apiKey || (!query && !imdbId && !tmdbId)) return [];
+
+    const params = new URLSearchParams({
+        api_key: apiKey,
+        type: category === 'tv' || category === 'anime' ? 'tv' : 'movie',
+        languages: 'EN',
+        unpack: '1',
+        subs_per_page: '30',
+        client: 'custom_integration',
+    });
+    if (query) params.set('film_name', query);
+    if (imdbId) params.set('imdb_id', imdbId.startsWith('tt') ? imdbId : `tt${imdbId}`);
+    if (tmdbId) params.set('tmdb_id', tmdbId);
+    if (season) params.set('season_number', String(season));
+    if (episode) params.set('episode_number', String(episode));
+
+    const response = await fetch(`https://api.subdl.com/api/v1/subtitles?${params.toString()}`, {
+        headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw new Error(`Subdl search failed (${response.status})`);
+
+    const data = await response.json();
+    if (!data.status || !Array.isArray(data.subtitles)) return [];
+
+    const requestedSeason = Number(season);
+    const requestedEpisode = Number(episode);
+    const results = [];
+    for (const subtitle of data.subtitles) {
+        const files = Array.isArray(subtitle.unpack_files) && subtitle.unpack_files.length > 0
+            ? subtitle.unpack_files
+            : [subtitle];
+        for (const file of files) {
+            if (!file?.url) continue;
+            if (requestedSeason && Number(file.season || subtitle.season) !== requestedSeason) continue;
+            if (requestedEpisode && Number(file.episode || subtitle.episode) !== requestedEpisode) continue;
+
+            const downloadUrl = new URL(file.url, 'https://dl.subdl.com').toString();
+            results.push({
+                id: String(file.file_n_id || file.url),
+                label: `${file.language || subtitle.language || 'English'} - ${file.release_name || subtitle.release_name || file.name || 'Subtitle'}`,
+                language: file.language || subtitle.language || 'English',
+                rating: String(subtitle.rating || '0'),
+                downloads: String(subtitle.download_count || '0'),
+                downloadUrl: buildSubtitleDownloadUrl(request, downloadUrl),
+                source: 'Subdl',
+                format: file.format || subtitle.format || (file.name || '').split('.').pop() || 'srt',
+            });
+            if (results.length === 30) return results;
+        }
+    }
+    return results;
+};
+
 router.get('/subtitles/search', async (req, res) => {
     try {
         const { query = '', imdbId = '', tmdbId = '', season, episode, category = 'movie' } = req.query;
@@ -354,8 +415,23 @@ router.get('/subtitles/search', async (req, res) => {
 
         const results = [];
 
-        // The current OpenSubtitles API is the primary integration. It requires
-        // OPENSUBTITLES_API_KEY on Render/local server configuration.
+        // Primary: Subdl (free API key, no OpenSubtitles dependency).
+        try {
+            const subdlResults = await getSubdlResults({
+                query,
+                imdbId: targetImdbId,
+                tmdbId: String(tmdbId || ''),
+                season,
+                episode,
+                category,
+                request: req,
+            });
+            if (subdlResults.length > 0) return res.json({ results: subdlResults });
+        } catch (error) {
+            console.warn('Subdl search failed:', error.message);
+        }
+
+        // Fallback: OpenSubtitles v1 API. Requires OPENSUBTITLES_API_KEY.
         try {
             const modernResults = await getOpenSubtitlesV1Results({
                 query,
@@ -370,59 +446,37 @@ router.get('/subtitles/search', async (req, res) => {
             console.warn('OpenSubtitles API search failed:', error.message);
         }
 
-        // Legacy fallback for deployments that have not configured an API key yet.
-        if (targetImdbId) {
-            try {
-                const osUrl = `https://rest.opensubtitles.org/search/imdbid-${targetImdbId}`;
-                const osRes = await fetch(osUrl, {
-                    headers: { 'User-Agent': 'TemporaryUserAgent' }
-                });
-                if (osRes.ok) {
-                    const data = await osRes.json();
-                    if (Array.isArray(data)) {
-                        let filteredData = data;
-
-                        // Filter by season & episode for TV/Anime if specified
-                        if (season && episode) {
-                            const epFiltered = data.filter(s =>
-                                String(s.SeriesSeason) === String(season) &&
-                                String(s.SeriesEpisode) === String(episode)
-                            );
-                            if (epFiltered.length > 0) filteredData = epFiltered;
-                        }
-
-                        filteredData.slice(0, 40).forEach((sub) => {
-                            if (sub.SubDownloadLink || sub.IDSubtitleFile) {
-                                const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
-                                const host = req.get('host');
-                                const downloadUrl = sub.SubDownloadLink || `https://dl.opensubtitles.org/en/download/src-api/filead/${sub.IDSubtitleFile}.gz`;
-                                const proxyDownloadUrl = `${proto}://${host}/api/streaming/subtitles/download?url=${encodeURIComponent(downloadUrl)}`;
-
-                                results.push({
-                                    id: String(sub.IDSubtitleFile || sub.IDSubtitle),
-                                    label: `${sub.LanguageName || 'English'} - ${sub.SubFileName || sub.MovieReleaseName || 'Subtitle'} (${sub.SubFormat || 'srt'})`,
-                                    language: sub.LanguageName || 'English',
-                                    rating: sub.SubRating || '0',
-                                    downloads: sub.SubDownloadsCnt || '0',
-                                    downloadUrl: proxyDownloadUrl,
-                                    source: 'OpenSubtitles',
-                                    format: sub.SubFormat || 'srt'
-                                });
-                            }
-                        });
-                    }
-                }
-            } catch (e) {
-                console.warn('OpenSubtitles search failed:', e);
-            }
-        }
-
         res.json({ results });
     } catch (error) {
         console.error('Subtitle search error:', error);
         res.status(500).json({ error: 'Subtitle search failed', results: [] });
     }
 });
+
+// Minimal ZIP reader (built-in zlib only) for providers like Subdl that
+// return zipped subtitle files. Supports STORE (0) and DEFLATE (8) methods.
+const extractSubtitleFromZip = (buffer) => {
+    const dv = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+    let offset = 0;
+    while (offset + 30 <= buffer.length) {
+        if (dv.getUint32(offset, true) !== 0x04034b50) break;
+        const method = dv.getUint16(offset + 8, true);
+        const compressedSize = dv.getUint32(offset + 18, true);
+        const fileNameLen = dv.getUint16(offset + 26, true);
+        const extraLen = dv.getUint16(offset + 28, true);
+        const fileName = buffer.slice(offset + 30, offset + 30 + fileNameLen).toString('utf8');
+        const dataStart = offset + 30 + fileNameLen + extraLen;
+        const candidate = /\.(srt|vtt|ass|ssa)$/i.test(fileName);
+        if (candidate) {
+            const data = buffer.slice(dataStart, dataStart + compressedSize);
+            if (method === 0) return data.toString('utf8');
+            if (method === 8) return zlib.inflateRawSync(data).toString('utf8');
+            return null;
+        }
+        offset = dataStart + compressedSize;
+    }
+    return null;
+};
 
 router.get('/subtitles/download', async (req, res) => {
     try {
@@ -460,7 +514,14 @@ router.get('/subtitles/download', async (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
 
-        // Check for GZIP header (0x1f, 0x8b)
+        // ZIP container (PK\x03\x04) — e.g. Subdl. Extract the first subtitle file.
+        if (buffer.length > 4 && buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04) {
+            const extracted = extractSubtitleFromZip(buffer);
+            if (extracted) return res.send(extracted);
+            return res.status(422).send('Could not extract subtitle from archive');
+        }
+
+        // GZIP header (0x1f, 0x8b)
         if (buffer.length > 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
             zlib.gunzip(buffer, (err, decompressed) => {
                 if (err) {
