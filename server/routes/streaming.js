@@ -342,31 +342,26 @@ const getSubdlResults = async ({ query, imdbId, tmdbId, season, episode, categor
     const data = await response.json();
     if (!data.status || !Array.isArray(data.subtitles)) return [];
 
-    const requestedSeason = Number(season);
-    const requestedEpisode = Number(episode);
     const results = [];
     for (const subtitle of data.subtitles) {
-        const files = Array.isArray(subtitle.unpack_files) && subtitle.unpack_files.length > 0
-            ? subtitle.unpack_files
-            : [subtitle];
-        for (const file of files) {
-            if (!file?.url) continue;
-            if (requestedSeason && Number(file.season || subtitle.season) !== requestedSeason) continue;
-            if (requestedEpisode && Number(file.episode || subtitle.episode) !== requestedEpisode) continue;
+        if (!subtitle?.url) continue;
 
-            const downloadUrl = new URL(file.url, 'https://dl.subdl.com').toString();
-            results.push({
-                id: String(file.file_n_id || file.url),
-                label: `${file.language || subtitle.language || 'English'} - ${file.release_name || subtitle.release_name || file.name || 'Subtitle'}`,
-                language: file.language || subtitle.language || 'English',
-                rating: String(subtitle.rating || '0'),
-                downloads: String(subtitle.download_count || '0'),
-                downloadUrl: buildSubtitleDownloadUrl(request, downloadUrl),
-                source: 'Subdl',
-                format: file.format || subtitle.format || (file.name || '').split('.').pop() || 'srt',
-            });
-            if (results.length === 30) return results;
-        }
+        // Subdl's individual `unpack_files` URLs can return 404 for free keys.
+        // The parent archive URL is reliable and our download route extracts its
+        // first subtitle file before returning it to the browser.
+        const downloadUrl = new URL(subtitle.url, 'https://dl.subdl.com');
+        downloadUrl.search = '';
+        results.push({
+            id: String(subtitle.url),
+            label: `${subtitle.language || 'English'} - ${subtitle.release_name || subtitle.name || 'Subtitle'}`,
+            language: subtitle.language || 'English',
+            rating: String(subtitle.rating || '0'),
+            downloads: String(subtitle.download_count || '0'),
+            downloadUrl: buildSubtitleDownloadUrl(request, downloadUrl.toString()),
+            source: 'Subdl',
+            format: 'srt',
+        });
+        if (results.length === 30) return results;
     }
     return results;
 };
