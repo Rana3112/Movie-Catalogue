@@ -1085,7 +1085,6 @@ export default function PlayerPage() {
             background: '#000',
           }}
           referrerPolicy="no-referrer"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
           allowFullScreen
           allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         />
@@ -1093,4 +1092,3 @@ export default function PlayerPage() {
     </div>
   );
 }
-
