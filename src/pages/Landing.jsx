@@ -1,8 +1,7 @@
-import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion as Motion, useReducedMotion } from 'framer-motion'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { motion as Motion } from 'framer-motion'
+import Blaze from '../components/canvasui/Blaze'
+import Droplets from '../components/canvasui/Droplets'
 import {
   ArrowRight,
   CalendarDays,
@@ -23,8 +22,6 @@ import {
 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import './Landing.css'
-
-gsap.registerPlugin(ScrollTrigger)
 
 const officialPosters = {
   apex: 'https://image.tmdb.org/t/p/w500/eTp7gSPkSF3Aw79mNx1NkBP1PZT.jpg',
@@ -469,76 +466,31 @@ function TechSection() {
 export default function Landing() {
   const navigate = useNavigate()
   const { loginAsGuest } = useStore()
-  const prefersReducedMotion = useReducedMotion()
-  const rootRef = useRef(null)
 
   const handleGuestEntry = () => {
     loginAsGuest()
     navigate('/home', { replace: true })
   }
 
-  useEffect(() => {
-    if (prefersReducedMotion || !rootRef.current) return undefined
-
-    const ctx = gsap.context(() => {
-      gsap.to('[data-parallax-card]', {
-        yPercent: -18,
-        rotate: '+=4',
-        ease: 'none',
-        scrollTrigger: {
-          trigger: '.landing-hero',
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true,
-        },
-      })
-
-      gsap.to('[data-parallax-phone]', {
-        yPercent: 12,
-        rotateY: -7,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: '.landing-hero',
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true,
-        },
-      })
-
-      gsap.to('[data-year-rail]', {
-        yPercent: -55,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: '[data-time-section]',
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 0.8,
-          invalidateOnRefresh: true,
-        },
-      })
-
-      gsap.fromTo('[data-year-card]',
-        { y: 80, opacity: 0.25 },
-        {
-          y: -40,
-          opacity: 1,
-          stagger: 0.08,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: '[data-time-section]',
-            start: 'top 70%',
-            end: 'bottom 25%',
-            scrub: true,
-          },
-        }
-      )
-    }, rootRef)
-
-    return () => ctx.revert()
-  }, [prefersReducedMotion])
-
   return (
-    <main ref={rootRef} className="landing-cinematic">
+    <>
+    <Blaze
+      className="landing-bend"
+      style={{ height: '100dvh', overflow: 'hidden' }}
+      height={0.6}
+      distortion={0.5}
+      distortionScale={0.6}
+      speed={1}
+      sparks={0.6}
+      sparkDensity={1.4}
+      sparkSize={1}
+      layers={4}
+      smoke={0.45}
+      glow={1.4}
+      sparkColor={[1, 0.4, 0.051]}
+      smokeColor={[1, 0.4314, 0.102]}
+    >
+      <main className="landing-cinematic">
       <section className="landing-hero">
         <div className="landing-ambient landing-ambient-red" />
         <div className="landing-ambient landing-ambient-blue" />
@@ -646,5 +598,30 @@ export default function Landing() {
         Categloge - Curated Cinema. Personalized Watchlists. StreamZone Ready.
       </footer>
     </main>
+    </Blaze>
+    <Droplets
+      className="landing-rain"
+      style={{ position: 'fixed', inset: 0, zIndex: 50, pointerEvents: 'none' }}
+      intensity={0.45}
+      speed={0.9}
+      scale={0.4}
+      dropWidth={1}
+      dropLength={1}
+      refraction={0.18}
+      blur={0}
+      vignette={0}
+      fallSpeed={1}
+      wiggle={1}
+      staticDrops={0.2}
+      interactive={false}
+      interactionRadius={0.3}
+      interactionStrength={0.6}
+      interactionDistortion={3}
+      tintStrength={0}
+      tint={[0.5608, 0.7059, 1]}
+    >
+      <span aria-hidden="true" />
+    </Droplets>
+    </>
   )
 }

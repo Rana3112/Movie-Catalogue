@@ -1665,3 +1665,14 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Neutralize the global #root box so the Blaze wrapper is full-viewport */
+#root:has(.landing-bend) {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.landing-bend .landing-cinematic {
+  text-align: left;
+  min-height: 100%;
+}
