@@ -152,6 +152,9 @@ export const normalizeAudioLabel = (source) => {
   };
 };
 
+const env = (typeof import.meta !== 'undefined' && import.meta?.env) ? import.meta.env : {};
+const API_URL = (env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com').replace(/\/+$/, '');
+
 /**
  * Fetch direct stream sources and subtitles for a specific server
  */
@@ -167,7 +170,11 @@ export async function fetchBingrStream({ srv = 's70', type = 'movie', id, title,
     },
   };
 
-  const endpoints = ['/api/streaming/bingr/stream', '/bingr-api/stream'];
+  const endpoints = [
+    '/api/streaming/bingr/stream',
+    `${API_URL}/api/streaming/bingr/stream`,
+    '/bingr-api/stream',
+  ];
 
   for (const ep of endpoints) {
     try {
@@ -177,16 +184,19 @@ export async function fetchBingrStream({ srv = 's70', type = 'movie', id, title,
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
-        return {
-          sources: Array.isArray(data.sources) ? data.sources : [],
-          subtitles: Array.isArray(data.subtitles) ? data.subtitles : [],
-          scraperName: data.scraperName || '',
-        };
+        if (data && (Array.isArray(data.sources) || Array.isArray(data.subtitles))) {
+          return {
+            sources: Array.isArray(data.sources) ? data.sources : [],
+            subtitles: Array.isArray(data.subtitles) ? data.subtitles : [],
+            scraperName: data.scraperName || '',
+          };
+        }
       }
     } catch {
-      // Continue to next endpoint
+      // Continue to next fallback endpoint
     }
   }
 
@@ -204,21 +214,24 @@ export async function fetchBingrLanguages({ type = 'movie', id, title, year }) {
 
   const endpoints = [
     `/api/streaming/bingr/languages/${type}/${id}?${query}`,
+    `${API_URL}/api/streaming/bingr/languages/${type}/${id}?${query}`,
     `/bingr-api/languages/${type}/${id}?${query}`,
   ];
 
   for (const ep of endpoints) {
     try {
       const res = await fetch(ep);
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         const sources = Array.isArray(data.sources) ? data.sources : (Array.isArray(data) ? data : []);
         return sources;
       }
     } catch {
-      // Continue to next endpoint
+      // Continue to next fallback endpoint
     }
   }
 
   return [];
 }
+

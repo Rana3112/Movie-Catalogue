@@ -1,8 +1,36 @@
 {
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
-        }
-    ]
+  "rewrites": [
+    {
+      "source": "/api/streaming/bingr/stream",
+      "destination": "/api/bingr-stream"
+    },
+    {
+      "source": "/api/streaming/bingr/languages/:type/:id",
+      "destination": "/api/bingr-languages?type=:type&id=:id"
+    },
+    {
+      "source": "/api/streaming/bingr/animesalt",
+      "destination": "/api/bingr-animesalt"
+    },
+    {
+      "source": "/bingr-api/stream",
+      "destination": "/api/bingr-stream"
+    },
+    {
+      "source": "/bingr-api/languages/:type/:id",
+      "destination": "/api/bingr-languages?type=:type&id=:id"
+    },
+    {
+      "source": "/bingr-api/animesalt",
+      "destination": "/api/bingr-animesalt"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://movie-catalogue-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
