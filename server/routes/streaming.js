@@ -572,4 +572,78 @@ router.get('/proxy', async (req, res) => {
     }
 });
 
+// --- BINGR CONSTELLATION & LANGUAGES PROXY ENDPOINTS ---
+router.post('/bingr/stream', async (req, res) => {
+    try {
+        const upstream = await fetch('https://api.bingr.one/api/stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://bingr.one/',
+                'Origin': 'https://bingr.one',
+            },
+            body: JSON.stringify(req.body)
+        });
+        const data = await upstream.json();
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.status(upstream.status).json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message || 'Bingr stream proxy failed' });
+    }
+});
+
+router.get('/bingr/languages/:type/:id', async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        const queryParams = new URLSearchParams(req.query).toString();
+        const url = `https://api.bingr.one/api/languages/${type}/${id}${queryParams ? `?${queryParams}` : ''}`;
+        const upstream = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://bingr.one/',
+                'Origin': 'https://bingr.one',
+            }
+        });
+        const data = await upstream.json();
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.status(upstream.status).json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message || 'Bingr languages proxy failed' });
+    }
+});
+
+let animeSaltToken = null;
+let animeSaltTokenExpiry = 0;
+router.get('/bingr/animesalt', async (req, res) => {
+    try {
+        const { title, ep = 1, season = 1 } = req.query;
+        if (!title) return res.status(400).json({ error: 'Title required' });
+
+        if (!animeSaltToken || Date.now() > animeSaltTokenExpiry) {
+            const tokenRes = await fetch('https://hianime.filmu.in/token', { method: 'POST' });
+            if (tokenRes.ok) {
+                const tData = await tokenRes.json();
+                if (tData.token) {
+                    animeSaltToken = tData.token;
+                    animeSaltTokenExpiry = Date.now() + 2 * 60 * 60 * 1000;
+                }
+            }
+        }
+
+        const streamUrl = `https://hianime.filmu.in/animesalt/streams?title=${encodeURIComponent(title)}&ep=${ep}&season=${season}`;
+        const streamRes = await fetch(streamUrl, {
+            headers: {
+                'x-api-key': animeSaltToken || '',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+            }
+        });
+        const data = await streamRes.json();
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.status(streamRes.status).json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message || 'AnimeSalt proxy failed' });
+    }
+});
+
 module.exports = router;

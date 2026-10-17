@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle, Trash2, User, Plus, X, Zap, Heart, Rocket, Eye,
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
 import { useIsMobile } from '../lib/platform'
 import { netflixNeumorphic, nativeFastRaisedStyle, nativeFastInsetStyle, nativeFastRedButtonStyle } from '../styles/netflixNeumorphic'
+import Hero3DCircleGrid from '../components/canvas/Hero3DCircleGrid'
 import './GenresHub.css'
 
 const DEFAULT_GENRES = [
@@ -143,9 +144,10 @@ export default function Genres() {
   // Mobile Responsive View
   if (isNative) {
     return (
-      <div className="min-h-screen w-full relative overflow-y-auto flex flex-col bg-[#050505] text-white pb-36">
+      <div className="min-h-screen w-full relative z-10 overflow-y-auto flex flex-col bg-transparent text-white pb-36">
+        <Hero3DCircleGrid />
         {/* Sticky Mobile Header */}
-        <div className="flex-shrink-0 relative z-20 px-4 pt-4 pb-3 flex items-center justify-between border-b border-white/10 bg-[#050505]/90 sticky top-0 backdrop-blur-md">
+        <div className="flex-shrink-0 relative z-20 px-4 pt-4 pb-3 flex items-center justify-between border-b border-white/10 bg-[#050505]/75 sticky top-0 backdrop-blur-md">
           <button
             onClick={() => navigate('/category')}
             className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 text-white active:scale-95 transition-transform"
@@ -273,6 +275,7 @@ export default function Genres() {
         '--card-padding': layoutMetrics.padding,
       }}
     >
+      <Hero3DCircleGrid />
       {/* Background Atmosphere */}
       <div className="genres-bg-glow" aria-hidden="true" />
       <div className="genres-floor-reflection" aria-hidden="true" />

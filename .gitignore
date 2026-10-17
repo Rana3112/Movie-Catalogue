@@ -137,3 +137,4 @@ android/app/.settings/
 android/app/src/main/icon_backup_*/
 
 .vercel
+.codex-landing-build/

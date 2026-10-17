@@ -829,3 +829,981 @@
     padding: 18px 16px;
   }
 }
+
+/* ==========================================================================
+   BINGR PRO STREAMING UI ENHANCEMENTS
+   ========================================================================== */
+
+.streaming-page.bingr-theme {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(229, 9, 20, 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(138, 43, 226, 0.08) 0%, transparent 35%),
+    linear-gradient(180deg, #07070a 0%, #030305 100%);
+  color: #f3f4f6;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Bingr Floating Topbar */
+.bingr-topbar {
+  position: fixed;
+  top: 16px;
+  left: 20px;
+  right: 20px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.bingr-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.bingr-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.bingr-nav-icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(14, 14, 20, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bingr-nav-icon-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(229, 9, 20, 0.45);
+  box-shadow: 0 0 18px rgba(229, 9, 20, 0.35);
+}
+
+.bingr-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 12, 16, 0.72);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+.bingr-brand-badge:hover {
+  border-color: rgba(229, 9, 20, 0.5);
+  box-shadow: 0 0 20px rgba(229, 9, 20, 0.3);
+}
+
+.bingr-brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #e50914;
+  box-shadow: 0 0 12px #e50914;
+  animation: bingrPulse 2s infinite;
+}
+
+@keyframes bingrPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+.bingr-brand-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fff;
+}
+
+.bingr-brand-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #e50914;
+  background: rgba(229, 9, 20, 0.15);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* Bingr Hero Container */
+.bingr-hero-container {
+  position: relative;
+  width: 100%;
+  height: clamp(520px, 72vh, 820px);
+  overflow: hidden;
+  background: #000;
+}
+
+.bingr-hero-backdrop-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bingr-hero-image,
+.bingr-hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+}
+
+.bingr-hero-image.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bingr-hero-image.is-hidden {
+  opacity: 0;
+  transform: scale(1.04);
+}
+
+.bingr-hero-video {
+  opacity: 0;
+  z-index: 2;
+}
+
+.bingr-hero-video.is-visible {
+  opacity: 1;
+}
+
+.bingr-hero-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(circle at 65% 35%, transparent 30%, rgba(3, 3, 5, 0.75) 85%);
+  pointer-events: none;
+}
+
+.bingr-hero-bottom-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: linear-gradient(
+    0deg,
+    #07070a 0%,
+    rgba(7, 7, 10, 0.95) 12%,
+    rgba(7, 7, 10, 0.6) 35%,
+    rgba(7, 7, 10, 0) 65%
+  );
+  pointer-events: none;
+}
+
+/* Hero Content */
+.bingr-hero-content {
+  position: absolute;
+  left: clamp(20px, 6vw, 90px);
+  bottom: clamp(70px, 14vh, 130px);
+  width: min(720px, calc(100vw - 40px));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bingr-hero-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bingr-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 15, 20, 0.65);
+}
+
+.bingr-rating-badge {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.bingr-quality-badge {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.bingr-tag-badge {
+  color: #e50914;
+  border-color: rgba(229, 9, 20, 0.3);
+  background: rgba(229, 9, 20, 0.1);
+}
+
+.bingr-hero-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(30px, 4.5vw, 56px);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.85);
+}
+
+.bingr-hero-overview {
+  font-size: clamp(14px, 1.1vw, 16px);
+  line-height: 1.55;
+  color: rgba(240, 240, 245, 0.82);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 620px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.bingr-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.bingr-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 28px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  background: linear-gradient(135deg, #e50914 0%, #b80710 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 30px rgba(229, 9, 20, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bingr-primary-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 14px 40px rgba(229, 9, 20, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  filter: brightness(1.1);
+}
+
+.bingr-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff;
+  background: rgba(25, 25, 35, 0.65);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bingr-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.bingr-watchlist-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(25, 25, 35, 0.65);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bingr-watchlist-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.bingr-sound-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(14, 14, 20, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bingr-sound-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Hero Carousel Indicators */
+.bingr-hero-indicators {
+  position: absolute;
+  right: clamp(20px, 6vw, 90px);
+  bottom: clamp(70px, 14vh, 130px);
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+
+.bingr-hero-indicator-bar {
+  width: 28px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.bingr-hero-indicator-bar.is-active {
+  width: 48px;
+  background: #e50914;
+  box-shadow: 0 0 12px rgba(229, 9, 20, 0.8);
+}
+
+/* Floating Navigation Tabs (Bingr Category Switcher) */
+.bingr-tabs-wrapper {
+  position: sticky;
+  top: 76px;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 10px 20px;
+  margin-top: -30px;
+  margin-bottom: 24px;
+  transition: margin-top 0.3s ease;
+}
+
+.bingr-tabs-wrapper.no-hero {
+  margin-top: 86px;
+}
+
+.bingr-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 9999px;
+  background: rgba(10, 10, 15, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  max-width: calc(100vw - 32px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bingr-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.bingr-tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 9999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bingr-tab-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bingr-tab-pill.is-active {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.9) 0%, rgba(184, 7, 16, 0.95) 100%);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.bingr-tab-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1px 6px;
+  border-radius: 9999px;
+}
+
+.bingr-tab-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #fff;
+  animation: bingrPulse 1.4s infinite;
+}
+
+/* Main Content Padding */
+.bingr-main-content {
+  padding-bottom: 80px;
+}
+
+/* ==========================================================================
+   BINGR LIVE SPORTS STYLES
+   ========================================================================== */
+
+.bingr-sports-section {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 48px);
+}
+
+.bingr-sports-hero-banner {
+  border-radius: 24px;
+  padding: clamp(24px, 4vw, 44px);
+  background:
+    radial-gradient(circle at 90% 10%, rgba(229, 9, 20, 0.25) 0%, transparent 60%),
+    linear-gradient(135deg, rgba(18, 18, 26, 0.8) 0%, rgba(8, 8, 12, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  margin-bottom: 32px;
+}
+
+.bingr-sports-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: rgba(229, 9, 20, 0.18);
+  border: 1px solid rgba(229, 9, 20, 0.4);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff4d58;
+  margin-bottom: 14px;
+}
+
+.bingr-live-indicator-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #e50914;
+  box-shadow: 0 0 10px #e50914;
+  animation: bingrPulse 1.2s infinite;
+}
+
+.bingr-sports-hero-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(26px, 3.5vw, 40px);
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.bingr-sports-hero-subtitle {
+  font-size: clamp(13px, 1.1vw, 15px);
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 680px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.bingr-sports-filters-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.bingr-sports-filters-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.bingr-sports-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(25, 25, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.bingr-sports-filter-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.bingr-sports-filter-pill.is-active {
+  background: #e50914;
+  border-color: #ff3b47;
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45);
+}
+
+.bingr-sports-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.bingr-sports-row-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bingr-shelf-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.bingr-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  background: rgba(25, 25, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bingr-refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* Sports Grid */
+.bingr-sports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.bingr-match-card-skeleton {
+  height: 230px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.bingr-match-card {
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(145deg, rgba(16, 17, 24, 0.75) 0%, rgba(9, 9, 13, 0.85) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bingr-match-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(229, 9, 20, 0.45);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 25px rgba(229, 9, 20, 0.25);
+}
+
+.bingr-match-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bingr-competition-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.bingr-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: rgba(229, 9, 20, 0.2);
+  border: 1px solid rgba(229, 9, 20, 0.5);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: #ff3b47;
+}
+
+.bingr-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #ff3b47;
+  animation: bingrPulse 1.2s infinite;
+}
+
+.bingr-time-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.bingr-match-teams-box {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.bingr-team-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.bingr-team-badge {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+.bingr-team-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f3f4f6;
+  line-height: 1.2;
+}
+
+.bingr-match-vs {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #e50914;
+  background: rgba(229, 9, 20, 0.12);
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(229, 9, 20, 0.25);
+}
+
+.bingr-match-watch-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.85) 0%, rgba(184, 7, 16, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
+  transition: all 0.2s ease;
+}
+
+.bingr-match-watch-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 10px 28px rgba(229, 9, 20, 0.6);
+}
+
+.bingr-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   BINGR STUDIOS & CATEGORIES STYLES
+   ========================================================================== */
+
+.bingr-categories-section {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 48px);
+}
+
+.bingr-categories-hero {
+  border-radius: 24px;
+  padding: clamp(24px, 4vw, 44px);
+  background:
+    radial-gradient(circle at 10% 20%, rgba(138, 43, 226, 0.2) 0%, transparent 60%),
+    linear-gradient(135deg, rgba(16, 16, 24, 0.85) 0%, rgba(8, 8, 12, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  margin-bottom: 32px;
+}
+
+.bingr-categories-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: rgba(138, 43, 226, 0.15);
+  border: 1px solid rgba(138, 43, 226, 0.35);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #c084fc;
+  margin-bottom: 12px;
+}
+
+.bingr-categories-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(26px, 3.5vw, 40px);
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.bingr-categories-desc {
+  font-size: clamp(13px, 1.1vw, 15px);
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.bingr-shelf-wrapper {
+  margin-bottom: 36px;
+}
+
+.bingr-shelf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.bingr-see-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e50914;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bingr-see-all-link:hover {
+  transform: translateX(3px);
+  color: #ff3b47;
+}
+
+.bingr-studios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.bingr-studio-card {
+  position: relative;
+  height: 120px;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bingr-studio-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
+}
+
+.bingr-studio-badge-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.bingr-studio-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bingr-studio-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.bingr-studio-arrow {
+  color: rgba(255, 255, 255, 0.6);
+  transition: transform 0.2s ease;
+}
+
+.bingr-studio-card:hover .bingr-studio-arrow {
+  transform: translateX(4px);
+  color: #fff;
+}
+
+/* Genres Grid */
+.bingr-genres-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.bingr-genre-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(18, 18, 25, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bingr-genre-tile:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(229, 9, 20, 0.4);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.bingr-genre-emoji {
+  font-size: 24px;
+}
+
+.bingr-genre-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.bingr-genre-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.bingr-genre-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Languages Row */
+.bingr-languages-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bingr-language-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  background: rgba(20, 20, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: all 0.2s ease;
+}
+
+.bingr-language-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(229, 9, 20, 0.4);
+  transform: translateY(-2px);
+}

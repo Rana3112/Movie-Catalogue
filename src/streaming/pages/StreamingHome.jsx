@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Film, Tv, Sword, Search, ChevronLeft, Tags } from 'lucide-react';
+import { Film, Tv, Flame, Trophy, Layers, Search, ChevronLeft, Tags, Sparkles } from 'lucide-react';
 import { useTrendingMovies, usePopularMovies, useTopRatedMovies } from '../hooks/useMovies';
 import { useTrendingTV, usePopularTV } from '../hooks/useTVShows';
 import { useTrendingAnime, usePopularAnime, useSeasonalAnime } from '../hooks/useAnime';
 import { useStreamingStore } from '../store/useStreamingStore';
-import HeroSection from '../components/HeroSection';
+import BingrHero from '../components/BingrHero';
 import ContentCarousel from '../components/ContentCarousel';
 import ContinueWatching from '../components/ContinueWatching';
+import SportsView from '../components/SportsView';
+import CategoriesView from '../components/CategoriesView';
 import { preconnectStreamingProviders } from '../api/streams';
 
 export default function StreamingHome() {
@@ -31,66 +33,99 @@ export default function StreamingHome() {
 
   const tabs = [
     { id: 'movies', label: 'Movies', icon: Film },
-    { id: 'tv', label: 'TV Series', icon: Tv },
-    { id: 'anime', label: 'Anime', icon: Sword },
+    { id: 'tv', label: 'TV Shows', icon: Tv },
+    { id: 'anime', label: 'Anime', icon: Flame },
+    { id: 'sports', label: 'Live Sports', icon: Trophy, isLive: true },
+    { id: 'categories', label: 'Studios & Hubs', icon: Layers },
   ];
 
   const heroItems = activeTab === 'movies'
-    ? trendingMovies?.slice(0, 5)
+    ? trendingMovies?.slice(0, 6)
     : activeTab === 'tv'
-      ? trendingTV?.slice(0, 5)
-      : trendingAnime?.slice(0, 5);
+      ? trendingTV?.slice(0, 6)
+      : activeTab === 'anime'
+        ? trendingAnime?.slice(0, 6)
+        : null;
 
   return (
-    <div className="streaming-page">
-      <div className="streaming-topbar">
-        <button
-          onClick={() => navigate('/home')}
-          className="streaming-icon-button"
-          aria-label="Back"
-        >
-          <ChevronLeft size={24} />
-        </button>
+    <div className="streaming-page bingr-theme">
+      {/* Bingr Obsidian Topbar */}
+      <header className="bingr-topbar">
+        <div className="bingr-topbar-left">
+          <button
+            onClick={() => navigate('/home')}
+            className="bingr-nav-icon-btn"
+            aria-label="Back to Portal Home"
+            title="Return to Home"
+          >
+            <ChevronLeft size={22} />
+          </button>
 
-        <div className="streaming-topbar-actions">
+          {/* Bingr Brand Pill */}
+          <div className="bingr-brand-badge" onClick={() => setActiveTab('movies')}>
+            <span className="bingr-brand-dot" />
+            <span className="bingr-brand-title">STREAMZONE</span>
+            <span className="bingr-brand-sub">BINGR PRO</span>
+          </div>
+        </div>
+
+        {/* Action Controls */}
+        <div className="bingr-topbar-actions">
           <button
             onClick={() => navigate('/streaming/genres')}
-            className="streaming-icon-button"
-            aria-label="Genres"
+            className="bingr-nav-icon-btn"
+            aria-label="Genres & Categories"
+            title="Genres & Categories"
           >
-            <Tags size={20} />
+            <Tags size={19} />
           </button>
 
           <button
             onClick={() => navigate('/streaming/search')}
-            className="streaming-icon-button"
-            aria-label="Search"
+            className="bingr-nav-icon-btn"
+            aria-label="Search Catalog"
+            title="Search Movies, Shows, Anime"
           >
-            <Search size={20} />
+            <Search size={19} />
           </button>
         </div>
-      </div>
+      </header>
 
-      <HeroSection items={heroItems} activeTab={activeTab} />
+      {/* Hero Showcase (Only rendered for Movies, TV, and Anime) */}
+      {heroItems && heroItems.length > 0 && (
+        <BingrHero items={heroItems} activeTab={activeTab} />
+      )}
 
-      <div className="streaming-tabs-wrap">
-        <div className="streaming-tabs" role="tablist" aria-label="Streaming categories">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`streaming-tab ${activeTab === tab.id ? 'is-active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-            >
-              <tab.icon size={15} />
-              {tab.label}
-            </button>
-          ))}
+      {/* Bingr Floating Category Pill Tabs */}
+      <nav className={`bingr-tabs-wrapper ${!heroItems ? 'no-hero' : ''}`}>
+        <div className="bingr-tabs" role="tablist" aria-label="Streaming categories">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`bingr-tab-pill ${isActive ? 'is-active' : ''}`}
+                role="tab"
+                aria-selected={isActive}
+              >
+                <Icon size={16} />
+                <span>{tab.label}</span>
+                {tab.isLive && (
+                  <span className="bingr-tab-live-badge">
+                    <span className="bingr-tab-live-dot" />
+                    LIVE
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </nav>
 
-      <main className="streaming-content">
+      {/* Content Shelves & Hubs */}
+      <main className="streaming-content bingr-main-content">
         <ContinueWatching />
 
         {activeTab === 'movies' && (
@@ -104,7 +139,7 @@ export default function StreamingHome() {
               onItemClick={id => navigate(`/streaming/movie/${id}`)}
             />
             <ContentCarousel
-              title="Top Rated"
+              title="Top Rated Films"
               items={topRatedMovies}
               isLoading={isLoadingTRM}
               category="movie"
@@ -112,7 +147,7 @@ export default function StreamingHome() {
               onItemClick={id => navigate(`/streaming/movie/${id}`)}
             />
             <ContentCarousel
-              title="Popular Movies"
+              title="Popular Blockbusters"
               items={popularMovies}
               isLoading={isLoadingPM}
               category="movie"
@@ -170,6 +205,14 @@ export default function StreamingHome() {
               onItemClick={id => navigate(`/streaming/anime/${id}`)}
             />
           </>
+        )}
+
+        {activeTab === 'sports' && (
+          <SportsView />
+        )}
+
+        {activeTab === 'categories' && (
+          <CategoriesView />
         )}
       </main>
     </div>

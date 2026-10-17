@@ -42,10 +42,10 @@
   background: conic-gradient(
     from var(--border-angle),
     transparent 60%,
-    rgba(141, 17, 17, 0.25) 75%,
-    rgba(255, 45, 45, 0.9) 88%,
+    rgba(var(--theme-accent-deep-rgb, 141, 17, 17), 0.25) 75%,
+    rgba(var(--theme-accent-rgb, 255, 45, 45), 0.9) 88%,
     #ffffff 92%,
-    rgba(255, 45, 45, 0.9) 96%,
+    rgba(var(--theme-accent-rgb, 255, 45, 45), 0.9) 96%,
     transparent 100%
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -54,7 +54,35 @@
   animation: rotateBorderGlimpse 4s linear infinite;
   pointer-events: none;
   z-index: 25;
-  filter: drop-shadow(0 0 10px rgba(255, 45, 45, 0.65));
+  filter: drop-shadow(0 0 10px var(--accent-red-glow, rgba(255, 45, 45, 0.65)));
+}
+
+/* ── FIXED 3D INTERACTIVE CIRCLE GRID LAYER (STRICTLY BEHIND ALL PAGES) ── */
+#hero3dContainer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: #050507;
+}
+
+#hero3dContainer canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+/* Subtle radial vignette that keeps edges crisp while showcasing 3D tiles */
+.vignette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.55) 100%);
 }
 
 /* Page Container - Centered Vertically & Horizontally for All Resolutions & Zoom Levels */
@@ -62,7 +90,9 @@
   min-height: 100vh;
   width: 100%;
   position: relative;
-  background-color: var(--bg-dark);
+  z-index: 2;
+  background-color: transparent !important;
+  background: transparent !important;
   font-family: 'Montserrat', sans-serif;
   color: var(--text-main);
   overflow-x: hidden;
@@ -74,50 +104,11 @@
 }
 
 /* Background Layers */
-.time-archive-glow-1 {
-  position: absolute;
-  top: -10%;
-  left: 15%;
-  width: 55vw;
-  height: 55vw;
-  max-width: 900px;
-  max-height: 900px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 45, 45, 0.16) 0%, rgba(141, 17, 17, 0.08) 45%, transparent 70%);
-  filter: blur(90px);
-  pointer-events: none;
-}
-
-.time-archive-glow-2 {
-  position: absolute;
-  bottom: 0%;
-  right: 10%;
-  width: 45vw;
-  height: 45vw;
-  max-width: 750px;
-  max-height: 750px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(141, 17, 17, 0.14) 0%, transparent 65%);
-  filter: blur(100px);
-  pointer-events: none;
-}
-
-.time-archive-noise {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.035;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
-
+.time-archive-glow-1,
+.time-archive-glow-2,
+.time-archive-noise,
 .time-archive-vignette {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.85) 100%);
+  display: none !important;
 }
 
 /* Floating Navigation Header - Fluid Dynamic Max-Width */
@@ -160,8 +151,8 @@
   align-items: center;
   justify-content: center;
   padding: 2px;
-  background: linear-gradient(135deg, rgba(255, 45, 45, 0.8), rgba(141, 17, 17, 0.3));
-  box-shadow: 0 0 14px rgba(255, 45, 45, 0.4);
+  background: linear-gradient(135deg, var(--accent-red, #ff2d2d), var(--accent-red-deep, #8d1111));
+  box-shadow: 0 0 14px var(--accent-red-glow, rgba(255, 45, 45, 0.4));
 }
 
 .time-archive-avatar {
@@ -296,7 +287,9 @@
   padding: 1.75rem;
   border-radius: 28px;
   overflow: hidden;
-  background-color: var(--card-solid);
+  background: linear-gradient(165deg, rgba(14, 15, 22, 0.60) 0%, rgba(6, 6, 10, 0.72) 100%);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
   border: 1px solid var(--card-border);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   height: 100%;
@@ -330,10 +323,10 @@
 }
 
 .time-archive-red-gradient-text {
-  background: linear-gradient(180deg, #ff4d4d 0%, #a30b0b 100%);
+  background: linear-gradient(180deg, var(--accent-red, #ff4d4d) 0%, var(--accent-red-deep, #a30b0b) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 20px rgba(255, 45, 45, 0.45));
+  filter: drop-shadow(0 0 20px var(--accent-red-glow, rgba(255, 45, 45, 0.45)));
 }
 
 .time-archive-cta-btn {
@@ -359,7 +352,7 @@
 
 .time-archive-cta-btn:hover {
   transform: scale(1.03);
-  box-shadow: 0 12px 35px rgba(255, 45, 45, 0.65);
+  box-shadow: 0 12px 35px var(--accent-red-glow, rgba(255, 45, 45, 0.65));
 }
 
 .time-archive-stats-row {
@@ -404,9 +397,9 @@
   justify-content: space-between;
   padding: 1.75rem;
   border-radius: 28px;
-  background: var(--card-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  background: linear-gradient(165deg, rgba(14, 15, 22, 0.60) 0%, rgba(6, 6, 10, 0.72) 100%);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
   border: 1px solid var(--card-border);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   height: 100%;
@@ -451,15 +444,15 @@
 
 .time-archive-year-tile:hover {
   transform: translateY(-3px);
-  border-color: rgba(255, 45, 45, 0.4);
+  border-color: var(--accent-red-glow, rgba(255, 45, 45, 0.4));
   color: #ffffff;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
 .time-archive-year-tile-selected {
-  background: linear-gradient(135deg, rgba(255, 45, 45, 0.28) 0%, rgba(141, 17, 17, 0.42) 100%) !important;
+  background: linear-gradient(135deg, rgba(var(--theme-accent-rgb, 255, 45, 45), 0.28) 0%, rgba(var(--theme-accent-deep-rgb, 141, 17, 17), 0.42) 100%) !important;
   border: 2px solid var(--accent-red) !important;
-  box-shadow: 0 0 25px rgba(255, 45, 45, 0.55), inset 0 0 15px rgba(255, 45, 45, 0.25) !important;
+  box-shadow: 0 0 25px var(--accent-red-glow, rgba(255, 45, 45, 0.55)), inset 0 0 15px rgba(var(--theme-accent-rgb, 255, 45, 45), 0.25) !important;
   color: #ffffff !important;
   font-weight: 900 !important;
 }

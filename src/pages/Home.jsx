@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BarChart3, Calendar as CalendarIcon, Clapperboard, Clock, Film, LayoutGrid, LogOut, Play, Settings, Sparkles, Tv, User, UserPlus } from 'lucide-react'
 import TimeSettingsModal from '../components/common/TimeSettingsModal'
+import Hero3DCircleGrid from '../components/canvas/Hero3DCircleGrid'
+import ThemeColorSwitcher from '../components/common/ThemeColorSwitcher'
 import './TimeArchive.css'
 
 // Shared font injection (Montserrat)
@@ -123,6 +125,9 @@ export default function Home() {
 
   return (
     <div className="time-archive-page">
+      {/* ── FIXED 3D CIRCULAR GRID BACKGROUND (STRICTLY BEHIND ALL PAGES) ── */}
+      <Hero3DCircleGrid />
+
       {/* ── BACKGROUND LAYERS ── */}
       <div className="time-archive-glow-1" aria-hidden="true" />
       <div className="time-archive-glow-2" aria-hidden="true" />
@@ -181,7 +186,7 @@ export default function Home() {
               <span className="text-xs md:text-sm font-bold tracking-wide text-white leading-tight truncate">
                 {user?.name || user?.displayName || (isGuest ? 'Guest User' : 'Utkarsh Rana')}
               </span>
-              <span className="text-[9px] md:text-[10px] font-semibold tracking-[0.15em] text-[#ff2d2d] uppercase">
+              <span className="text-[9px] md:text-[10px] font-semibold tracking-[0.15em] text-[var(--accent-red)] uppercase">
                 {isGuest ? 'GUEST EXPLORER' : 'MOVIE ENTHUSIAST'}
               </span>
             </div>
@@ -189,6 +194,9 @@ export default function Home() {
 
           {/* Nav Actions */}
           <nav className="flex items-center gap-1.5 md:gap-3 flex-shrink-0">
+            {/* 3D Theme Color Switcher Button (Left of My Space) */}
+            <ThemeColorSwitcher />
+
             <div className="hidden md:inline-flex">
               <motion.button
                 whileHover={{ y: -2, scale: 1.02 }}
@@ -260,7 +268,7 @@ export default function Home() {
           {/* Hero Typography & Primary CTA */}
           <div className="relative z-10 space-y-4 md:space-y-6">
             <div>
-              <span className="text-[11px] font-extrabold tracking-[0.24em] text-[#ff2d2d] uppercase block mb-3">
+              <span className="text-[11px] font-extrabold tracking-[0.24em] text-[var(--accent-red)] uppercase block mb-3">
                 EVERY STORY. EVERY MOMENT.
               </span>
               <h1 className="font-black uppercase tracking-wider leading-none select-none">
@@ -300,7 +308,7 @@ export default function Home() {
             <div className="time-archive-stats-container">
               {/* Movies */}
               <div className="time-archive-stat-card">
-                <Film size={16} className="text-[#ff2d2d] mb-1.5" />
+                <Film size={16} className="text-[var(--accent-red)] mb-1.5" />
                 <span className="text-sm md:text-lg font-black text-white leading-none">
                   <AnimatedCounter value={stats.movies} />
                 </span>
@@ -311,7 +319,7 @@ export default function Home() {
 
               {/* TV Shows */}
               <div className="time-archive-stat-card">
-                <Tv size={16} className="text-[#ff2d2d] mb-1.5" />
+                <Tv size={16} className="text-[var(--accent-red)] mb-1.5" />
                 <span className="text-sm md:text-lg font-black text-white leading-none">
                   <AnimatedCounter value={stats.tv} />
                 </span>
@@ -322,7 +330,7 @@ export default function Home() {
 
               {/* Anime */}
               <div className="time-archive-stat-card">
-                <Sparkles size={16} className="text-[#ff2d2d] mb-1.5" />
+                <Sparkles size={16} className="text-[var(--accent-red)] mb-1.5" />
                 <span className="text-sm md:text-lg font-black text-white leading-none">
                   <AnimatedCounter value={stats.anime} />
                 </span>
@@ -333,7 +341,7 @@ export default function Home() {
 
               {/* Episodes */}
               <div className="time-archive-stat-card">
-                <Clapperboard size={16} className="text-[#ff2d2d] mb-1.5" />
+                <Clapperboard size={16} className="text-[var(--accent-red)] mb-1.5" />
                 <span className="text-sm md:text-lg font-black text-white leading-none">
                   <AnimatedCounter value={stats.episodes} />
                 </span>
@@ -344,7 +352,7 @@ export default function Home() {
 
               {/* Days Watched */}
               <div className="time-archive-stat-card">
-                <Clock size={16} className="text-[#ff2d2d] mb-1.5" />
+                <Clock size={16} className="text-[var(--accent-red)] mb-1.5" />
                 <span className="text-sm md:text-lg font-black text-white leading-none">
                   <AnimatedCounter value={stats.daysWatched} />
                 </span>
@@ -366,7 +374,7 @@ export default function Home() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <span className="text-[11px] font-extrabold tracking-[0.22em] text-[#ff2d2d] uppercase block mb-1">
+              <span className="text-[11px] font-extrabold tracking-[0.22em] text-[var(--accent-red)] uppercase block mb-1">
                 TIME ARCHIVE
               </span>
               <h2 className="text-2xl md:text-3xl font-black tracking-wider text-white uppercase">
@@ -374,10 +382,10 @@ export default function Home() {
               </h2>
             </div>
             <motion.button
-              whileHover={{ scale: 1.05, border: '1px solid rgba(255,45,45,0.5)' }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowSettings(true)}
-              className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-[#ff2d2d] shadow-lg cursor-pointer"
+              className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-[var(--accent-red)] hover:border-[var(--accent-red)] shadow-lg cursor-pointer transition-colors"
               aria-label="Time Settings"
             >
               <CalendarIcon size={20} />
@@ -396,7 +404,7 @@ export default function Home() {
                 >
                   {isSelected && (
                     <motion.div
-                      className="absolute inset-0 rounded-[18px] border border-[#ff2d2d]"
+                      className="absolute inset-0 rounded-[18px] border border-[var(--accent-red)]"
                       animate={{ scale: [1, 1.08, 1], opacity: [0.8, 0, 0.8] }}
                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                     />
@@ -426,8 +434,8 @@ export default function Home() {
                         style={{
                           width: isNodeSelected ? '14px' : '8px',
                           height: isNodeSelected ? '14px' : '8px',
-                          backgroundColor: isNodeSelected ? '#ff2d2d' : 'rgba(255, 255, 255, 0.3)',
-                          boxShadow: isNodeSelected ? '0 0 16px #ff2d2d' : 'none',
+                          backgroundColor: isNodeSelected ? 'var(--accent-red)' : 'rgba(255, 255, 255, 0.3)',
+                          boxShadow: isNodeSelected ? '0 0 16px var(--accent-red)' : 'none',
                           border: isNodeSelected ? '2px solid #ffffff' : 'none',
                         }}
                       />
@@ -435,7 +443,7 @@ export default function Home() {
                         <motion.span
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="absolute top-6 text-[9px] font-black tracking-[0.18em] text-[#ff2d2d] uppercase whitespace-nowrap"
+                          className="absolute top-6 text-[9px] font-black tracking-[0.18em] text-[var(--accent-red)] uppercase whitespace-nowrap"
                         >
                           YOU ARE HERE
                         </motion.span>
@@ -452,9 +460,9 @@ export default function Home() {
       {/* ── FOOTER QUOTE ── */}
       <footer className="time-archive-footer">
         <p className="text-xs md:text-sm font-semibold tracking-[0.2em] text-white/45 uppercase">
-          <span className="text-[#ff2d2d] mr-2">“</span>
+          <span className="text-[var(--accent-red)] mr-2">“</span>
           CINEMA IS TIME TRAVEL YOU CAN FEEL.
-          <span className="text-[#ff2d2d] ml-2">”</span>
+          <span className="text-[var(--accent-red)] ml-2">”</span>
         </p>
       </footer>
 

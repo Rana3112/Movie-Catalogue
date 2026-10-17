@@ -2,9 +2,47 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { StatusBar } from '@capacitor/status-bar';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
-import { Captions, Check, Clock, FileText, Globe, Minus, Plus, RotateCcw, Search, Server, Shuffle, Sliders, Upload, X, Zap } from 'lucide-react';
+import Hls from 'hls.js';
+import {
+  Activity,
+  Captions,
+  Check,
+  Clock,
+  FileText,
+  Globe,
+  Minus,
+  Plus,
+  RotateCcw,
+  Search,
+  Server,
+  Settings,
+  Shuffle,
+  Sliders,
+  Sparkles,
+  Upload,
+  Volume2,
+  X,
+  Zap,
+} from 'lucide-react';
 import { useStreamingStore } from '../store/useStreamingStore';
-import { checkStreamProviderHealth, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
+import {
+  checkStreamProviderHealth,
+  fastProbeCandidates,
+  prewarmStreamCandidates,
+  prewarmStreamUrl,
+  getMovieStreamCandidates,
+  getTVStreamCandidates,
+  getAnimeStreamCandidates,
+  getCustomServers,
+  saveCustomServer,
+} from '../api/streams';
+import {
+  BINGR_SERVERS,
+  fetchBingrStream,
+  fetchBingrLanguages,
+  normalizeAudioLabel,
+  getLanguageFlag,
+} from '../api/bingrDirect.js';
 import { cuesToVttBlobUrl, fetchSubtitleText, parseSubtitles, searchOnlineSubtitles } from '../api/subtitles';
 
 const setNativePlayerMode = (enabled) => {
@@ -15,34 +53,68 @@ const setNativePlayerMode = (enabled) => {
   }
 };
 
+const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
 export default function PlayerPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const config = location.state;
   const addToHistory = useStreamingStore(s => s.addToHistory);
 
+  const [customServerList, setCustomServerList] = useState(() => getCustomServers());
+  const [isAddingServerOpen, setIsAddingServerOpen] = useState(false);
+  const [newServerName, setNewServerName] = useState('');
+  const [newServerUrl, setNewServerUrl] = useState('');
+  const [newServerFlag, setNewServerFlag] = useState('🇺🇸');
+
+  // Candidate Server List Generation
   const candidates = useMemo(() => {
-    if (Array.isArray(config?.candidates) && config.candidates.length) {
-      return config.candidates.map((c, i) => ({
-        ...c,
-        label: c.label || `Source ${i + 1}`,
-      }));
+    let baseList = [];
+    if (config?.category === 'tv' && config?.id) {
+      baseList = getTVStreamCandidates(config.id, config.season || 1, config.episode || 1);
+    } else if (config?.category === 'anime' && config?.id) {
+      baseList = getAnimeStreamCandidates(config.id, config.episode || 1);
+    } else if (config?.id) {
+      baseList = getMovieStreamCandidates(config.id);
+    } else if (Array.isArray(config?.candidates) && config.candidates.length) {
+      baseList = config.candidates;
+    } else if (config?.src) {
+      baseList = [{ label: 'Source 1', src: config.src, flag: '🌐', style: 'purple', isPrevious: true }];
     }
-    return config?.src ? [{ label: 'Source 1', src: config.src, style: 'orange' }] : [];
+
+    return baseList.map((c, i) => ({
+      ...c,
+      originalIndex: i,
+      label: c.label || c.name || `Source ${i + 1}`,
+      flag: c.flag || '🌐',
+    }));
   }, [config]);
 
   const [providerIndex, setProviderIndex] = useState(0);
   const [frameKey, setFrameKey] = useState(0);
   const [health, setHealth] = useState({ status: 'checking', label: 'Checking provider' });
+  const [healthMap, setHealthMap] = useState(() => new Map());
+  const [isProbingAll, setIsProbingAll] = useState(false);
+  const [serverTab, setServerTab] = useState('constellation'); // 'constellation' | 'web' | 'custom' | 'all'
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [autoShiftNotice, setAutoShiftNotice] = useState(null);
   const [, setFailedIndices] = useState(new Set());
   const [autoShiftEnabled, setAutoShiftEnabled] = useState(true);
   const [isSourcesMenuOpen, setIsSourcesMenuOpen] = useState(false);
 
+  // Direct HLS & Multi-Audio States
+  const [directStreamUrl, setDirectStreamUrl] = useState(null);
+  const [bingrSources, setBingrSources] = useState([]);
+  const [bingrSubtitles, setBingrSubtitles] = useState([]);
+  const [audioTracks, setAudioTracks] = useState([]);
+  const [activeAudioTrackId, setActiveAudioTrackId] = useState('primary');
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [isResolvingStream, setIsResolvingStream] = useState(false);
+  const hlsInstanceRef = useRef(null);
+
   // Subtitle States
   const [isSubtitlesMenuOpen, setIsSubtitlesMenuOpen] = useState(false);
-  const [subtitleTab, setSubtitleTab] = useState('search'); // 'search' | 'device'
+  const [subModalTab, setSubModalTab] = useState('languages'); // 'languages' | 'search' | 'device'
   const [activeSubtitle, setActiveSubtitle] = useState(null); // { label, blobUrl, cues, language, source }
   const [subtitleSyncOffset, setSubtitleSyncOffset] = useState(0); // in seconds
   const [onlineSubSearchQuery, setOnlineSubSearchQuery] = useState('');
@@ -55,55 +127,75 @@ export default function PlayerPage() {
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
 
-  const sourceUrl = useMemo(
-    () => candidates[providerIndex]?.src || config?.src || config?.embedUrl || '',
-    [candidates, config, providerIndex]
-  );
-  const isHlsMode = config?.mode === 'hls';
-  const hasAlternateProvider = candidates.length > 1;
+  const candidatesRef = useRef(candidates);
+  candidatesRef.current = candidates;
+  const providerIndexRef = useRef(providerIndex);
+  providerIndexRef.current = providerIndex;
+  const autoShiftEnabledRef = useRef(autoShiftEnabled);
+  autoShiftEnabledRef.current = autoShiftEnabled;
+  const healthMapRef = useRef(healthMap);
+  healthMapRef.current = healthMap;
+
   const currentCandidate = candidates[providerIndex] || { label: 'Source 1' };
+  const isBingrCandidate = Boolean(currentCandidate?.isBingr || currentCandidate?.isDirectHls);
+  const hasAlternateProvider = candidates.length > 1;
 
-  // Function to auto-shift to next non-failed provider
+  const sourceUrl = useMemo(
+    () => directStreamUrl || candidates[providerIndex]?.src || config?.src || config?.embedUrl || '',
+    [candidates, config, providerIndex, directStreamUrl]
+  );
+
+  // Function to swiftly auto-shift to next healthy, non-failed provider
   const triggerAutoShift = useCallback((reason = 'unreachable') => {
-    if (!autoShiftEnabled) return;
+    if (!autoShiftEnabledRef.current) return;
     if (userOverriddenRef.current) return;
-    if (candidates.length <= 1) return;
+    const currentCandidates = candidatesRef.current;
+    if (currentCandidates.length <= 1) return;
 
+    const currIdx = providerIndexRef.current;
     setFailedIndices(prev => {
       const nextFailed = new Set(prev);
-      nextFailed.add(providerIndex);
+      nextFailed.add(currIdx);
 
-      let nextIndex = (providerIndex + 1) % candidates.length;
+      let nextIndex = (currIdx + 1) % currentCandidates.length;
       let attempts = 0;
-      while (nextFailed.has(nextIndex) && attempts < candidates.length) {
-        nextIndex = (nextIndex + 1) % candidates.length;
+
+      while (attempts < currentCandidates.length) {
+        const cand = currentCandidates[nextIndex];
+        const candHealth = cand ? healthMapRef.current.get(cand.src) : null;
+        const isKnownDead = candHealth?.status === 'unreachable';
+
+        if (!nextFailed.has(nextIndex) && !isKnownDead) {
+          break;
+        }
+        nextIndex = (nextIndex + 1) % currentCandidates.length;
         attempts++;
       }
 
-      if (attempts >= candidates.length) {
-        nextIndex = (providerIndex + 1) % candidates.length;
+      if (attempts >= currentCandidates.length) {
+        nextIndex = (currIdx + 1) % currentCandidates.length;
       }
 
-      const prevLabel = candidates[providerIndex]?.label || `Source ${providerIndex + 1}`;
-      const nextLabel = candidates[nextIndex]?.label || `Source ${nextIndex + 1}`;
+      const prevLabel = currentCandidates[currIdx]?.label || `Source ${currIdx + 1}`;
+      const nextLabel = currentCandidates[nextIndex]?.label || `Source ${nextIndex + 1}`;
+
+      prewarmStreamUrl(currentCandidates[nextIndex]?.src);
 
       setProviderIndex(nextIndex);
       setFrameKey(v => v + 1);
-      setAutoShiftNotice(`⚡ Auto-shifted to ${nextLabel} (${prevLabel} was ${reason})`);
+      setAutoShiftNotice(`⚡ Swift Failover: ${prevLabel} (${reason}) → ${nextLabel}`);
       setTimeout(() => setAutoShiftNotice(null), 3500);
 
       return nextFailed;
     });
-  }, [autoShiftEnabled, candidates, providerIndex]);
+  }, []);
 
+  // Initial candidate pre-warming & device setup
   useEffect(() => {
-    if (!config || !sourceUrl) {
+    if (!config) {
       navigate(-1);
       return undefined;
     }
-
-    prewarmStreamUrl(sourceUrl);
-    prewarmStreamCandidates(candidates);
 
     const previousOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -114,7 +206,6 @@ export default function PlayerPage() {
     ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {});
     setNativePlayerMode(true);
 
-    // Default search query prefill
     const initialQuery = `${config.title || ''} ${config.season ? `S${String(config.season).padStart(2, '0')}E${String(config.episode).padStart(2, '0')}` : ''}`.trim();
     setOnlineSubSearchQuery(initialQuery);
 
@@ -136,20 +227,225 @@ export default function PlayerPage() {
       ScreenOrientation.unlock().catch(() => {});
       setNativePlayerMode(false);
     };
-  }, [addToHistory, candidates, config, navigate, sourceUrl]);
+  }, [addToHistory, config, navigate]);
 
-  // Provider health check & auto-shift trigger
+  // Bingr Constellation Stream Resolution Effect
   useEffect(() => {
-    if (!sourceUrl) return undefined;
+    if (!isBingrCandidate) {
+      if (hlsInstanceRef.current) {
+        hlsInstanceRef.current.destroy();
+        hlsInstanceRef.current = null;
+      }
+      setDirectStreamUrl(null);
+      setBingrSources([]);
+      setBingrSubtitles([]);
+      setAudioTracks([]);
+      setIsResolvingStream(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsResolvingStream(true);
+    setHealth({ status: 'checking', label: `Connecting to ${currentCandidate.label}...` });
+
+    const resolveStream = async () => {
+      try {
+        const streamPromise = fetchBingrStream({
+          srv: currentCandidate.srv || 's70',
+          type: config?.category || 'movie',
+          id: config?.id,
+          title: config?.title,
+          year: config?.year,
+          season: config?.season,
+          episode: config?.episode,
+        });
+
+        const langPromise = fetchBingrLanguages({
+          type: config?.category || 'movie',
+          id: config?.id,
+          title: config?.title,
+          year: config?.year,
+        });
+
+        const [streamData, langData] = await Promise.all([streamPromise, langPromise]);
+        if (isCancelled) return;
+
+        const sources = streamData.sources || [];
+        const subtitles = streamData.subtitles || [];
+
+        if (sources.length > 0) {
+          setBingrSources(sources);
+          setBingrSubtitles(subtitles);
+
+          // Build audio tracks list matching Screenshot 3
+          const primarySrc = sources[0];
+          const primaryNorm = normalizeAudioLabel(primarySrc);
+          const initialAudioTracks = [
+            {
+              id: 'primary',
+              name: primaryNorm.cleanName,
+              subtext: primaryNorm.subtext || 'Original',
+              flag: primaryNorm.flag,
+              url: primarySrc.url,
+              type: primarySrc.type,
+              quality: primarySrc.quality || '1080p',
+              isOriginal: true,
+            },
+          ];
+
+          const seenLangs = new Set([primaryNorm.cleanName.toLowerCase()]);
+
+          // Multi-audio sources returned from stream
+          sources.slice(1).forEach((src, idx) => {
+            const norm = normalizeAudioLabel(src);
+            const key = norm.cleanName.toLowerCase();
+            if (!seenLangs.has(key)) {
+              seenLangs.add(key);
+              initialAudioTracks.push({
+                id: `src-${idx}-${key}`,
+                name: norm.cleanName,
+                subtext: src.quality || norm.subtext,
+                flag: norm.flag,
+                url: src.url,
+                type: src.type,
+                quality: src.quality || '1080p',
+              });
+            }
+          });
+
+          // Dubbed external audio sources (NetNaija / Vegamovies)
+          if (Array.isArray(langData)) {
+            langData.forEach((langSrc, idx) => {
+              const norm = normalizeAudioLabel(langSrc);
+              const key = norm.cleanName.toLowerCase();
+              if (!seenLangs.has(key)) {
+                seenLangs.add(key);
+                initialAudioTracks.push({
+                  id: `lang-${idx}-${key}`,
+                  name: norm.cleanName,
+                  subtext: langSrc.quality || '1080p',
+                  flag: norm.flag,
+                  url: langSrc.url,
+                  type: langSrc.type,
+                  quality: langSrc.quality || '1080p',
+                });
+              }
+            });
+          }
+
+          setAudioTracks(initialAudioTracks);
+          setActiveAudioTrackId('primary');
+          setDirectStreamUrl(primarySrc.url);
+          setHealth({ status: 'online', label: 'Streaming Direct HD' });
+          setIsResolvingStream(false);
+        } else {
+          setIsResolvingStream(false);
+          setHealth({ status: 'unreachable', label: 'No stream on server' });
+          if (autoShiftEnabledRef.current && !userOverriddenRef.current && candidatesRef.current.length > 1) {
+            triggerAutoShift(`No stream on ${currentCandidate.label}`);
+          }
+        }
+      } catch (err) {
+        if (isCancelled) return;
+        setIsResolvingStream(false);
+        setHealth({ status: 'unreachable', label: 'Server offline' });
+        if (autoShiftEnabledRef.current && !userOverriddenRef.current && candidatesRef.current.length > 1) {
+          triggerAutoShift(`Error on ${currentCandidate.label}`);
+        }
+      }
+    };
+
+    resolveStream();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentCandidate, config, isBingrCandidate, triggerAutoShift]);
+
+  // HLS Video Playback Engine
+  useEffect(() => {
+    if (!directStreamUrl || !videoRef.current) return;
+    const video = videoRef.current;
+
+    if (hlsInstanceRef.current) {
+      hlsInstanceRef.current.destroy();
+      hlsInstanceRef.current = null;
+    }
+
+    const isM3U8 = directStreamUrl.includes('.m3u8') || directStreamUrl.includes('mpegurl');
+
+    if (isM3U8 && Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90,
+      });
+      hlsInstanceRef.current = hls;
+      hls.loadSource(directStreamUrl);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.playbackRate = playbackSpeed;
+        video.play().catch(() => {});
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              if (autoShiftEnabledRef.current && !userOverriddenRef.current) {
+                triggerAutoShift('HLS fatal stream error');
+              }
+              break;
+          }
+        }
+      });
+    } else {
+      video.src = directStreamUrl;
+      video.playbackRate = playbackSpeed;
+      video.play().catch(() => {});
+    }
+
+    return () => {
+      if (hlsInstanceRef.current) {
+        hlsInstanceRef.current.destroy();
+        hlsInstanceRef.current = null;
+      }
+    };
+  }, [directStreamUrl, playbackSpeed, triggerAutoShift]);
+
+  // Speed change effect
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed]);
+
+  // Fallback Provider Health Check (for iframe embed servers)
+  useEffect(() => {
+    if (isBingrCandidate || !sourceUrl) return undefined;
     let cancelled = false;
 
-    setHealth({ status: 'checking', label: 'Checking provider' });
+    setHealth({ status: 'checking', label: 'Connecting to provider...' });
 
-    checkStreamProviderHealth(sourceUrl).then(result => {
+    checkStreamProviderHealth(sourceUrl, { timeoutMs: 3000 }).then(result => {
       if (cancelled) return;
       setHealth(result);
+      setHealthMap(prev => new Map(prev).set(sourceUrl, result));
 
-      if (result.status === 'unreachable' && autoShiftEnabled && !userOverriddenRef.current && hasAlternateProvider) {
+      if (
+        result.status === 'unreachable' &&
+        autoShiftEnabledRef.current &&
+        !userOverriddenRef.current &&
+        candidatesRef.current.length > 1
+      ) {
         triggerAutoShift('offline');
       }
     });
@@ -157,26 +453,23 @@ export default function PlayerPage() {
     return () => {
       cancelled = true;
     };
-  }, [autoShiftEnabled, hasAlternateProvider, sourceUrl, triggerAutoShift]);
+  }, [sourceUrl, isBingrCandidate, triggerAutoShift]);
 
-  // Loading timeout: auto-shift if frame doesn't load within 7 seconds
+  // Watchdog timer for iframe embeds
   useEffect(() => {
     if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     setShowSlowHint(false);
 
     loadTimeoutRef.current = setTimeout(() => {
       setShowSlowHint(true);
-      if (autoShiftEnabled && !userOverriddenRef.current && hasAlternateProvider) {
-        triggerAutoShift('slow to load');
-      }
-    }, 7000);
+    }, 8500);
 
     return () => {
       if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     };
-  }, [autoShiftEnabled, frameKey, hasAlternateProvider, providerIndex, triggerAutoShift]);
+  }, [sourceUrl, frameKey]);
 
-  // Subtitle Cue Sync Timer for Video/Overlay
+  // Subtitle Cue Sync Timer
   useEffect(() => {
     if (!activeSubtitle || !activeSubtitle.cues || activeSubtitle.cues.length === 0) {
       setCurrentCueText('');
@@ -192,61 +485,97 @@ export default function PlayerPage() {
       const adjustedTime = currentTime + subtitleSyncOffset;
 
       const activeCue = activeSubtitle.cues.find(
-        c => adjustedTime >= c.start && adjustedTime <= c.end
+        cue => adjustedTime >= cue.start && adjustedTime <= cue.end
       );
 
       setCurrentCueText(activeCue ? activeCue.text : '');
-    }, 250);
+    }, 150);
 
     return () => clearInterval(interval);
   }, [activeSubtitle, subtitleSyncOffset]);
 
-  const handleFrameLoad = () => {
-    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-    setShowSlowHint(false);
-  };
+  // Handle switching audio track
+  const handleSelectAudioTrack = (track) => {
+    if (!track) return;
+    const currentTime = videoRef.current ? videoRef.current.currentTime : 0;
+    setActiveAudioTrackId(track.id);
 
-  const handleFrameError = () => {
-    if (autoShiftEnabled) {
-      triggerAutoShift('blocked or failed');
+    if (track.url && track.url !== directStreamUrl) {
+      setDirectStreamUrl(track.url);
+      const video = videoRef.current;
+      if (video) {
+        const onLoaded = () => {
+          video.currentTime = currentTime;
+          video.play().catch(() => {});
+          video.removeEventListener('loadedmetadata', onLoaded);
+        };
+        video.addEventListener('loadedmetadata', onLoaded);
+      }
     }
   };
 
-  const retryCurrentProvider = () => {
-    userOverriddenRef.current = true;
-    prewarmStreamUrl(sourceUrl);
-    setShowSlowHint(false);
-    setFrameKey(value => value + 1);
-  };
-
-  const tryAlternateProvider = () => {
-    if (!hasAlternateProvider) {
-      retryCurrentProvider();
+  // Handle selecting subtitle from list
+  const handleSelectBingrSubtitle = async (sub) => {
+    if (!sub) {
+      setActiveSubtitle(null);
+      setCurrentCueText('');
       return;
     }
-    userOverriddenRef.current = true;
-    const nextIndex = (providerIndex + 1) % candidates.length;
-    prewarmStreamUrl(candidates[nextIndex]?.src);
-    setProviderIndex(nextIndex);
-    setShowSlowHint(false);
-    setFrameKey(value => value + 1);
+
+    try {
+      setAutoShiftNotice(`Applying subtitle: ${sub.label}...`);
+      const text = await fetchSubtitleText(sub.url);
+      const cues = parseSubtitles(text);
+      if (cues.length === 0) {
+        setAutoShiftNotice('Subtitle could not be parsed');
+        setTimeout(() => setAutoShiftNotice(null), 3000);
+        return;
+      }
+      const blobUrl = cuesToVttBlobUrl(cues);
+      setActiveSubtitle({
+        label: sub.label,
+        blobUrl,
+        cues,
+        language: sub.lang || sub.label,
+        source: 'Bingr',
+      });
+      setAutoShiftNotice(`CC: ${sub.label} enabled`);
+      setTimeout(() => setAutoShiftNotice(null), 3000);
+    } catch (err) {
+      setAutoShiftNotice(`Subtitle download error: ${err.message}`);
+      setTimeout(() => setAutoShiftNotice(null), 3000);
+    }
   };
 
-  const selectProvider = (nextIndex) => {
-    if (nextIndex === providerIndex || !candidates[nextIndex]) return;
+  // User manual provider select
+  const selectProvider = (index, e) => {
+    if (e) e.stopPropagation();
     userOverriddenRef.current = true;
-    prewarmStreamUrl(candidates[nextIndex].src);
-    setProviderIndex(nextIndex);
-    setShowSlowHint(false);
+    setProviderIndex(index);
+    setFrameKey(v => v + 1);
     setIsSourcesMenuOpen(false);
-    setFrameKey(value => value + 1);
-
-    setTimeout(() => {
-      userOverriddenRef.current = false;
-    }, 15000);
   };
 
-  // --- Subtitle Event Handlers ---
+  // Next Server quick failover button
+  const tryAlternateProvider = (e) => {
+    if (e) e.stopPropagation();
+    userOverriddenRef.current = true;
+    setProviderIndex(prev => (prev + 1) % candidates.length);
+    setFrameKey(v => v + 1);
+  };
+
+  // Reload current provider
+  const retryCurrentProvider = (e) => {
+    if (e) e.stopPropagation();
+    setFrameKey(v => v + 1);
+    setHealth({ status: 'checking', label: 'Reloading...' });
+    if (directStreamUrl && videoRef.current) {
+      videoRef.current.load();
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  // Subtitle search & file import
   const handleLocalDeviceFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -298,11 +627,6 @@ export default function PlayerPage() {
   };
 
   const handleSelectOnlineSub = async (sub) => {
-    if (sub.format === 'external') {
-      window.open(sub.url, '_blank');
-      return;
-    }
-
     try {
       setAutoShiftNotice(`Downloading subtitle (${sub.language})...`);
       const text = await fetchSubtitleText(sub.url);
@@ -329,7 +653,37 @@ export default function PlayerPage() {
     }
   };
 
-  if (!config || !sourceUrl) return null;
+  const handleSaveCustomServer = () => {
+    if (!newServerName.trim() || !newServerUrl.trim()) return;
+    saveCustomServer({
+      id: `custom-${Date.now()}`,
+      name: newServerName.trim(),
+      flag: newServerFlag || '🇺🇸',
+      url: newServerUrl.trim(),
+      movieUrlTemplate: newServerUrl.trim(),
+      tvUrlTemplate: newServerUrl.trim(),
+    });
+    setCustomServerList(getCustomServers());
+    setIsAddingServerOpen(false);
+    setNewServerName('');
+    setNewServerUrl('');
+  };
+
+  // Filter candidates by category tabs
+  const displayedCandidates = useMemo(() => {
+    if (serverTab === 'constellation') {
+      return candidates.filter(c => c.tier === 'constellation' || c.isBingr || c.isDirectHls);
+    }
+    if (serverTab === 'web') {
+      return candidates.filter(c => c.tier === 'primary' || c.tier === 'mirror' || (!c.isBingr && !c.isCustom));
+    }
+    if (serverTab === 'custom') {
+      return candidates.filter(c => c.isCustom || c.id?.startsWith('custom-'));
+    }
+    return candidates;
+  }, [candidates, serverTab]);
+
+  if (!config) return null;
 
   return (
     <div
@@ -343,61 +697,175 @@ export default function PlayerPage() {
         minWidth: '100vw',
         minHeight: '100vh',
         overflow: 'hidden',
-        touchAction: 'none',
       }}
     >
       {/* Top Left Close Button */}
       <button
-        onClick={() => navigate(-1)}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(-1);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
         aria-label="Close player"
+        title="Close player"
         style={{
           position: 'fixed',
-          top: 'max(12px, env(safe-area-inset-top))',
-          left: 'max(12px, env(safe-area-inset-left))',
-          zIndex: 10001,
-          background: 'rgba(0,0,0,0.68)',
-          border: '1px solid rgba(255,255,255,0.22)',
+          top: 'max(14px, env(safe-area-inset-top))',
+          left: 'max(14px, env(safe-area-inset-left))',
+          zIndex: 2147483647,
+          background: 'rgba(15, 15, 20, 0.85)',
+          border: '1px solid rgba(255,255,255,0.24)',
           borderRadius: '50%',
-          width: 42,
-          height: 42,
+          width: 44,
+          height: 44,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
           color: '#fff',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
+          pointerEvents: 'auto',
+          touchAction: 'manipulation',
+          userSelect: 'none',
         }}
       >
-        <X size={21} />
+        <X size={22} />
       </button>
 
-      {/* Top Right Controls (Minimal & Non-intrusive) */}
+      {/* Top Right Controls (Max z-index, guaranteed clickable) */}
       <div
         style={{
           position: 'fixed',
-          top: 'max(12px, env(safe-area-inset-top))',
-          right: 'max(12px, env(safe-area-inset-right))',
-          zIndex: 10000,
+          top: 'max(14px, env(safe-area-inset-top))',
+          right: 'max(14px, env(safe-area-inset-right))',
+          zIndex: 2147483647,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
           pointerEvents: 'auto',
+          touchAction: 'manipulation',
         }}
       >
-        {/* Subtitles Button */}
+        {/* Next Server Button */}
+        {hasAlternateProvider && (
+          <button
+            onClick={tryAlternateProvider}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label="Next working server"
+            title="Switch to next working streaming server"
+            style={{
+              height: 40,
+              padding: '0 16px',
+              borderRadius: 24,
+              border: '1px solid rgba(255,255,255,0.3)',
+              background: 'linear-gradient(135deg, #E50914 0%, #B20710 100%)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              cursor: 'pointer',
+              fontWeight: 800,
+              fontSize: 12,
+              backdropFilter: 'blur(12px)',
+              boxShadow: '0 4px 16px rgba(229,9,20,0.55), inset 0 1px 0 rgba(255,255,255,0.3)',
+              pointerEvents: 'auto',
+              touchAction: 'manipulation',
+              userSelect: 'none',
+              transition: 'transform 0.15s ease, filter 0.15s ease',
+            }}
+          >
+            <Shuffle size={15} />
+            <span>Next Server</span>
+          </button>
+        )}
+
+        {/* Current Active Server Pill & Drawer Opener */}
         <button
-          onClick={() => {
-            setIsSubtitlesMenuOpen(prev => !prev);
-            if (onlineSubResults.length === 0) handleSearchOnlineSubtitles();
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsSourcesMenuOpen(prev => !prev);
           }}
-          aria-label="Add subtitles"
-          title="Add Subtitles"
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Click to view & select from Constellation & Web servers"
+          aria-label="Stream servers menu"
           style={{
-            background: activeSubtitle ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : 'rgba(0,0,0,0.72)',
-            border: activeSubtitle ? '2px solid #60A5FA' : '1px solid rgba(255,255,255,0.25)',
+            height: 40,
+            background: 'rgba(18, 19, 26, 0.92)',
+            border: isBingrCandidate ? '1.5px solid #38BDF8' : '1.5px solid rgba(255,255,255,0.22)',
             borderRadius: 24,
-            padding: '7px 14px',
+            padding: '0 15px',
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            backdropFilter: 'blur(12px)',
+            boxShadow: isBingrCandidate ? '0 0 14px rgba(56,189,248,0.35)' : '0 4px 16px rgba(0,0,0,0.5)',
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
+            userSelect: 'none',
+          }}
+        >
+          {currentCandidate.id === 'bingr-aphelion' ? (
+            <Sparkles size={15} className="text-cyan-400" />
+          ) : (
+            <span style={{ fontSize: 15 }}>{currentCandidate.flag || '🌐'}</span>
+          )}
+          <span>{currentCandidate.label}</span>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: health.status === 'online' ? '#10B981' : health.status === 'degraded' ? '#FBBF24' : '#EF4444',
+              boxShadow: health.status === 'online' ? '0 0 6px #10B981' : 'none',
+            }}
+          />
+        </button>
+
+        {/* Reload Current Source Button */}
+        <button
+          onClick={retryCurrentProvider}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label="Reload stream"
+          title="Reload current stream"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.22)',
+            background: 'rgba(18, 19, 26, 0.92)',
+            color: '#fff',
+            display: 'grid',
+            placeItems: 'center',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)',
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
+            userSelect: 'none',
+          }}
+        >
+          <RotateCcw size={16} />
+        </button>
+
+        {/* Audio & Subtitles Drawer Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsSubtitlesMenuOpen(prev => !prev);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label="Audio and Subtitles"
+          title="Audio Languages & Subtitles"
+          style={{
+            height: 40,
+            background: (activeSubtitle || audioTracks.length > 1) ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : 'rgba(18, 19, 26, 0.92)',
+            border: (activeSubtitle || audioTracks.length > 1) ? '2px solid #60A5FA' : '1px solid rgba(255,255,255,0.22)',
+            borderRadius: 24,
+            padding: '0 14px',
             color: '#fff',
             fontSize: 12,
             fontWeight: 800,
@@ -407,86 +875,14 @@ export default function PlayerPage() {
             cursor: 'pointer',
             backdropFilter: 'blur(12px)',
             boxShadow: activeSubtitle ? '0 0 12px rgba(37,99,235,0.6)' : '0 4px 12px rgba(0,0,0,0.4)',
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
+            userSelect: 'none',
           }}
         >
-          <Captions size={15} className={activeSubtitle ? 'text-blue-300' : 'text-blue-400'} />
-          <span>{activeSubtitle ? 'CC On' : 'Subtitles'}</span>
+          <Volume2 size={15} className="text-blue-300" />
+          <span>{activeSubtitle ? 'CC On' : 'Audio & Subs'}</span>
         </button>
-
-        {/* Current Active Source Pill & Menu Opener */}
-        <button
-          onClick={() => setIsSourcesMenuOpen(prev => !prev)}
-          style={{
-            background: 'rgba(0,0,0,0.72)',
-            border: '1px solid rgba(255,255,255,0.25)',
-            borderRadius: 24,
-            padding: '7px 14px',
-            color: '#fff',
-            fontSize: 12,
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            cursor: 'pointer',
-            backdropFilter: 'blur(12px)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-          }}
-        >
-          <Server size={14} className="text-amber-400" />
-          <span>{currentCandidate.label}</span>
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              backgroundColor: health.status === 'online' ? '#10B981' : health.status === 'degraded' ? '#FBBF24' : '#EF4444',
-            }}
-          />
-        </button>
-
-        {/* Reload Current Source Button */}
-        <button
-          onClick={retryCurrentProvider}
-          aria-label="Reload source"
-          title="Reload source"
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.2)',
-            background: 'rgba(0,0,0,0.68)',
-            color: '#fff',
-            display: 'grid',
-            placeItems: 'center',
-            cursor: 'pointer',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
-          <RotateCcw size={16} />
-        </button>
-
-        {/* Next Source Button */}
-        {hasAlternateProvider && (
-          <button
-            onClick={tryAlternateProvider}
-            aria-label="Next source"
-            title="Next source"
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              border: '1px solid rgba(255,255,255,0.2)',
-              background: 'linear-gradient(135deg, #E50914, #B20710)',
-              color: '#fff',
-              display: 'grid',
-              placeItems: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(229,9,20,0.5)',
-            }}
-          >
-            <Shuffle size={16} />
-          </button>
-        )}
       </div>
 
       {/* Hidden Device File Picker Input */}
@@ -498,48 +894,118 @@ export default function PlayerPage() {
         onChange={handleLocalDeviceFileSelect}
       />
 
-      {/* Subtitles Drawer Modal */}
-      {isSubtitlesMenuOpen && (
+      {/* =========================================================================
+          SERVER CONSTELLATION & SPEED DRAWER (MATCHING SCREENSHOT 1 & 2)
+          ========================================================================= */}
+      {isSourcesMenuOpen && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 10005,
-            background: 'rgba(0,0,0,0.65)',
-            backdropFilter: 'blur(8px)',
+            zIndex: 2147483647,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(16px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: 16,
+            touchAction: 'manipulation',
+            pointerEvents: 'auto',
           }}
-          onClick={() => setIsSubtitlesMenuOpen(false)}
+          onClick={() => {
+            setIsSourcesMenuOpen(false);
+            setIsAddingServerOpen(false);
+          }}
         >
           <div
             style={{
-              width: 'min(92vw, 440px)',
-              background: '#141414',
-              border: '1px solid rgba(255,255,255,0.18)',
+              width: 'min(94vw, 560px)',
+              background: '#0B0C0E',
+              border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 20,
-              padding: 20,
+              padding: '24px',
               color: '#fff',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.85)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              touchAction: 'manipulation',
+              pointerEvents: 'auto',
             }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Captions size={20} className="text-blue-500" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Subtitles</h3>
+            {/* Drawer Header with Category Tabs & Close */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => setServerTab('constellation')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    border: '1px solid ' + (serverTab === 'constellation' ? '#38BDF8' : 'rgba(255,255,255,0.1)'),
+                    background: serverTab === 'constellation' ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: serverTab === 'constellation' ? '#38BDF8' : 'rgba(255,255,255,0.7)',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Sparkles size={13} />
+                  <span>Constellation</span>
+                </button>
+
+                <button
+                  onClick={() => setServerTab('web')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    border: '1px solid ' + (serverTab === 'web' ? '#A855F7' : 'rgba(255,255,255,0.1)'),
+                    background: serverTab === 'web' ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: serverTab === 'web' ? '#A855F7' : 'rgba(255,255,255,0.7)',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Globe size={13} />
+                  <span>Web Servers</span>
+                </button>
+
+                <button
+                  onClick={() => setServerTab('custom')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    border: '1px solid ' + (serverTab === 'custom' ? '#10B981' : 'rgba(255,255,255,0.1)'),
+                    background: serverTab === 'custom' ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: serverTab === 'custom' ? '#10B981' : 'rgba(255,255,255,0.7)',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Sliders size={13} />
+                  <span>Custom</span>
+                </button>
               </div>
+
               <button
-                onClick={() => setIsSubtitlesMenuOpen(false)}
+                onClick={() => setIsSourcesMenuOpen(false)}
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.08)',
                   border: 0,
                   borderRadius: '50%',
-                  width: 30,
-                  height: 30,
+                  width: 32,
+                  height: 32,
                   color: '#fff',
                   display: 'grid',
                   placeItems: 'center',
@@ -550,141 +1016,480 @@ export default function PlayerPage() {
               </button>
             </div>
 
-            {/* Active Subtitle Status & Clear/Sync Controls */}
-            {activeSubtitle && (
-              <div
-                style={{
-                  marginBottom: 16,
-                  padding: 12,
-                  borderRadius: 12,
-                  background: 'rgba(37,99,235,0.15)',
-                  border: '1px solid rgba(37,99,235,0.3)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#60A5FA' }}>Active Subtitle</div>
-                    <div style={{ fontSize: 11, color: '#D1D5DB', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240 }}>
-                      {activeSubtitle.label}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveSubtitle(null)}
-                    style={{
-                      background: 'rgba(239,68,68,0.2)',
-                      border: '1px solid rgba(239,68,68,0.4)',
-                      color: '#EF4444',
-                      padding: '4px 10px',
-                      borderRadius: 16,
-                      fontSize: 11,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Remove CC
-                  </button>
+            {/* Two Column Layout (Screenshot 1 & 2): Left QUALITY, Right SERVER */}
+            <div style={{ display: 'grid', gridTemplateColumns: '170px 1fr', gap: 24, minHeight: 280 }}>
+              {/* Left Column: QUALITY */}
+              <div style={{ borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: 16 }}>
+                <div style={{ color: '#71717A', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', marginBottom: 16, textTransform: 'uppercase' }}>
+                  QUALITY
                 </div>
 
-                {/* Subtitle Sync Offset Adjuster */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9CA3AF' }}>
-                    <Clock size={12} /> Sync Delay: <strong style={{ color: '#fff' }}>{subtitleSyncOffset >= 0 ? `+${subtitleSyncOffset.toFixed(1)}s` : `${subtitleSyncOffset.toFixed(1)}s`}</strong>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button
-                      onClick={() => setSubtitleSyncOffset(s => Number((s - 0.5).toFixed(1)))}
-                      style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 12, width: 26, height: 26, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <button
-                      onClick={() => setSubtitleSyncOffset(0)}
-                      style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 12, padding: '2px 8px', color: '#fff', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      Reset
-                    </button>
-                    <button
-                      onClick={() => setSubtitleSyncOffset(s => Number((s + 0.5).toFixed(1)))}
-                      style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 12, width: 26, height: 26, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
-                    >
-                      <Plus size={12} />
-                    </button>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: 'rgba(255,255,255,0.04)',
+                  }}
+                >
+                  <Check size={16} className="text-sky-400 mt-0.5" strokeWidth={3} />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Cinematic</div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500, marginTop: 2 }}>Up to 1080p</div>
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Subtitle Import Options Tabs */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              {/* Right Column: SERVER */}
+              <div>
+                <div style={{ color: '#71717A', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', marginBottom: 12, textTransform: 'uppercase' }}>
+                  SERVER
+                </div>
+
+                <div
+                  style={{
+                    maxHeight: 290,
+                    overflowY: 'auto',
+                    paddingRight: 6,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}
+                >
+                  {displayedCandidates.map(candidate => {
+                    const actualIdx = candidate.originalIndex ?? 0;
+                    const isActive = actualIdx === providerIndex;
+
+                    return (
+                      <button
+                        key={`${candidate.label}-${candidate.src}-${actualIdx}`}
+                        type="button"
+                        onClick={(e) => selectProvider(actualIdx, e)}
+                        style={{
+                          height: 42,
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          padding: '0 12px',
+                          borderRadius: 10,
+                          border: 0,
+                          background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background 0.15s ease',
+                        }}
+                      >
+                        {/* Active Blue Checkmark on the left */}
+                        <div style={{ width: 16, display: 'flex', justifyContent: 'center' }}>
+                          {isActive && <Check size={16} className="text-sky-400" strokeWidth={3} />}
+                        </div>
+
+                        {/* Icon: Star for Aphelion, Flag for others */}
+                        <div style={{ width: 22, display: 'flex', justifyContent: 'center' }}>
+                          {candidate.id === 'bingr-aphelion' || candidate.name === 'Aphelion' ? (
+                            <Sparkles size={16} className="text-cyan-400" />
+                          ) : (
+                            <span style={{ fontSize: 17, lineHeight: 1 }}>{candidate.flag || '🌐'}</span>
+                          )}
+                        </div>
+
+                        {/* Server Name */}
+                        <span style={{ fontSize: 14, fontWeight: 800, flex: 1 }}>
+                          {candidate.label}
+                        </span>
+
+                        {/* Ping / Status dot */}
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: isActive ? '#38BDF8' : 'rgba(255,255,255,0.3)',
+                          }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row: SPEED Controls (Screenshot 2) */}
+            <div
+              style={{
+                borderTop: '1px solid rgba(255,255,255,0.08)',
+                paddingTop: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span style={{ color: '#71717A', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  SPEED
+                </span>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {SPEED_OPTIONS.map(spd => {
+                    const isCurrent = playbackSpeed === spd;
+                    return (
+                      <button
+                        key={spd}
+                        type="button"
+                        onClick={() => setPlaybackSpeed(spd)}
+                        style={{
+                          background: isCurrent ? '#FFFFFF' : 'transparent',
+                          color: isCurrent ? '#000000' : 'rgba(255,255,255,0.7)',
+                          border: 0,
+                          borderRadius: 9999,
+                          padding: isCurrent ? '4px 14px' : '4px 8px',
+                          fontSize: 13,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {spd}x
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <button
-                onClick={() => setSubtitleTab('search')}
+                type="button"
+                title="Player Settings"
                 style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: 12,
+                  background: 'transparent',
                   border: 0,
-                  fontSize: 12,
-                  fontWeight: 800,
+                  color: 'rgba(255,255,255,0.7)',
                   cursor: 'pointer',
-                  background: subtitleTab === 'search' ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
+                  display: 'grid',
+                  placeItems: 'center',
                 }}
               >
-                <Globe size={14} /> Search Online
+                <Settings size={18} />
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          AUDIO & SUBTITLES DRAWER (MATCHING SCREENSHOT 3)
+          ========================================================================= */}
+      {isSubtitlesMenuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2147483647,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(16px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            touchAction: 'manipulation',
+            pointerEvents: 'auto',
+          }}
+          onClick={() => setIsSubtitlesMenuOpen(false)}
+        >
+          <div
+            style={{
+              width: 'min(94vw, 560px)',
+              background: '#0B0C0E',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 20,
+              padding: '24px',
+              color: '#fff',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.85)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              touchAction: 'manipulation',
+              pointerEvents: 'auto',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header with Subtitle Search / File Tab toggle & Close */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => setSubModalTab('languages')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    border: '1px solid ' + (subModalTab === 'languages' ? '#38BDF8' : 'rgba(255,255,255,0.1)'),
+                    background: subModalTab === 'languages' ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: subModalTab === 'languages' ? '#38BDF8' : 'rgba(255,255,255,0.7)',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Audio & Subtitles
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSubModalTab('search');
+                    if (onlineSubResults.length === 0) handleSearchOnlineSubtitles();
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    border: '1px solid ' + (subModalTab === 'search' ? '#38BDF8' : 'rgba(255,255,255,0.1)'),
+                    background: subModalTab === 'search' ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: subModalTab === 'search' ? '#38BDF8' : 'rgba(255,255,255,0.7)',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Search Online
+                </button>
+              </div>
+
               <button
-                onClick={() => setSubtitleTab('device')}
+                onClick={() => setIsSubtitlesMenuOpen(false)}
                 style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: 12,
+                  background: 'rgba(255,255,255,0.08)',
                   border: 0,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  background: subtitleTab === 'device' ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : 'rgba(255,255,255,0.08)',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
                   color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer',
                 }}
               >
-                <Upload size={14} /> Import Device
+                <X size={16} />
               </button>
             </div>
 
-            {/* Tab 1: Device File Import */}
-            {subtitleTab === 'device' && (
-              <div style={{ textAlign: 'center', padding: '20px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 14, border: '1px dashed rgba(255,255,255,0.2)' }}>
-                <FileText size={32} className="mx-auto mb-2 text-blue-400" />
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Select Subtitle File</div>
-                <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 14 }}>Supports .srt, .vtt, .ass files from phone or PC</div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                    border: 0,
-                    borderRadius: 20,
-                    padding: '8px 20px',
-                    color: '#fff',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(37,99,235,0.4)',
-                  }}
-                >
-                  📁 Choose Subtitle File
-                </button>
+            {/* TAB 1: AUDIO & SUBTITLES COLUMNS (SCREENSHOT 3) */}
+            {subModalTab === 'languages' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, minHeight: 290 }}>
+                {/* Column 1: AUDIO */}
+                <div style={{ borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: 16 }}>
+                  <div style={{ color: '#71717A', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', marginBottom: 12, textTransform: 'uppercase' }}>
+                    AUDIO
+                  </div>
+
+                  <div
+                    style={{
+                      maxHeight: 280,
+                      overflowY: 'auto',
+                      paddingRight: 6,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                    }}
+                  >
+                    {audioTracks.length > 0 ? (
+                      audioTracks.map((track) => {
+                        const isSelected = track.id === activeAudioTrackId;
+                        return (
+                          <button
+                            key={track.id}
+                            type="button"
+                            onClick={() => handleSelectAudioTrack(track)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10,
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border: 0,
+                              background: isSelected ? 'rgba(255,255,255,0.08)' : 'transparent',
+                              color: '#fff',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'background 0.15s ease',
+                              width: '100%',
+                            }}
+                          >
+                            <div style={{ width: 14, display: 'flex', justifyContent: 'center' }}>
+                              {isSelected && <Check size={15} className="text-sky-400" strokeWidth={3} />}
+                            </div>
+
+                            <span style={{ fontSize: 17, lineHeight: 1 }}>{track.flag}</span>
+
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{track.name}</div>
+                              {track.subtext && (
+                                <div style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>{track.subtext}</div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      // Default audio option when no multi-audio returned
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          background: 'rgba(255,255,255,0.08)',
+                        }}
+                      >
+                        <Check size={15} className="text-sky-400" strokeWidth={3} />
+                        <span style={{ fontSize: 17 }}>🇺🇸</span>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 800 }}>English</div>
+                          <div style={{ fontSize: 11, color: '#9CA3AF' }}>Original</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Column 2: SUBTITLES */}
+                <div>
+                  <div style={{ color: '#71717A', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', marginBottom: 12, textTransform: 'uppercase' }}>
+                    SUBTITLES
+                  </div>
+
+                  <div
+                    style={{
+                      maxHeight: 230,
+                      overflowY: 'auto',
+                      paddingRight: 6,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                    }}
+                  >
+                    {/* Off Option */}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectBingrSubtitle(null)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        border: 0,
+                        background: activeSubtitle === null ? 'rgba(255,255,255,0.08)' : 'transparent',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        width: '100%',
+                      }}
+                    >
+                      <div style={{ width: 14, display: 'flex', justifyContent: 'center' }}>
+                        {activeSubtitle === null && <Check size={15} className="text-sky-400" strokeWidth={3} />}
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 800 }}>Off</span>
+                    </button>
+
+                    {/* Bingr Subtitles List */}
+                    {bingrSubtitles.map((sub, idx) => {
+                      const isSelected = activeSubtitle?.label === sub.label;
+                      return (
+                        <button
+                          key={`${sub.label}-${idx}`}
+                          type="button"
+                          onClick={() => handleSelectBingrSubtitle(sub)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '8px 10px',
+                            borderRadius: 8,
+                            border: 0,
+                            background: isSelected ? 'rgba(255,255,255,0.08)' : 'transparent',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            width: '100%',
+                          }}
+                        >
+                          <div style={{ width: 14, display: 'flex', justifyContent: 'center' }}>
+                            {isSelected && <Check size={15} className="text-sky-400" strokeWidth={3} />}
+                          </div>
+                          <span style={{ fontSize: 14, fontWeight: 800 }}>{sub.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Subtitle Sync Offset Delay Adjuster (When Subtitle is Active) */}
+                  {activeSubtitle && (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        background: 'rgba(37,99,235,0.12)',
+                        border: '1px solid rgba(37,99,235,0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div style={{ fontSize: 11, color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Clock size={12} /> Sync: <strong style={{ color: '#fff' }}>{subtitleSyncOffset >= 0 ? `+${subtitleSyncOffset.toFixed(1)}s` : `${subtitleSyncOffset.toFixed(1)}s`}</strong>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          onClick={() => setSubtitleSyncOffset(s => Number((s - 0.5).toFixed(1)))}
+                          style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 8, width: 22, height: 22, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                        >
+                          <Minus size={11} />
+                        </button>
+                        <button
+                          onClick={() => setSubtitleSyncOffset(0)}
+                          style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 8, padding: '2px 6px', color: '#fff', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          0
+                        </button>
+                        <button
+                          onClick={() => setSubtitleSyncOffset(s => Number((s + 0.5).toFixed(1)))}
+                          style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: 8, width: 22, height: 22, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                        >
+                          <Plus size={11} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bottom Upload Box (Screenshot 3) */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      border: '1.5px dashed rgba(255,255,255,0.22)',
+                      borderRadius: 10,
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      color: '#9CA3AF',
+                      cursor: 'pointer',
+                      marginTop: 10,
+                      background: 'rgba(255,255,255,0.02)',
+                    }}
+                  >
+                    <Upload size={14} />
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>Upload Subtitle File (.srt, .vtt)</span>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Tab 2: Online Search */}
-            {subtitleTab === 'search' && (
+            {/* TAB 2: ONLINE SUBTITLE SEARCH */}
+            {subModalTab === 'search' && (
               <div>
                 <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
                   <input
@@ -724,8 +1529,7 @@ export default function PlayerPage() {
                   </button>
                 </div>
 
-                {/* Subtitle Results List */}
-                <div style={{ maxHeight: 200, overflowY: 'auto', paddingRight: 4 }}>
+                <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
                   {isSearchingOnlineSubs ? (
                     <div style={{ textAlign: 'center', padding: '20px', fontSize: 12, color: '#9CA3AF' }}>
                       🔍 Searching subtitles online...
@@ -745,7 +1549,7 @@ export default function PlayerPage() {
                           border: '1px solid rgba(255,255,255,0.08)',
                         }}
                       >
-                        <div style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{sub.label}</div>
                           <div style={{ fontSize: 10, color: '#9CA3AF' }}>{sub.source} • {sub.language}</div>
                         </div>
@@ -778,145 +1582,7 @@ export default function PlayerPage() {
         </div>
       )}
 
-      {/* Sources Selection Menu Drawer / Modal */}
-      {isSourcesMenuOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10005,
-            background: 'rgba(0,0,0,0.65)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-          onClick={() => setIsSourcesMenuOpen(false)}
-        >
-          <div
-            style={{
-              width: 'min(92vw, 420px)',
-              background: '#141414',
-              border: '1px solid rgba(255,255,255,0.18)',
-              borderRadius: 20,
-              padding: 20,
-              color: '#fff',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Sliders size={18} className="text-red-500" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Stream Sources</h3>
-              </div>
-              <button
-                onClick={() => setIsSourcesMenuOpen(false)}
-                style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  border: 0,
-                  borderRadius: '50%',
-                  width: 30,
-                  height: 30,
-                  color: '#fff',
-                  display: 'grid',
-                  placeItems: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Auto-Shift Toggle Control */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 14px',
-                borderRadius: 12,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                marginBottom: 16,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Zap size={16} className={autoShiftEnabled ? 'text-amber-400' : 'text-slate-500'} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>Auto-Shift Stream</div>
-                  <div style={{ fontSize: 10, color: '#9CA3AF' }}>Automatically switch if stream fails</div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setAutoShiftEnabled(prev => !prev)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  border: 0,
-                  cursor: 'pointer',
-                  background: autoShiftEnabled
-                    ? 'linear-gradient(135deg, #10B981, #059669)'
-                    : 'rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  boxShadow: autoShiftEnabled ? '0 0 10px rgba(16,185,129,0.4)' : 'none',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {autoShiftEnabled ? 'ON' : 'OFF'}
-              </button>
-            </div>
-
-            {/* Sources List Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, maxHeight: '240px', overflowY: 'auto', paddingRight: 4 }}>
-              {candidates.map((candidate, index) => {
-                const isActive = index === providerIndex;
-                const isPurple = candidate.style === 'purple';
-
-                return (
-                  <button
-                    key={`${candidate.label}-${candidate.src}`}
-                    onClick={() => selectProvider(index)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 14px',
-                      borderRadius: 12,
-                      border: isActive
-                        ? '2px solid #E50914'
-                        : '1px solid rgba(255,255,255,0.12)',
-                      background: isActive
-                        ? (isPurple ? 'linear-gradient(135deg, rgba(142,68,173,0.3), rgba(0,0,0,0.8))' : 'linear-gradient(135deg, rgba(229,9,20,0.3), rgba(0,0,0,0.8))')
-                        : 'rgba(255,255,255,0.04)',
-                      color: '#fff',
-                      fontSize: 13,
-                      fontWeight: isActive ? 800 : 600,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <span>{candidate.label}</span>
-                    {isActive ? (
-                      <Check size={16} className="text-red-500" />
-                    ) : (
-                      <span style={{ fontSize: 10, color: '#6B7280' }}>Select</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Auto Shift Notification Toast (Disappears in 3.5s) */}
+      {/* Auto Shift Notification Toast */}
       {autoShiftNotice && (
         <div
           style={{
@@ -996,77 +1662,105 @@ export default function PlayerPage() {
         >
           Stream taking long to load?
           <button
+            type="button"
             onClick={retryCurrentProvider}
             style={{
               color: '#fff',
               background: 'rgba(255,255,255,0.15)',
               border: 0,
               borderRadius: 999,
-              padding: '6px 12px',
+              padding: '6px 14px',
               fontWeight: 800,
               cursor: 'pointer',
+              touchAction: 'manipulation',
+              pointerEvents: 'auto',
             }}
           >
             Retry
           </button>
           {hasAlternateProvider && (
             <button
+              type="button"
               onClick={tryAlternateProvider}
               style={{
                 color: '#fff',
                 background: 'linear-gradient(135deg, #E50914, #B20710)',
                 border: 0,
                 borderRadius: 999,
-                padding: '6px 12px',
+                padding: '6px 14px',
                 fontWeight: 800,
                 cursor: 'pointer',
+                touchAction: 'manipulation',
+                pointerEvents: 'auto',
               }}
             >
-              Next Source
+              Next Server
             </button>
           )}
         </div>
       )}
 
-      {/* Video Surface */}
-      {isHlsMode ? (
-        <video
-          ref={videoRef}
-          key={`video-${providerIndex}-${frameKey}`}
-          src={sourceUrl}
-          autoPlay
-          controls
-          playsInline
-          controlsList="nodownload"
-          poster={config.posterUrl}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-            background: '#000',
-          }}
-        >
-          {activeSubtitle?.blobUrl && (
-            <track
-              kind="subtitles"
-              src={activeSubtitle.blobUrl}
-              srcLang="en"
-              label={activeSubtitle.label}
-              default
-            />
+      {/* Video Surface: Direct HLS Video or Iframe Embed */}
+      {isBingrCandidate ? (
+        <div style={{ position: 'absolute', inset: 0, background: '#000' }}>
+          {isResolvingStream && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12,
+                color: '#fff',
+                zIndex: 10,
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  border: '3px solid rgba(56,189,248,0.3)',
+                  borderTopColor: '#38BDF8',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF' }}>
+                Connecting to {currentCandidate.label}...
+              </div>
+            </div>
           )}
-          {Array.isArray(config.subtitles) && config.subtitles.map((subtitle) => (
-            <track
-              key={subtitle.url}
-              kind="subtitles"
-              src={subtitle.url}
-              srcLang={(subtitle.lang || 'en').slice(0, 2).toLowerCase()}
-              label={subtitle.lang || 'Subtitle'}
-            />
-          ))}
-        </video>
+
+          <video
+            ref={videoRef}
+            key={`video-${providerIndex}-${frameKey}`}
+            autoPlay
+            controls
+            playsInline
+            controlsList="nodownload"
+            poster={config.posterUrl}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              background: '#000',
+            }}
+          >
+            {activeSubtitle?.blobUrl && (
+              <track
+                kind="subtitles"
+                src={activeSubtitle.blobUrl}
+                srcLang="en"
+                label={activeSubtitle.label}
+                default
+              />
+            )}
+          </video>
+        </div>
       ) : (
         <iframe
           key={`iframe-${providerIndex}-${frameKey}`}
@@ -1074,8 +1768,6 @@ export default function PlayerPage() {
           src={sourceUrl}
           loading="eager"
           fetchPriority="high"
-          onLoad={handleFrameLoad}
-          onError={handleFrameError}
           style={{
             position: 'absolute',
             inset: 0,

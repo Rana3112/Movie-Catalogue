@@ -5,6 +5,7 @@ import { ArrowLeft, Calendar as CalendarIcon, Film, Sparkles, Tv, User, Drama, R
 import MobileCategoryBarrel from '../components/mobile/MobileCategoryBarrel'
 import { useIsMobile } from '../lib/platform'
 import { motion } from 'framer-motion'
+import Hero3DCircleGrid from '../components/canvas/Hero3DCircleGrid'
 import './CategoryHub.css'
 
 export default function Category() {
@@ -133,7 +134,8 @@ export default function Category() {
   // Mobile view (Mobile Web & Capacitor Mobile App)
   if (isMobile) {
     return (
-      <div className="h-screen w-full relative overflow-hidden flex flex-col bg-[#050505] text-white">
+      <div className="h-screen w-full relative z-10 overflow-hidden flex flex-col bg-transparent text-white">
+        <Hero3DCircleGrid />
         <div className="flex-shrink-0 relative z-20 px-4 pt-4 flex items-center justify-between">
           <button
             onClick={() => navigate('/home')}
@@ -153,6 +155,7 @@ export default function Category() {
 
   return (
     <div className="category-hub-page" ref={containerRef}>
+      <Hero3DCircleGrid />
       {/* Background Ambient Glows & Particles */}
       <div className="hub-bg-glow" aria-hidden="true" />
       <div className="hub-floor-reflection" aria-hidden="true" />
