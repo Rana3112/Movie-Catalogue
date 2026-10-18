@@ -1870,7 +1870,7 @@
   transform: translateX(2px);
 }
 
-/* Genres Grid */
+/* Genres Grid (Legacy fallback) */
 .bingr-genres-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -1918,31 +1918,339 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Languages Row */
-.bingr-languages-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+/* ==========================================================================
+   GENRES POSTER GRID & CARDS
+   ========================================================================== */
+.bingr-genres-poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
 }
 
-.bingr-language-pill {
+.bingr-genre-card {
+  position: relative;
+  height: 125px;
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.7);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  isolation: isolate;
+}
+
+.bingr-genre-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  border-color: var(--genre-accent, #ff3b47) !important;
+  box-shadow: 0 18px 40px -10px var(--genre-glow, rgba(255, 59, 71, 0.35)), 0 0 16px 1px var(--genre-glow, rgba(255, 59, 71, 0.25));
+}
+
+.bingr-genre-backdrop-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bingr-genre-backdrop-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  opacity: 0.32;
+  filter: saturate(1.2) contrast(1.1);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bingr-genre-card:hover .bingr-genre-backdrop-img {
+  opacity: 0.65;
+  transform: scale(1.1);
+  filter: saturate(1.4) contrast(1.15);
+}
+
+.bingr-genre-backdrop-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.85) 100%),
+              linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.45) 60%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+.bingr-genre-gloss {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.bingr-genre-top-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bingr-genre-emoji-bubble {
+  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.bingr-genre-card:hover .bingr-genre-emoji-bubble {
+  transform: scale(1.1);
+  border-color: var(--genre-accent, #ff3b47);
+  box-shadow: 0 4px 15px var(--genre-glow, rgba(255, 59, 71, 0.35));
+}
+
+.bingr-genre-explore-text {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 9999px;
-  background: rgba(20, 20, 28, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(12px);
-  transition: all 0.2s ease;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.25s ease;
 }
 
-.bingr-language-pill:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(229, 9, 20, 0.4);
-  transform: translateY(-2px);
+.bingr-genre-card:hover .bingr-genre-explore-text {
+  opacity: 1;
+  transform: translateX(0);
+  color: #fff;
+}
+
+.bingr-genre-card-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bingr-genre-card-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.bingr-genre-card-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 2px;
+}
+
+.bingr-genre-arrow-bubble {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.bingr-genre-card:hover .bingr-genre-arrow-bubble {
+  background: var(--genre-accent, #ff3b47);
+  border-color: var(--genre-accent, #ff3b47);
+  transform: scale(1.1);
+}
+
+.bingr-genre-arrow-icon {
+  color: rgba(255, 255, 255, 0.85);
+  transition: transform 0.2s ease;
+}
+
+.bingr-genre-card:hover .bingr-genre-arrow-icon {
+  color: #fff;
+  transform: translateX(2px);
+}
+
+/* ==========================================================================
+   REGIONAL & INTERNATIONAL HUBS POSTER GRID & CARDS
+   ========================================================================== */
+.bingr-hubs-poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 18px;
+}
+
+.bingr-hub-card {
+  position: relative;
+  height: 140px;
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  isolation: isolate;
+}
+
+.bingr-hub-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--hub-accent, #ff9933) !important;
+  box-shadow: 0 20px 45px -10px var(--hub-glow, rgba(255, 153, 51, 0.35)), 0 0 20px 1px var(--hub-glow, rgba(255, 153, 51, 0.25));
+}
+
+.bingr-hub-backdrop-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bingr-hub-backdrop-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  opacity: 0.36;
+  filter: saturate(1.2) contrast(1.1);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bingr-hub-card:hover .bingr-hub-backdrop-img {
+  opacity: 0.65;
+  transform: scale(1.08);
+  filter: saturate(1.4) contrast(1.15);
+}
+
+.bingr-hub-backdrop-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.85) 100%),
+              linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.45) 50%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+.bingr-hub-gloss {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.bingr-hub-top-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bingr-hub-flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.bingr-hub-explore-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.25s ease;
+}
+
+.bingr-hub-card:hover .bingr-hub-explore-tag {
+  opacity: 1;
+  transform: translateX(0);
+  color: #fff;
+}
+
+.bingr-hub-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bingr-hub-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  display: block;
+}
+
+.bingr-hub-native {
+  font-size: 11px;
+  font-weight: 700;
+  display: block;
+  margin-top: 1.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.bingr-hub-arrow-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.bingr-hub-card:hover .bingr-hub-arrow-circle {
+  background: var(--hub-accent, #ff9933);
+  border-color: var(--hub-accent, #ff9933);
+  transform: scale(1.1);
+}
+
+.bingr-hub-arrow {
+  color: rgba(255, 255, 255, 0.85);
+  transition: transform 0.2s ease;
+}
+
+.bingr-hub-card:hover .bingr-hub-arrow {
+  color: #fff;
+  transform: translateX(2px);
 }

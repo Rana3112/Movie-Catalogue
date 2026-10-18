@@ -210,3 +210,74 @@ export const discoverStudioCombined = async (studio, { page = 1, filter = 'all',
     tvCount: tvData.total_results || 0,
   };
 };
+
+// ─── Language & Regional Hub Discovery ────────────────────────
+export const discoverLanguageMovies = (langCode, { page = 1, sortBy = 'popularity.desc' } = {}) => {
+  return tmdb.get('/discover/movie', {
+    params: {
+      with_original_language: langCode,
+      sort_by: sortBy,
+      page,
+      'vote_count.gte': 5,
+    }
+  }).then(r => r.data);
+};
+
+export const discoverLanguageTV = (langCode, { page = 1, sortBy = 'popularity.desc' } = {}) => {
+  return tmdb.get('/discover/tv', {
+    params: {
+      with_original_language: langCode,
+      sort_by: sortBy,
+      page,
+      'vote_count.gte': 2,
+    }
+  }).then(r => r.data);
+};
+
+export const discoverLanguageCombined = async (langCode, { page = 1, filter = 'all', sortBy = 'popularity.desc' } = {}) => {
+  if (!langCode) return { results: [], total_pages: 1, total_results: 0, page };
+
+  if (filter === 'movie') {
+    const data = await discoverLanguageMovies(langCode, { page, sortBy });
+    return {
+      results: (data.results || []).map(item => ({ ...item, media_type: 'movie' })),
+      total_pages: data.total_pages || 1,
+      total_results: data.total_results || 0,
+      page,
+      moviesCount: data.total_results || 0,
+      tvCount: 0,
+    };
+  }
+
+  if (filter === 'tv') {
+    const data = await discoverLanguageTV(langCode, { page, sortBy });
+    return {
+      results: (data.results || []).map(item => ({ ...item, media_type: 'tv' })),
+      total_pages: data.total_pages || 1,
+      total_results: data.total_results || 0,
+      page,
+      moviesCount: 0,
+      tvCount: data.total_results || 0,
+    };
+  }
+
+  // filter === 'all'
+  const [movieData, tvData] = await Promise.all([
+    discoverLanguageMovies(langCode, { page, sortBy }).catch(() => ({ results: [], total_pages: 1, total_results: 0 })),
+    discoverLanguageTV(langCode, { page, sortBy }).catch(() => ({ results: [], total_pages: 1, total_results: 0 })),
+  ]);
+
+  const movies = (movieData.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  const tv = (tvData.results || []).map(t => ({ ...t, media_type: 'tv' }));
+
+  const combined = [...movies, ...tv].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+
+  return {
+    results: combined,
+    total_pages: Math.max(movieData.total_pages || 1, tvData.total_pages || 1),
+    total_results: (movieData.total_results || 0) + (tvData.total_results || 0),
+    page,
+    moviesCount: movieData.total_results || 0,
+    tvCount: tvData.total_results || 0,
+  };
+};

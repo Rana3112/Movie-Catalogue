@@ -8,6 +8,7 @@ import SearchPage from './pages/SearchPage';
 import StreamingListPage from './pages/StreamingListPage';
 import GenresPage from './pages/GenresPage';
 import StudioPage from './pages/StudioPage';
+import RegionalHubPage from './pages/RegionalHubPage';
 import './streaming.css';
 
 export const StreamingRoutes = (
@@ -22,5 +23,7 @@ export const StreamingRoutes = (
     <Route path="/streaming/genres" element={<GenresPage />} />
     <Route path="/streaming/studio/:studioId" element={<StudioPage />} />
     <Route path="/streaming/studios/:studioId" element={<StudioPage />} />
+    <Route path="/streaming/hub/:langCode" element={<RegionalHubPage />} />
+    <Route path="/streaming/language/:langCode" element={<RegionalHubPage />} />
   </>
 );

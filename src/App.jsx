@@ -26,6 +26,7 @@ import SearchPage from './streaming/pages/SearchPage'
 import StreamingListPage from './streaming/pages/StreamingListPage'
 import GenresPage from './streaming/pages/GenresPage'
 import StudioPage from './streaming/pages/StudioPage'
+import RegionalHubPage from './streaming/pages/RegionalHubPage'
 import './streaming/streaming.css'
 
 const isNative = Capacitor.isNativePlatform()
@@ -143,6 +144,8 @@ function AnimatedRoutes() {
         <Route path="/streaming/genres" element={<ProtectedRoute><PageTransition><GenresPage /></PageTransition></ProtectedRoute>} />
         <Route path="/streaming/studio/:studioId" element={<ProtectedRoute><PageTransition><StudioPage /></PageTransition></ProtectedRoute>} />
         <Route path="/streaming/studios/:studioId" element={<ProtectedRoute><PageTransition><StudioPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/hub/:langCode" element={<ProtectedRoute><PageTransition><RegionalHubPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/language/:langCode" element={<ProtectedRoute><PageTransition><RegionalHubPage /></PageTransition></ProtectedRoute>} />
       </Routes>
     </AnimatePresence>
   )

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import MediaCard from '../components/MediaCard';
 import { discoverMoviesByGenre, discoverTVByGenre, getMovieGenres, getTVGenres } from '../api/tmdb';
@@ -36,6 +36,9 @@ const Section = ({ title, items, category, onClick }) => {
 
 export default function GenresPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlGenreParam = searchParams.get('genre') || searchParams.get('g') || searchParams.get('id');
+
   const [activeTab, setActiveTab] = useState('all');
   const [genreSearch, setGenreSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState(null);
@@ -114,6 +117,21 @@ export default function GenresPage() {
       setIsLoading(false);
     }
   }, [activeTab, movieGenres, tvGenres]);
+
+  useEffect(() => {
+    if (!urlGenreParam || genres.length === 0) return;
+    const target = urlGenreParam.toLowerCase().trim();
+    const matched = genres.find(g =>
+      String(g.id) === target ||
+      g.key === target ||
+      g.name.toLowerCase() === target ||
+      g.name.toLowerCase().includes(target)
+    );
+    if (matched && (!selectedGenre || selectedGenre.key !== matched.key)) {
+      setSelectedGenre(matched);
+      setPage(1);
+    }
+  }, [urlGenreParam, genres, selectedGenre]);
 
   useEffect(() => {
     if (!selectedGenre) return;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layers, Sparkles, Film, ArrowRight, Compass } from 'lucide-react';
-import { fetchBingrCategories, FALLBACK_STUDIOS, FALLBACK_GENRES } from '../api/bingrApi';
+import { fetchBingrCategories, FALLBACK_STUDIOS, FALLBACK_GENRES, REGIONAL_HUBS } from '../api/bingrApi';
 
 export default function CategoriesView() {
   const [categories, setCategories] = useState(null);
@@ -23,16 +23,6 @@ export default function CategoriesView() {
 
   const studios = categories?.studios || FALLBACK_STUDIOS;
   const genres = categories?.genres || FALLBACK_GENRES;
-
-  const languages = [
-    { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'hi', name: 'Hindi / Bollywood', flag: '🇮🇳' },
-    { code: 'ja', name: 'Japanese / Anime', flag: '🇯🇵' },
-    { code: 'ko', name: 'Korean / K-Drama', flag: '🇰🇷' },
-    { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-    { code: 'fr', name: 'French', flag: '🇫🇷' },
-    { code: 'de', name: 'German', flag: '🇩🇪' },
-  ];
 
   return (
     <div className="bingr-categories-section">
@@ -135,7 +125,7 @@ export default function CategoriesView() {
       </div>
 
       {/* Genre Grid */}
-      <div className="bingr-shelf-wrapper mt-10">
+      <div className="bingr-shelf-wrapper mt-12">
         <div className="bingr-shelf-header">
           <div className="flex items-center gap-2">
             <Film size={18} className="text-red-500" />
@@ -150,42 +140,127 @@ export default function CategoriesView() {
           </button>
         </div>
 
-        <div className="bingr-genres-grid">
+        <div className="bingr-genres-poster-grid">
           {genres.map(genre => (
             <div
               key={genre.id}
-              onClick={() => navigate('/streaming/genres')}
-              className="bingr-genre-tile"
+              onClick={() => navigate(`/streaming/genres?genre=${genre.id || genre.name.toLowerCase()}`)}
+              className={`bingr-genre-card group relative overflow-hidden bg-gradient-to-br ${genre.color || 'from-zinc-900 to-black'} border ${genre.border || 'border-zinc-800'}`}
+              style={{
+                '--genre-accent': genre.accent || '#ff3b47',
+                '--genre-glow': genre.glowColor || 'rgba(255, 59, 71, 0.35)',
+              }}
             >
-              <span className="bingr-genre-emoji">{genre.emoji || '🎬'}</span>
-              <div className="bingr-genre-info">
-                <span className="bingr-genre-name">{genre.name}</span>
-                {genre.count && <span className="bingr-genre-count">{genre.count}</span>}
+              {/* Genre Backdrop Poster */}
+              {genre.backdrop && (
+                <div className="bingr-genre-backdrop-wrap">
+                  <img
+                    src={genre.backdrop}
+                    alt={genre.name}
+                    className="bingr-genre-backdrop-img"
+                    loading="lazy"
+                  />
+                  <div className="bingr-genre-backdrop-vignette" />
+                </div>
+              )}
+
+              {/* Top Gloss */}
+              <div className="bingr-genre-gloss" />
+
+              {/* Genre Top Bar */}
+              <div className="bingr-genre-top-bar">
+                <span className="bingr-genre-emoji-bubble">
+                  {genre.emoji || '🎬'}
+                </span>
+                <span className="bingr-genre-explore-text">
+                  Browse <ArrowRight size={10} />
+                </span>
+              </div>
+
+              {/* Genre Footer */}
+              <div className="bingr-genre-card-footer">
+                <div className="flex flex-col min-w-0">
+                  <span className="bingr-genre-card-name truncate">{genre.name}</span>
+                  {genre.count && (
+                    <span className="bingr-genre-card-count truncate">{genre.count}</span>
+                  )}
+                </div>
+                <div className="bingr-genre-arrow-bubble">
+                  <ArrowRight size={12} className="bingr-genre-arrow-icon" />
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Languages Row */}
-      <div className="bingr-shelf-wrapper mt-10 mb-8">
+      {/* International & Regional Hubs */}
+      <div className="bingr-shelf-wrapper mt-12 mb-10">
         <div className="bingr-shelf-header">
           <div className="flex items-center gap-2">
             <Compass size={18} className="text-red-500" />
             <h3 className="bingr-shelf-title">International & Regional Hubs</h3>
           </div>
+          <span className="text-xs text-zinc-400 font-medium hidden sm:inline-block">
+            Stream native language cinema with multi-audio dubs
+          </span>
         </div>
 
-        <div className="bingr-languages-row">
-          {languages.map(lang => (
-            <button
-              key={lang.code}
-              onClick={() => navigate(`/streaming/search?q=${encodeURIComponent(lang.name)}`)}
-              className="bingr-language-pill"
+        <div className="bingr-hubs-poster-grid">
+          {REGIONAL_HUBS.map(hub => (
+            <div
+              key={hub.code}
+              onClick={() => navigate(`/streaming/hub/${hub.code}`)}
+              className={`bingr-hub-card group relative overflow-hidden bg-gradient-to-br ${hub.color || 'from-zinc-900 to-black'} border ${hub.border || 'border-zinc-800'}`}
+              style={{
+                '--hub-accent': hub.accent || '#ff9933',
+                '--hub-glow': hub.glowColor || 'rgba(255, 153, 51, 0.35)',
+              }}
             >
-              <span className="text-lg">{lang.flag}</span>
-              <span>{lang.name}</span>
-            </button>
+              {/* Regional Backdrop Poster */}
+              {hub.backdrop && (
+                <div className="bingr-hub-backdrop-wrap">
+                  <img
+                    src={hub.backdrop}
+                    alt={hub.name}
+                    className="bingr-hub-backdrop-img"
+                    loading="lazy"
+                  />
+                  <div className="bingr-hub-backdrop-vignette" />
+                </div>
+              )}
+
+              {/* Top Gloss */}
+              <div className="bingr-hub-gloss" />
+
+              {/* Hub Top Bar with Flag Badge */}
+              <div className="bingr-hub-top-bar">
+                <div className="bingr-hub-flag-badge">
+                  <span className="text-base leading-none">{hub.flag}</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider">{hub.code.toUpperCase()}</span>
+                </div>
+                <span className="bingr-hub-explore-tag">
+                  Enter Hub <ArrowRight size={10} />
+                </span>
+              </div>
+
+              {/* Hub Footer with Native and English name */}
+              <div className="bingr-hub-footer">
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-baseline gap-1.5 min-w-0">
+                    <span className="bingr-hub-name truncate">{hub.name}</span>
+                  </div>
+                  {hub.nativeName && (
+                    <span className="bingr-hub-native truncate" style={{ color: hub.accent || '#fcd34d' }}>
+                      {hub.nativeName}
+                    </span>
+                  )}
+                </div>
+                <div className="bingr-hub-arrow-circle">
+                  <ArrowRight size={13} className="bingr-hub-arrow" />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
