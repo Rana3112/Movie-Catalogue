@@ -7,6 +7,7 @@ import PlayerPage from './pages/PlayerPage';
 import SearchPage from './pages/SearchPage';
 import StreamingListPage from './pages/StreamingListPage';
 import GenresPage from './pages/GenresPage';
+import StudioPage from './pages/StudioPage';
 import './streaming.css';
 
 export const StreamingRoutes = (
@@ -19,5 +20,7 @@ export const StreamingRoutes = (
     <Route path="/streaming/search" element={<SearchPage />} />
     <Route path="/streaming/list/:category/:collection" element={<StreamingListPage />} />
     <Route path="/streaming/genres" element={<GenresPage />} />
+    <Route path="/streaming/studio/:studioId" element={<StudioPage />} />
+    <Route path="/streaming/studios/:studioId" element={<StudioPage />} />
   </>
 );

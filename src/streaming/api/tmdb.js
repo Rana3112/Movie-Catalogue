@@ -123,3 +123,90 @@ export const getTVCollectionPage = (collection, page = 1) => {
   if (!endpoint) throw new Error(`Unknown TV collection: ${collection}`);
   return tmdb.get(endpoint, { params: { page } }).then(r => r.data);
 };
+
+// ─── Studio & Network Discovery ─────────────────────────────
+export const discoverStudioMovies = (studio, { page = 1, sortBy = 'popularity.desc' } = {}) => {
+  const params = {
+    sort_by: sortBy,
+    page,
+    'vote_count.gte': 5,
+  };
+
+  if (studio?.companyIds) {
+    params.with_companies = studio.companyIds;
+  } else if (studio?.watchProviderIds) {
+    params.with_watch_providers = studio.watchProviderIds;
+    params.watch_region = 'US';
+  } else if (studio?.query) {
+    params.with_keywords = studio.query;
+  }
+
+  return tmdb.get('/discover/movie', { params }).then(r => r.data);
+};
+
+export const discoverStudioTV = (studio, { page = 1, sortBy = 'popularity.desc' } = {}) => {
+  const params = {
+    sort_by: sortBy,
+    page,
+    'vote_count.gte': 2,
+  };
+
+  if (studio?.networkIds) {
+    params.with_networks = studio.networkIds;
+  } else if (studio?.companyIds) {
+    params.with_companies = studio.companyIds;
+  } else if (studio?.query) {
+    params.with_keywords = studio.query;
+  }
+
+  return tmdb.get('/discover/tv', { params }).then(r => r.data);
+};
+
+export const discoverStudioCombined = async (studio, { page = 1, filter = 'all', sortBy = 'popularity.desc' } = {}) => {
+  if (!studio) return { results: [], total_pages: 1, total_results: 0, page };
+
+  if (filter === 'movie') {
+    const data = await discoverStudioMovies(studio, { page, sortBy });
+    return {
+      results: (data.results || []).map(item => ({ ...item, media_type: 'movie' })),
+      total_pages: data.total_pages || 1,
+      total_results: data.total_results || 0,
+      page,
+      moviesCount: data.total_results || 0,
+      tvCount: 0,
+    };
+  }
+
+  if (filter === 'tv') {
+    const data = await discoverStudioTV(studio, { page, sortBy });
+    return {
+      results: (data.results || []).map(item => ({ ...item, media_type: 'tv' })),
+      total_pages: data.total_pages || 1,
+      total_results: data.total_results || 0,
+      page,
+      moviesCount: 0,
+      tvCount: data.total_results || 0,
+    };
+  }
+
+  // filter === 'all'
+  const [movieData, tvData] = await Promise.all([
+    discoverStudioMovies(studio, { page, sortBy }).catch(() => ({ results: [], total_pages: 1, total_results: 0 })),
+    discoverStudioTV(studio, { page, sortBy }).catch(() => ({ results: [], total_pages: 1, total_results: 0 })),
+  ]);
+
+  const movies = (movieData.results || []).map(m => ({ ...m, media_type: 'movie' }));
+  const tv = (tvData.results || []).map(t => ({ ...t, media_type: 'tv' }));
+
+  // Interleave and sort by popularity
+  const combined = [...movies, ...tv].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+
+  return {
+    results: combined,
+    total_pages: Math.max(movieData.total_pages || 1, tvData.total_pages || 1),
+    total_results: (movieData.total_results || 0) + (tvData.total_results || 0),
+    page,
+    moviesCount: movieData.total_results || 0,
+    tvCount: tvData.total_results || 0,
+  };
+};

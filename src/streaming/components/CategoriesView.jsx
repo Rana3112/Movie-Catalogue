@@ -63,16 +63,71 @@ export default function CategoriesView() {
           {studios.map(studio => (
             <div
               key={studio.id}
-              onClick={() => navigate(`/streaming/search?q=${encodeURIComponent(studio.query || studio.name)}`)}
-              className={`bingr-studio-card bg-gradient-to-br ${studio.color || 'from-zinc-800 to-zinc-950'} border ${studio.border || 'border-zinc-700/50'}`}
+              onClick={() => navigate(`/streaming/studio/${studio.id}`)}
+              className={`bingr-studio-card group relative overflow-hidden bg-gradient-to-br ${studio.color || 'from-zinc-900 to-black'} border ${studio.border || 'border-zinc-800'}`}
+              style={{
+                '--studio-accent': studio.accent || '#ff3b47',
+                '--studio-glow': studio.glowColor || 'rgba(255, 59, 71, 0.35)',
+              }}
             >
-              <div className="bingr-studio-glow" />
-              <div className="bingr-studio-badge-text">
-                {studio.badge || studio.name}
+              {/* Cinematic Backdrop Poster */}
+              {studio.backdrop && (
+                <div className="bingr-studio-backdrop-wrap">
+                  <img
+                    src={studio.backdrop}
+                    alt={studio.name}
+                    className="bingr-studio-backdrop-img"
+                    loading="lazy"
+                  />
+                  <div className="bingr-studio-backdrop-vignette" />
+                </div>
+              )}
+
+              {/* Glossy top specular reflection */}
+              <div className="bingr-studio-gloss" />
+
+              {/* Top Tag & Badge */}
+              <div className="bingr-studio-top-bar">
+                <span className="bingr-studio-tag-pill">
+                  {studio.category || 'STUDIO'}
+                </span>
+                <span className="bingr-studio-explore-pill">
+                  Explore <ArrowRight size={11} />
+                </span>
               </div>
+
+              {/* Center Official Brand Logo */}
+              <div className="bingr-studio-center-logo">
+                {studio.logo ? (
+                  <img
+                    src={studio.logo}
+                    alt={studio.name}
+                    className="bingr-studio-brand-logo"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'block';
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="bingr-studio-badge-text"
+                  style={{ display: studio.logo ? 'none' : 'block' }}
+                >
+                  {studio.badge || studio.name}
+                </div>
+              </div>
+
+              {/* Bottom Footer */}
               <div className="bingr-studio-footer">
-                <span className="bingr-studio-name">{studio.name}</span>
-                <ArrowRight size={15} className="bingr-studio-arrow" />
+                <div className="flex flex-col min-w-0">
+                  <span className="bingr-studio-name truncate">{studio.name}</span>
+                  {studio.tagline && (
+                    <span className="bingr-studio-tagline truncate">{studio.tagline}</span>
+                  )}
+                </div>
+                <div className="bingr-studio-arrow-circle shrink-0">
+                  <ArrowRight size={13} className="bingr-studio-arrow" />
+                </div>
               </div>
             </div>
           ))}
