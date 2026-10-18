@@ -28,6 +28,8 @@ import { useStreamingStore } from '../store/useStreamingStore';
 import {
   checkStreamProviderHealth,
   fastProbeCandidates,
+  probeCandidateServer,
+  raceAllServersParallel,
   prewarmStreamCandidates,
   prewarmStreamUrl,
   getMovieStreamCandidates,
@@ -146,7 +148,7 @@ export default function PlayerPage() {
     [candidates, config, providerIndex, directStreamUrl]
   );
 
-  // Function to swiftly auto-shift to next healthy, non-failed provider
+  // Function to swiftly auto-shift to next healthy, lowest-latency verified provider
   const triggerAutoShift = useCallback((reason = 'unreachable') => {
     if (!autoShiftEnabledRef.current) return;
     if (userOverriddenRef.current) return;
@@ -158,31 +160,49 @@ export default function PlayerPage() {
       const nextFailed = new Set(prev);
       nextFailed.add(currIdx);
 
-      let nextIndex = (currIdx + 1) % currentCandidates.length;
-      let attempts = 0;
+      // 1. Prioritize tested online servers with the lowest ping
+      let bestIndex = -1;
+      let lowestPing = Infinity;
 
-      while (attempts < currentCandidates.length) {
-        const cand = currentCandidates[nextIndex];
-        const candHealth = cand ? healthMapRef.current.get(cand.src) : null;
-        const isKnownDead = candHealth?.status === 'unreachable';
-
-        if (!nextFailed.has(nextIndex) && !isKnownDead) {
-          break;
+      currentCandidates.forEach((cand, idx) => {
+        if (nextFailed.has(idx)) return;
+        const candHealth = healthMapRef.current.get(cand.id) || healthMapRef.current.get(cand.src);
+        if (candHealth?.status === 'online') {
+          const ping = candHealth.ping || 400;
+          if (ping < lowestPing) {
+            lowestPing = ping;
+            bestIndex = idx;
+          }
         }
-        nextIndex = (nextIndex + 1) % currentCandidates.length;
-        attempts++;
+      });
+
+      // 2. Fallback to next non-failed, non-dead server
+      if (bestIndex === -1) {
+        let nextIndex = (currIdx + 1) % currentCandidates.length;
+        let attempts = 0;
+        while (attempts < currentCandidates.length) {
+          const cand = currentCandidates[nextIndex];
+          const candHealth = cand ? (healthMapRef.current.get(cand.id) || healthMapRef.current.get(cand.src)) : null;
+          const isKnownDead = candHealth?.status === 'unreachable';
+          if (!nextFailed.has(nextIndex) && !isKnownDead) {
+            bestIndex = nextIndex;
+            break;
+          }
+          nextIndex = (nextIndex + 1) % currentCandidates.length;
+          attempts++;
+        }
       }
 
-      if (attempts >= currentCandidates.length) {
-        nextIndex = (currIdx + 1) % currentCandidates.length;
+      if (bestIndex === -1) {
+        bestIndex = (currIdx + 1) % currentCandidates.length;
       }
 
       const prevLabel = currentCandidates[currIdx]?.label || `Source ${currIdx + 1}`;
-      const nextLabel = currentCandidates[nextIndex]?.label || `Source ${nextIndex + 1}`;
+      const nextLabel = currentCandidates[bestIndex]?.label || `Source ${bestIndex + 1}`;
 
-      prewarmStreamUrl(currentCandidates[nextIndex]?.src);
+      prewarmStreamUrl(currentCandidates[bestIndex]?.src);
 
-      setProviderIndex(nextIndex);
+      setProviderIndex(bestIndex);
       setFrameKey(v => v + 1);
       setAutoShiftNotice(`⚡ Swift Failover: ${prevLabel} (${reason}) → ${nextLabel}`);
       setTimeout(() => setAutoShiftNotice(null), 3500);
@@ -191,7 +211,37 @@ export default function PlayerPage() {
     });
   }, []);
 
-  // Initial candidate pre-warming & device setup
+  // Real-Time Parallel Server Race Engine (< 10 seconds)
+  // Concurrently benchmarks Constellation & Web servers, auto-locks onto the first working stream
+  const triggerServerRace = useCallback(() => {
+    const currentCandidates = candidatesRef.current;
+    if (!currentCandidates || currentCandidates.length === 0 || !config) return;
+    setIsProbingAll(true);
+
+    raceAllServersParallel(currentCandidates, config, {
+      timeoutMs: 3200,
+      onCandidateTested: (_idx, candidate, healthResult) => {
+        setHealthMap(prev => {
+          const next = new Map(prev);
+          if (candidate.id) next.set(candidate.id, healthResult);
+          if (candidate.src) next.set(candidate.src, healthResult);
+          return next;
+        });
+      },
+      onFirstWinner: (winIdx, winCandidate, winHealth) => {
+        if (!userOverriddenRef.current) {
+          setProviderIndex(winIdx);
+          setFrameKey(v => v + 1);
+          setAutoShiftNotice(`⚡ Auto-Selected Fastest Server: ${winCandidate.label} (${winHealth.ping}ms)`);
+          setTimeout(() => setAutoShiftNotice(null), 3000);
+        }
+      },
+    }).finally(() => {
+      setIsProbingAll(false);
+    });
+  }, [config]);
+
+  // Initial candidate pre-warming, parallel server race & device setup
   useEffect(() => {
     if (!config) {
       navigate(-1);
@@ -219,6 +269,9 @@ export default function PlayerPage() {
       season: config.season,
       episode: config.episode,
     });
+
+    // Launch Real-Time Parallel Server Race
+    triggerServerRace();
 
     addToHistory({
       id: config.id || `${config.category}:${config.title}:${config.season || ''}:${config.episode || ''}`,
@@ -1065,8 +1118,35 @@ export default function PlayerPage() {
 
               {/* Right Column: SERVER */}
               <div>
-                <div style={{ color: '#71717A', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', marginBottom: 12, textTransform: 'uppercase' }}>
-                  SERVER
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ color: '#71717A', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    SERVER ({displayedCandidates.length})
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      triggerServerRace();
+                    }}
+                    disabled={isProbingAll}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      background: isProbingAll ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)',
+                      border: '1px solid ' + (isProbingAll ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.12)'),
+                      borderRadius: 14,
+                      padding: '3px 10px',
+                      color: isProbingAll ? '#38BDF8' : '#D1D5DB',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: isProbingAll ? 'default' : 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <Zap size={12} className={isProbingAll ? 'animate-pulse text-cyan-400' : 'text-amber-400'} />
+                    <span>{isProbingAll ? 'Testing...' : 'Test All Speeds'}</span>
+                  </button>
                 </div>
 
                 <div
@@ -1082,6 +1162,11 @@ export default function PlayerPage() {
                   {displayedCandidates.map(candidate => {
                     const actualIdx = candidate.originalIndex ?? 0;
                     const isActive = actualIdx === providerIndex;
+                    const candHealth = healthMap.get(candidate.id) || healthMap.get(candidate.src);
+                    const isOnline = candHealth?.status === 'online';
+                    const isDegraded = candHealth?.status === 'degraded';
+                    const isFailed = candHealth?.status === 'unreachable';
+                    const pingText = candHealth?.ping ? `${candHealth.ping}ms` : candHealth?.label || null;
 
                     return (
                       <button
@@ -1142,16 +1227,40 @@ export default function PlayerPage() {
                           )}
                         </div>
 
-                        {/* Ping / Status dot */}
-                        <span
-                          style={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: '50%',
-                            background: isActive ? '#38BDF8' : 'rgba(255,255,255,0.35)',
-                            boxShadow: isActive ? '0 0 6px #38BDF8' : 'none',
-                          }}
-                        />
+                        {/* Live Ping & Status Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {pingText && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: 10,
+                                background: isOnline ? 'rgba(16,185,129,0.15)' : isDegraded ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
+                                color: isOnline ? '#34D399' : isDegraded ? '#FBBF24' : '#F87171',
+                                border: '1px solid ' + (isOnline ? 'rgba(16,185,129,0.3)' : isDegraded ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)'),
+                                fontVariantNumeric: 'tabular-nums',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {pingText}
+                            </span>
+                          )}
+                          {isProbingAll && !candHealth && (
+                            <span style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>
+                              testing...
+                            </span>
+                          )}
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: isOnline ? '#10B981' : isDegraded ? '#F59E0B' : isFailed ? '#EF4444' : isActive ? '#38BDF8' : 'rgba(255,255,255,0.3)',
+                              boxShadow: (isOnline || isActive) ? '0 0 6px ' + (isOnline ? '#10B981' : '#38BDF8') : 'none',
+                            }}
+                          />
+                        </div>
                       </button>
                     );
                   })}

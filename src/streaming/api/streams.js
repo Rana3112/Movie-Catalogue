@@ -1,4 +1,4 @@
-import { BINGR_SERVERS } from './bingrDirect.js';
+import { BINGR_SERVERS, fetchBingrStream } from './bingrDirect.js';
 
 const env = (typeof import.meta !== 'undefined' && import.meta?.env) ? import.meta.env : {};
 const VIDZEE = (env.VITE_VIDZEE_PLAYER || 'https://player.vidzee.wtf').replace(/\/+$/, '');
@@ -348,7 +348,146 @@ export const prewarmStreamCandidates = (candidates = []) => {
 // ============================================================================
 // ULTRA-FAST HEALTH CHECK & PRE-FLIGHT PROBING ENGINE
 // ============================================================================
+// ULTRA-FAST REAL-TIME PARALLEL SERVER RACING ENGINE (< 10 SECONDS)
+// ============================================================================
 const healthCache = new Map();
+
+/**
+ * Probe a single server (Constellation direct HLS or Web embed) with live millisecond latency
+ */
+export const probeCandidateServer = async (candidate, config = {}, { timeoutMs = 2800 } = {}) => {
+  if (!candidate) return { status: 'unknown', ping: 0, label: 'Unknown' };
+  const startTime = performance.now();
+  const isConstellation = Boolean(candidate.isBingr || candidate.isDirectHls || candidate.srv);
+
+  if (isConstellation) {
+    try {
+      const data = await fetchBingrStream({
+        srv: candidate.srv || 's70',
+        type: config.category || 'movie',
+        id: config.id,
+        title: config.title,
+        year: config.year,
+        season: config.season,
+        episode: config.episode,
+        timeoutMs,
+      });
+      const ping = Math.max(1, Math.round(performance.now() - startTime));
+      if (data && Array.isArray(data.sources) && data.sources.length > 0) {
+        return {
+          status: 'online',
+          ping,
+          label: `${ping}ms`,
+          type: 'hls',
+          sourcesCount: data.sources.length,
+          subtitlesCount: Array.isArray(data.subtitles) ? data.subtitles.length : 0,
+          streamData: data,
+        };
+      }
+      return {
+        status: 'unreachable',
+        ping,
+        label: 'No Stream',
+        type: 'hls',
+      };
+    } catch (err) {
+      const ping = Math.max(1, Math.round(performance.now() - startTime));
+      return {
+        status: err?.name === 'AbortError' ? 'degraded' : 'unreachable',
+        ping,
+        label: err?.name === 'AbortError' ? 'Timeout' : 'Offline',
+        type: 'hls',
+      };
+    }
+  }
+
+  // Web Server Embed Probe
+  const targetUrl = candidate.src;
+  const origin = getOrigin(targetUrl);
+  if (!origin) {
+    return { status: 'unknown', ping: 0, label: 'Unknown', type: 'embed' };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    await fetch(origin, {
+      method: 'HEAD',
+      mode: 'no-cors',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const ping = Math.max(1, Math.round(performance.now() - startTime));
+    return {
+      status: 'online',
+      ping,
+      label: `${ping}ms`,
+      type: 'embed',
+      origin,
+    };
+  } catch (err) {
+    const ping = Math.max(1, Math.round(performance.now() - startTime));
+    return {
+      status: err?.name === 'AbortError' ? 'degraded' : 'unreachable',
+      ping,
+      label: err?.name === 'AbortError' ? 'Timeout' : 'Offline',
+      type: 'embed',
+      origin,
+    };
+  }
+};
+
+/**
+ * Real-time parallel race across all Constellation and Web servers (< 3s total)
+ * Fires onFirstWinner the millisecond the first working stream is found!
+ */
+export const raceAllServersParallel = async (
+  candidates = [],
+  config = {},
+  {
+    timeoutMs = 2800,
+    onCandidateTested,
+    onFirstWinner,
+  } = {}
+) => {
+  let hasReportedWinner = false;
+  const results = new Map();
+
+  const probePromises = candidates.map(async (candidate, index) => {
+    try {
+      const health = await probeCandidateServer(candidate, config, { timeoutMs });
+      const key = candidate.id || candidate.src || String(index);
+      results.set(key, health);
+
+      if (typeof onCandidateTested === 'function') {
+        onCandidateTested(index, candidate, health);
+      }
+
+      if (!hasReportedWinner && health.status === 'online') {
+        hasReportedWinner = true;
+        if (typeof onFirstWinner === 'function') {
+          onFirstWinner(index, candidate, health);
+        }
+      }
+
+      return { index, candidate, health };
+    } catch {
+      const fallback = { status: 'unreachable', ping: 0, label: 'Failed' };
+      const key = candidate.id || candidate.src || String(index);
+      results.set(key, fallback);
+      if (typeof onCandidateTested === 'function') {
+        onCandidateTested(index, candidate, fallback);
+      }
+      return { index, candidate, health: fallback };
+    }
+  });
+
+  await Promise.allSettled(probePromises);
+  return results;
+};
 
 export const checkStreamProviderHealth = async (url, { timeoutMs = 1400, skipCache = false } = {}) => {
   const origin = getOrigin(url);
