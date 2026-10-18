@@ -7,14 +7,14 @@ const ANIME_PLAYER = (env.VITE_ANIME_PLAYER || 'https://vidnest.fun').replace(/\
 const API_URL = (env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com').replace(/\/+$/, '');
 
 // Verified high-uptime streaming endpoints
-const VIDFAST_BASE = 'https://vidfast.vc';
-const VIDLINK_BASE = 'https://vidlink.pro';
-const PRIMESRC_BASE = 'https://primesrc.me';
+const VIDBOLT_BASE = 'https://vidbolt.xyz';
 const EMBED2_BASE = 'https://www.2embed.cc';
 const VIDSRC_MOV_BASE = 'https://vidsrc.mov';
+const PRIMESRC_BASE = 'https://primesrc.me';
+const VIDY_BASE = 'https://www.vidy.st';
+const VIDNEST_BASE = 'https://vidnest.fun';
 const VIDSRC_PM_BASE = 'https://vidsrc.pm';
 const FILMU_BASE = 'https://embed.filmu.in';
-const VIDNEST_BASE = 'https://vidnest.fun';
 const VIDZEE_BASE = 'https://player.vidzee.wtf';
 
 const preconnectedOrigins = new Set();
@@ -46,22 +46,31 @@ const addHeadLink = ({ rel, href, as }) => {
 // ============================================================================
 export const STREAM_SERVERS_CATALOG = [
   {
-    id: 'vidfast',
-    name: 'Vidfast',
+    id: '2embed',
+    name: '2Embed HD',
+    flag: '🇦🇺',
+    country: 'AU',
+    tier: 'primary',
+    getMovieUrl: (id) => `${EMBED2_BASE}/embed/${id}`,
+    getTVUrl: (id, s, e) => `${EMBED2_BASE}/embedtv/${id}&s=${s}&e=${e}`,
+  },
+  {
+    id: 'vidbolt',
+    name: 'Vidbolt Ultra',
+    flag: '⚡',
+    country: 'US',
+    tier: 'primary',
+    getMovieUrl: (id) => `${VIDBOLT_BASE}/movie/${id}`,
+    getTVUrl: (id, s, e) => `${VIDBOLT_BASE}/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: '111',
+    name: 'VidSrc Mov',
     flag: '🇬🇧',
     country: 'GB',
     tier: 'primary',
-    getMovieUrl: (id) => `${VIDFAST_BASE}/movie/${id}`,
-    getTVUrl: (id, s, e) => `${VIDFAST_BASE}/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: 'vidlink',
-    name: 'VidLink Pro',
-    flag: '🇺🇸',
-    country: 'US',
-    tier: 'primary',
-    getMovieUrl: (id) => `${VIDLINK_BASE}/movie/${id}`,
-    getTVUrl: (id, s, e) => `${VIDLINK_BASE}/tv/${id}/${s}/${e}`,
+    getMovieUrl: (id) => `${VIDSRC_MOV_BASE}/embed/movie/${id}`,
+    getTVUrl: (id, s, e) => `${VIDSRC_MOV_BASE}/embed/tv/${id}/${s}/${e}`,
   },
   {
     id: 'primesrc',
@@ -73,22 +82,22 @@ export const STREAM_SERVERS_CATALOG = [
     getTVUrl: (id, s, e) => `${PRIMESRC_BASE}/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
   },
   {
-    id: '2embed',
-    name: '2Embed',
-    flag: '🇦🇺',
-    country: 'AU',
+    id: 'vidy',
+    name: 'Vidy Stream',
+    flag: '🌐',
+    country: 'US',
     tier: 'primary',
-    getMovieUrl: (id) => `${EMBED2_BASE}/embed/${id}`,
-    getTVUrl: (id, s, e) => `${EMBED2_BASE}/embedtv/${id}&s=${s}&e=${e}`,
+    getMovieUrl: (id) => `${VIDY_BASE}/movie/${id}`,
+    getTVUrl: (id, s, e) => `${VIDY_BASE}/tv/${id}/${s}/${e}`,
   },
   {
-    id: '111',
-    name: '111 (VidSrc Mov)',
+    id: 'vidnest',
+    name: 'Vidnest HD',
     flag: '🇬🇧',
     country: 'GB',
     tier: 'primary',
-    getMovieUrl: (id) => `${VIDSRC_MOV_BASE}/embed/movie/${id}`,
-    getTVUrl: (id, s, e) => `${VIDSRC_MOV_BASE}/embed/tv/${id}/${s}/${e}`,
+    getMovieUrl: (id) => `${VIDNEST_BASE}/movie/${id}`,
+    getTVUrl: (id, s, e) => `${VIDNEST_BASE}/tv/${id}/${s}/${e}`,
   },
   {
     id: 'vidsrc-pm',
@@ -107,15 +116,6 @@ export const STREAM_SERVERS_CATALOG = [
     tier: 'mirror',
     getMovieUrl: (id) => `${FILMU_BASE}/movie/${id}`,
     getTVUrl: (id, s, e) => `${FILMU_BASE}/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: 'vidnest',
-    name: 'Vidnest',
-    flag: '🇬🇧',
-    country: 'GB',
-    tier: 'mirror',
-    getMovieUrl: (id) => `${VIDNEST_BASE}/movie/${id}`,
-    getTVUrl: (id, s, e) => `${VIDNEST_BASE}/tv/${id}/${s}/${e}`,
   },
   {
     id: 'bravo',
@@ -175,14 +175,14 @@ export const saveCustomServer = (custom) => {
 // ============================================================================
 export const preconnectStreamingProviders = () => {
   const origins = [
-    VIDFAST_BASE,
-    VIDLINK_BASE,
-    PRIMESRC_BASE,
+    VIDBOLT_BASE,
     EMBED2_BASE,
     VIDSRC_MOV_BASE,
+    PRIMESRC_BASE,
+    VIDY_BASE,
+    VIDNEST_BASE,
     VIDSRC_PM_BASE,
     FILMU_BASE,
-    VIDNEST_BASE,
     VIDZEE_BASE,
     ANIME_PLAYER,
     API_URL,
@@ -213,11 +213,17 @@ export const prewarmStreamUrl = (url) => {
 // ============================================================================
 // INDIVIDUAL URL GENERATORS (ALL POINTING TO VERIFIED WORKING ENDPOINTS)
 // ============================================================================
-export const getMovieEmbedUrl = (tmdbId) => `${VIDFAST_BASE}/movie/${tmdbId}`;
-export const getTVEmbedUrl = (tmdbId, season, episode) => `${VIDFAST_BASE}/tv/${tmdbId}/${season}/${episode}`;
+export const getMovieEmbedUrl = (tmdbId) => `${EMBED2_BASE}/embed/${tmdbId}`;
+export const getTVEmbedUrl = (tmdbId, season, episode) => `${EMBED2_BASE}/embedtv/${tmdbId}&s=${season}&e=${episode}`;
 
-export const getMovieEmbedUrlV2 = (tmdbId) => `${VIDLINK_BASE}/movie/${tmdbId}`;
-export const getTVEmbedUrlV2 = (tmdbId, season, episode) => `${VIDLINK_BASE}/tv/${tmdbId}/${season}/${episode}`;
+export const getMovieEmbedUrlV2 = (tmdbId) => `${VIDBOLT_BASE}/movie/${tmdbId}`;
+export const getTVEmbedUrlV2 = (tmdbId, season, episode) => `${VIDBOLT_BASE}/tv/${tmdbId}/${season}/${episode}`;
+
+export const getVidBoltMovieUrl = (tmdbId) => `${VIDBOLT_BASE}/movie/${tmdbId}`;
+export const getVidBoltTVUrl = (tmdbId, season, episode) => `${VIDBOLT_BASE}/tv/${tmdbId}/${season}/${episode}`;
+
+export const getVidyMovieUrl = (tmdbId) => `${VIDY_BASE}/movie/${tmdbId}`;
+export const getVidyTVUrl = (tmdbId, season, episode) => `${VIDY_BASE}/tv/${tmdbId}/${season}/${episode}`;
 
 export const getVidSrcMovieEmbedUrl = (tmdbId) => `${VIDSRC_MOV_BASE}/embed/movie/${tmdbId}`;
 export const getVidSrcTVEmbedUrl = (tmdbId, season, episode) => `${VIDSRC_MOV_BASE}/embed/tv/${tmdbId}/${season}/${episode}`;
@@ -228,18 +234,17 @@ export const getPrimeSrcTVUrl = (tmdbId, season, episode) => `${PRIMESRC_BASE}/e
 export const get2EmbedMovieUrl = (tmdbId) => `${EMBED2_BASE}/embed/${tmdbId}`;
 export const get2EmbedTVUrl = (tmdbId, season, episode) => `${EMBED2_BASE}/embedtv/${tmdbId}&s=${season}&e=${episode}`;
 
-export const getVidLinkMovieUrl = (tmdbId) => `${VIDLINK_BASE}/movie/${tmdbId}`;
-export const getVidLinkTVUrl = (tmdbId, season, episode) => `${VIDLINK_BASE}/tv/${tmdbId}/${season}/${episode}`;
-
 // Backwards-compatible aliases for legacy callers
-export const getMoviesApiMovieUrl = (tmdbId) => `${VIDFAST_BASE}/movie/${tmdbId}`;
-export const getMoviesApiTVUrl = (tmdbId, season, episode) => `${VIDFAST_BASE}/tv/${tmdbId}/${season}/${episode}`;
+export const getVidLinkMovieUrl = (tmdbId) => `${VIDBOLT_BASE}/movie/${tmdbId}`;
+export const getVidLinkTVUrl = (tmdbId, season, episode) => `${VIDBOLT_BASE}/tv/${tmdbId}/${season}/${episode}`;
+export const getMoviesApiMovieUrl = (tmdbId) => `${EMBED2_BASE}/embed/${tmdbId}`;
+export const getMoviesApiTVUrl = (tmdbId, season, episode) => `${EMBED2_BASE}/embedtv/${tmdbId}&s=${season}&e=${episode}`;
 export const getVidsrcMeMovieUrl = (tmdbId) => `${VIDSRC_PM_BASE}/embed/movie/${tmdbId}`;
 export const getVidsrcMeTVUrl = (tmdbId, season, episode) => `${VIDSRC_PM_BASE}/embed/tv/${tmdbId}/${season}/${episode}`;
 export const getSuperEmbedMovieUrl = (tmdbId) => `${EMBED2_BASE}/embed/${tmdbId}`;
 export const getSuperEmbedTVUrl = (tmdbId, season, episode) => `${EMBED2_BASE}/embedtv/${tmdbId}&s=${season}&e=${episode}`;
-export const getAutoEmbedMovieUrl = (tmdbId) => `${VIDLINK_BASE}/movie/${tmdbId}`;
-export const getAutoEmbedTVUrl = (tmdbId, season, episode) => `${VIDLINK_BASE}/tv/${tmdbId}/${season}/${episode}`;
+export const getAutoEmbedMovieUrl = (tmdbId) => `${VIDBOLT_BASE}/movie/${tmdbId}`;
+export const getAutoEmbedTVUrl = (tmdbId, season, episode) => `${VIDBOLT_BASE}/tv/${tmdbId}/${season}/${episode}`;
 export const getVidSrcVipMovieUrl = (tmdbId) => `${VIDSRC_MOV_BASE}/embed/movie/${tmdbId}`;
 export const getVidSrcVipTVUrl = (tmdbId, season, episode) => `${VIDSRC_MOV_BASE}/embed/tv/${tmdbId}/${season}/${episode}`;
 
@@ -566,19 +571,23 @@ export const buildEmbedUrl = (config) => {
 
   switch (category) {
     case 'movie':
+      if (provider === 'vidbolt') return getVidBoltMovieUrl(tmdbId);
+      if (provider === '2embed') return get2EmbedMovieUrl(tmdbId);
       if (provider === 'vidsrc') return getVidSrcMovieEmbedUrl(tmdbId);
       if (provider === 'primesrc') return getPrimeSrcMovieUrl(tmdbId);
-      if (provider === '2embed') return get2EmbedMovieUrl(tmdbId);
-      if (provider === 'vidlink') return getVidLinkMovieUrl(tmdbId);
+      if (provider === 'vidy') return getVidyMovieUrl(tmdbId);
+      if (provider === 'vidlink') return getVidBoltMovieUrl(tmdbId);
       return useV2
         ? getMovieEmbedUrlV2(tmdbId)
         : getMovieEmbedUrl(tmdbId);
 
     case 'tv':
+      if (provider === 'vidbolt') return getVidBoltTVUrl(tmdbId, season, episode);
+      if (provider === '2embed') return get2EmbedTVUrl(tmdbId, season, episode);
       if (provider === 'vidsrc') return getVidSrcTVEmbedUrl(tmdbId, season, episode);
       if (provider === 'primesrc') return getPrimeSrcTVUrl(tmdbId, season, episode);
-      if (provider === '2embed') return get2EmbedTVUrl(tmdbId, season, episode);
-      if (provider === 'vidlink') return getVidLinkTVUrl(tmdbId, season, episode);
+      if (provider === 'vidy') return getVidyTVUrl(tmdbId, season, episode);
+      if (provider === 'vidlink') return getVidBoltTVUrl(tmdbId, season, episode);
       return useV2
         ? getTVEmbedUrlV2(tmdbId, season, episode)
         : getTVEmbedUrl(tmdbId, season, episode);
