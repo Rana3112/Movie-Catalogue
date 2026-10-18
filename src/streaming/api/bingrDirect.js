@@ -1,10 +1,31 @@
 /**
  * Bingr Constellation Direct Streaming API
- * Provides direct HLS / MP4 playback, multi-audio tracks, and multi-subtitles
- * Reverse-engineered from Bingr.one constellation architecture
+ * High-Speed Caching, Pre-Warming & Fast Failover Engine
  */
 
 export const BINGR_SERVERS = [
+  {
+    id: 'polaris',
+    srv: 's70',
+    name: 'Polaris',
+    flag: '🇺🇸',
+    country: 'US',
+    badge: 'Multi-Audio & Subs',
+    desc: 'Multi-Audio & Multi-Subtitles Flagship',
+    isDirectHls: true,
+    isPrimary: true,
+  },
+  {
+    id: 'corvus',
+    srv: 's61',
+    name: 'Corvus',
+    flag: '🇺🇸',
+    country: 'US',
+    badge: '1080p Master',
+    desc: '1080p Cinema Master',
+    isDirectHls: true,
+    isPrimary: true,
+  },
   {
     id: 'aphelion',
     srv: 's40',
@@ -12,17 +33,32 @@ export const BINGR_SERVERS = [
     iconType: 'star',
     flag: '✦',
     country: 'GL',
+    badge: 'Global HLS',
     desc: 'Direct HLS Global Stream',
     isDirectHls: true,
+    isPrimary: true,
   },
   {
-    id: 'polaris',
-    srv: 's70',
-    name: 'Polaris',
+    id: 'bastion',
+    srv: 's62',
+    name: 'Bastion',
+    flag: '🇮🇳',
+    country: 'IN',
+    badge: 'India Regional',
+    desc: 'India Regional Multi-Audio (Tamil/Hindi/Telugu)',
+    isDirectHls: true,
+    isPrimary: true,
+  },
+  {
+    id: 'orion',
+    srv: 's31',
+    name: 'Orion',
     flag: '🇺🇸',
     country: 'US',
-    desc: 'Multi-Audio & Multi-Subtitles Flagship',
+    badge: 'Cloud Mirror',
+    desc: 'Direct Cloud Mirror',
     isDirectHls: true,
+    isPrimary: true,
   },
   {
     id: 'moscow',
@@ -32,6 +68,7 @@ export const BINGR_SERVERS = [
     country: 'US',
     desc: 'US East Direct Mirror',
     isDirectHls: true,
+    isPrimary: false,
   },
   {
     id: 'novo',
@@ -41,15 +78,7 @@ export const BINGR_SERVERS = [
     country: 'US',
     desc: 'US West Direct Mirror',
     isDirectHls: true,
-  },
-  {
-    id: 'bastion',
-    srv: 's62',
-    name: 'Bastion',
-    flag: '🇮🇳',
-    country: 'IN',
-    desc: 'India Regional Multi-Audio (Tamil/Hindi/Telugu)',
-    isDirectHls: true,
+    isPrimary: false,
   },
   {
     id: 'hallyu',
@@ -59,6 +88,7 @@ export const BINGR_SERVERS = [
     country: 'KR',
     desc: 'East Asia Fast Mirror',
     isDirectHls: true,
+    isPrimary: false,
   },
   {
     id: 'nova',
@@ -68,6 +98,7 @@ export const BINGR_SERVERS = [
     country: 'US',
     desc: 'Ultra Low-Latency HLS',
     isDirectHls: true,
+    isPrimary: false,
   },
   {
     id: 'vertex',
@@ -77,24 +108,7 @@ export const BINGR_SERVERS = [
     country: 'US',
     desc: 'High Bitrate 1080p Mirror',
     isDirectHls: true,
-  },
-  {
-    id: 'corvus',
-    srv: 's61',
-    name: 'Corvus',
-    flag: '🇺🇸',
-    country: 'US',
-    desc: '1080p Cinema Master',
-    isDirectHls: true,
-  },
-  {
-    id: 'orion',
-    srv: 's31',
-    name: 'Orion',
-    flag: '🇺🇸',
-    country: 'US',
-    desc: 'Direct Cloud Mirror',
-    isDirectHls: true,
+    isPrimary: false,
   },
   {
     id: 'edmunds',
@@ -104,6 +118,7 @@ export const BINGR_SERVERS = [
     country: 'US',
     desc: 'Direct Stream Mirror',
     isDirectHls: true,
+    isPrimary: false,
   },
 ];
 
@@ -155,20 +170,97 @@ export const normalizeAudioLabel = (source) => {
 const env = (typeof import.meta !== 'undefined' && import.meta?.env) ? import.meta.env : {};
 const API_URL = (env.VITE_API_URL || 'https://movie-catalogue-api.onrender.com').replace(/\/+$/, '');
 
+// Fast In-Memory Cache (0ms switch latency)
+const streamCache = new Map();
+const languageCache = new Map();
+
+export const getStreamCacheKey = (srv, id, category, season, episode) =>
+  `${srv}:${category || 'movie'}:${id}:${season || 1}:${episode || 1}`;
+
 /**
- * Fetch direct stream sources and subtitles for a specific server
+ * Adapt the master stream cluster for specific server personalities
  */
-export async function fetchBingrStream({ srv = 's70', type = 'movie', id, title, year, season, episode }) {
-  const payload = {
-    srv,
-    t: type === 'tv' ? 'tv' : 'movie',
-    id: String(id || ''),
-    query: {
-      title: title || '',
-      year: year ? String(year) : '',
-      ...(type === 'tv' ? { season: Number(season) || 1, episode: Number(episode) || 1 } : {}),
-    },
+export function adaptClusterForServer(srv = 's70', clusterData) {
+  if (!clusterData || !Array.isArray(clusterData.sources) || clusterData.sources.length === 0) {
+    return clusterData;
+  }
+
+  const sources = [...clusterData.sources];
+  const subtitles = Array.isArray(clusterData.subtitles) ? [...clusterData.subtitles] : [];
+
+  if (srv === 's62' || srv === 'bastion') {
+    // Bastion: Prioritize Indian regional audio (Hindi, Tamil, Telugu, etc.)
+    const regIdx = sources.findIndex(s => {
+      const l = (s.language || s.name || s.label || '').toLowerCase();
+      return /hin|tam|tel|mal|kan|ben/i.test(l);
+    });
+    if (regIdx > 0) {
+      const [reg] = sources.splice(regIdx, 1);
+      sources.unshift(reg);
+    }
+  } else if (srv === 's40' || srv === 'aphelion') {
+    // Aphelion: Prioritize Global HLS stream
+    const hlsIdx = sources.findIndex(s => s.type === 'application/x-mpegurl' || s.url?.includes('.m3u8'));
+    if (hlsIdx > 0) {
+      const [hls] = sources.splice(hlsIdx, 1);
+      sources.unshift(hls);
+    }
+  } else if (srv === 's61' || srv === 'corvus') {
+    // Corvus: Prioritize 1080p Cinema Master
+    const masterIdx = sources.findIndex(s => s.quality === '1080p' && (s.url?.includes('streamrip') || s.type === 'video/mp4'));
+    if (masterIdx > 0) {
+      const [m] = sources.splice(masterIdx, 1);
+      sources.unshift(m);
+    }
+  } else if (srv === 's30' || srv === 'nova') {
+    // Nova: Prioritize 720p/480p low latency
+    const lowIdx = sources.findIndex(s => s.quality === '720p' || s.quality === '480p');
+    if (lowIdx > 0) {
+      const [low] = sources.splice(lowIdx, 1);
+      sources.unshift(low);
+    }
+  } else if (srv === 's31' || srv === 'orion') {
+    // Orion: Cloud mirror (second 1080p or alternate stream)
+    if (sources.length > 1) {
+      const alt = sources[1];
+      sources.splice(1, 1);
+      sources.unshift(alt);
+    }
+  }
+
+  return {
+    ...clusterData,
+    sources,
+    subtitles,
+    scraperName: `Bingr-${srv.toUpperCase()}`,
   };
+}
+
+/**
+ * Prewarm and pre-resolve master Constellation cluster (s70) in the background
+ */
+export function prewarmBingrStreams({ type = 'movie', id, title, year, season, episode }) {
+  if (!id) return;
+  fetchBingrStream({ srv: 's70', type, id, title, year, season, episode, timeoutMs: 2500 }).catch(() => {});
+}
+
+/**
+ * Fetch direct stream sources and subtitles with instant 0ms cached switching and smart failover
+ */
+export async function fetchBingrStream({ srv = 's70', type = 'movie', id, title, year, season, episode, timeoutMs = 1800 }) {
+  const cacheKey = getStreamCacheKey(srv, id, type, season, episode);
+  if (streamCache.has(cacheKey)) {
+    return streamCache.get(cacheKey);
+  }
+
+  // Check if master s70 cluster is already in memory: 0ms INSTANT SWITCH!
+  const masterKey = getStreamCacheKey('s70', id, type, season, episode);
+  if (streamCache.has(masterKey)) {
+    const masterData = streamCache.get(masterKey);
+    const adapted = adaptClusterForServer(srv, masterData);
+    streamCache.set(cacheKey, adapted);
+    return adapted;
+  }
 
   const endpoints = [
     '/api/streaming/bingr/stream',
@@ -176,37 +268,87 @@ export async function fetchBingrStream({ srv = 's70', type = 'movie', id, title,
     '/bingr-api/stream',
   ];
 
-  for (const ep of endpoints) {
-    try {
-      const res = await fetch(ep, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+  const doFetch = async (targetSrv, targetTimeout) => {
+    const payload = {
+      srv: targetSrv,
+      t: type === 'tv' ? 'tv' : 'movie',
+      id: String(id || ''),
+      query: {
+        title: title || '',
+        year: year ? String(year) : '',
+        ...(type === 'tv' ? { season: Number(season) || 1, episode: Number(episode) || 1 } : {}),
+      },
+    };
 
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        const data = await res.json();
-        if (data && (Array.isArray(data.sources) || Array.isArray(data.subtitles))) {
-          return {
-            sources: Array.isArray(data.sources) ? data.sources : [],
-            subtitles: Array.isArray(data.subtitles) ? data.subtitles : [],
-            scraperName: data.scraperName || '',
-          };
+    for (const ep of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), targetTimeout);
+
+        const res = await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data && Array.isArray(data.sources) && data.sources.length > 0) {
+            return {
+              sources: data.sources,
+              subtitles: Array.isArray(data.subtitles) ? data.subtitles : [],
+              scraperName: data.scraperName || '',
+            };
+          }
         }
+      } catch {
+        // Continue to fallback
       }
-    } catch {
-      // Continue to next fallback endpoint
     }
+    return null;
+  };
+
+  // If requesting s70, fetch directly
+  if (srv === 's70') {
+    const res = await doFetch('s70', timeoutMs);
+    if (res && res.sources.length > 0) {
+      streamCache.set(cacheKey, res);
+      return res;
+    }
+    return { sources: [], subtitles: [] };
+  }
+
+  // If requesting another server, first try target srv with quick timeout (1200ms)
+  const directRes = await doFetch(srv, 1200);
+  if (directRes && directRes.sources.length > 0) {
+    streamCache.set(cacheKey, directRes);
+    return directRes;
+  }
+
+  // Seamless fallback: fetch master s70 cluster and adapt for requested server
+  const masterRes = await doFetch('s70', timeoutMs);
+  if (masterRes && masterRes.sources.length > 0) {
+    streamCache.set(masterKey, masterRes);
+    const adapted = adaptClusterForServer(srv, masterRes);
+    streamCache.set(cacheKey, adapted);
+    return adapted;
   }
 
   return { sources: [], subtitles: [] };
 }
 
 /**
- * Fetch external dubbed audio sources (Vegamovies, NetNaija, etc.)
+ * Fetch external dubbed audio sources (Vegamovies, NetNaija, etc.) with caching
  */
-export async function fetchBingrLanguages({ type = 'movie', id, title, year }) {
+export async function fetchBingrLanguages({ type = 'movie', id, title, year, timeoutMs = 2800 }) {
+  const cacheKey = `${type}:${id}:${title}:${year}`;
+  if (languageCache.has(cacheKey)) {
+    return languageCache.get(cacheKey);
+  }
+
   const query = new URLSearchParams({
     title: title || '',
     year: year ? String(year) : '',
@@ -220,12 +362,20 @@ export async function fetchBingrLanguages({ type = 'movie', id, title, year }) {
 
   for (const ep of endpoints) {
     try {
-      const res = await fetch(ep);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const res = await fetch(ep, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       const contentType = res.headers.get('content-type') || '';
       if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         const sources = Array.isArray(data.sources) ? data.sources : (Array.isArray(data) ? data : []);
-        return sources;
+        if (sources.length > 0) {
+          languageCache.set(cacheKey, sources);
+          return sources;
+        }
       }
     } catch {
       // Continue to next fallback endpoint
@@ -234,4 +384,3 @@ export async function fetchBingrLanguages({ type = 'movie', id, title, year }) {
 
   return [];
 }
-

@@ -572,22 +572,139 @@ router.get('/proxy', async (req, res) => {
     }
 });
 
-// --- BINGR CONSTELLATION & LANGUAGES PROXY ENDPOINTS ---
+// --- BINGR CONSTELLATION & LANGUAGES PROXY ENDPOINTS WITH IN-MEMORY CACHE ---
+const expressBingrStreamCache = new Map();
+const expressBingrLangCache = new Map();
+
+function adaptExpressClusterForServer(srv, clusterData) {
+    if (!clusterData || !Array.isArray(clusterData.sources) || clusterData.sources.length === 0) {
+        return clusterData;
+    }
+    const sources = [...clusterData.sources];
+    const subtitles = Array.isArray(clusterData.subtitles) ? [...clusterData.subtitles] : [];
+
+    if (srv === 's62' || srv === 'bastion') {
+        const regIdx = sources.findIndex(s => {
+            const l = (s.language || s.name || s.label || '').toLowerCase();
+            return /hin|tam|tel|mal|kan|ben/i.test(l);
+        });
+        if (regIdx > 0) {
+            const [reg] = sources.splice(regIdx, 1);
+            sources.unshift(reg);
+        }
+    } else if (srv === 's40' || srv === 'aphelion') {
+        const hlsIdx = sources.findIndex(s => s.type === 'application/x-mpegurl' || s.url?.includes('.m3u8'));
+        if (hlsIdx > 0) {
+            const [hls] = sources.splice(hlsIdx, 1);
+            sources.unshift(hls);
+        }
+    } else if (srv === 's61' || srv === 'corvus') {
+        const masterIdx = sources.findIndex(s => s.quality === '1080p' && (s.url?.includes('streamrip') || s.type === 'video/mp4'));
+        if (masterIdx > 0) {
+            const [m] = sources.splice(masterIdx, 1);
+            sources.unshift(m);
+        }
+    } else if (srv === 's30' || srv === 'nova') {
+        const lowIdx = sources.findIndex(s => s.quality === '720p' || s.quality === '480p');
+        if (lowIdx > 0) {
+            const [low] = sources.splice(lowIdx, 1);
+            sources.unshift(low);
+        }
+    } else if (srv === 's31' || srv === 'orion') {
+        if (sources.length > 1) {
+            const alt = sources[1];
+            sources.splice(1, 1);
+            sources.unshift(alt);
+        }
+    }
+
+    return {
+        ...clusterData,
+        sources,
+        subtitles,
+        scraperName: `Bingr-${String(srv || 'S70').toUpperCase()}`,
+    };
+}
+
 router.post('/bingr/stream', async (req, res) => {
     try {
-        const upstream = await fetch('https://api.bingr.one/api/stream', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://bingr.one/',
-                'Origin': 'https://bingr.one',
-            },
-            body: JSON.stringify(req.body)
-        });
-        const data = await upstream.json();
+        const { srv = 's70', id = '', query = {} } = req.body || {};
+        const cacheKey = `${srv}:${id}:${query.season || ''}:${query.episode || ''}`;
+        const masterKey = `s70:${id}:${query.season || ''}:${query.episode || ''}`;
+
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.status(upstream.status).json(data);
+
+        if (expressBingrStreamCache.has(cacheKey)) {
+            const cached = expressBingrStreamCache.get(cacheKey);
+            if (Date.now() - cached.timestamp < 15 * 60 * 1000) {
+                return res.json(cached.data);
+            }
+        }
+
+        if (expressBingrStreamCache.has(masterKey)) {
+            const masterCached = expressBingrStreamCache.get(masterKey);
+            if (Date.now() - masterCached.timestamp < 15 * 60 * 1000) {
+                const adapted = adaptExpressClusterForServer(srv, masterCached.data);
+                expressBingrStreamCache.set(cacheKey, { data: adapted, timestamp: Date.now() });
+                return res.json(adapted);
+            }
+        }
+
+        const fetchUpstream = async (targetSrv, timeoutMs) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const upstream = await fetch('https://api.bingr.one/api/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                        'Referer': 'https://bingr.one/',
+                        'Origin': 'https://bingr.one',
+                    },
+                    body: JSON.stringify({ ...req.body, srv: targetSrv }),
+                    signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+                const contentType = upstream.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const data = await upstream.json();
+                    if (data && Array.isArray(data.sources) && data.sources.length > 0) {
+                        return data;
+                    }
+                }
+            } catch {
+                // fall through
+            }
+            return null;
+        };
+
+        if (srv === 's70') {
+            const data = await fetchUpstream('s70', 2500);
+            if (data) {
+                expressBingrStreamCache.set(cacheKey, { data, timestamp: Date.now() });
+                return res.json(data);
+            }
+            return res.json({ sources: [], subtitles: [] });
+        }
+
+        // For other servers: first attempt target srv (1200ms)
+        const targetData = await fetchUpstream(srv, 1200);
+        if (targetData) {
+            expressBingrStreamCache.set(cacheKey, { data: targetData, timestamp: Date.now() });
+            return res.json(targetData);
+        }
+
+        // Fallback: fetch master s70 and adapt for srv
+        const masterData = await fetchUpstream('s70', 2500);
+        if (masterData) {
+            expressBingrStreamCache.set(masterKey, { data: masterData, timestamp: Date.now() });
+            const adapted = adaptExpressClusterForServer(srv, masterData);
+            expressBingrStreamCache.set(cacheKey, { data: adapted, timestamp: Date.now() });
+            return res.json(adapted);
+        }
+
+        res.json({ sources: [], subtitles: [] });
     } catch (err) {
         res.status(500).json({ error: err.message || 'Bingr stream proxy failed' });
     }
@@ -597,17 +714,43 @@ router.get('/bingr/languages/:type/:id', async (req, res) => {
     try {
         const { type, id } = req.params;
         const queryParams = new URLSearchParams(req.query).toString();
+        const cacheKey = `${type}:${id}:${queryParams}`;
+
+        if (expressBingrLangCache.has(cacheKey)) {
+            const cached = expressBingrLangCache.get(cacheKey);
+            if (Date.now() - cached.timestamp < 15 * 60 * 1000) {
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                return res.json(cached.data);
+            }
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2800);
+
         const url = `https://api.bingr.one/api/languages/${type}/${id}${queryParams ? `?${queryParams}` : ''}`;
         const upstream = await fetch(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Referer': 'https://bingr.one/',
                 'Origin': 'https://bingr.one',
-            }
+            },
+            signal: controller.signal,
         });
-        const data = await upstream.json();
+        clearTimeout(timeoutId);
+
+        const contentType = upstream.headers.get('content-type') || '';
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.status(upstream.status).json(data);
+
+        if (contentType.includes('application/json')) {
+            const data = await upstream.json();
+            if (data && Array.isArray(data.sources) && data.sources.length > 0) {
+                expressBingrLangCache.set(cacheKey, { data, timestamp: Date.now() });
+            }
+            return res.status(upstream.status).json(data);
+        }
+
+        const text = await upstream.text();
+        res.status(upstream.status).send(text);
     } catch (err) {
         res.status(500).json({ error: err.message || 'Bingr languages proxy failed' });
     }

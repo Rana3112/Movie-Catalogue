@@ -40,6 +40,7 @@ import {
   BINGR_SERVERS,
   fetchBingrStream,
   fetchBingrLanguages,
+  prewarmBingrStreams,
   normalizeAudioLabel,
   getLanguageFlag,
 } from '../api/bingrDirect.js';
@@ -209,6 +210,16 @@ export default function PlayerPage() {
     const initialQuery = `${config.title || ''} ${config.season ? `S${String(config.season).padStart(2, '0')}E${String(config.episode).padStart(2, '0')}` : ''}`.trim();
     setOnlineSubSearchQuery(initialQuery);
 
+    // Prewarm Constellation master cluster s70 in background for 0ms server switching
+    prewarmBingrStreams({
+      type: config.category || 'movie',
+      id: config.id,
+      title: config.title,
+      year: config.year,
+      season: config.season,
+      episode: config.episode,
+    });
+
     addToHistory({
       id: config.id || `${config.category}:${config.title}:${config.season || ''}:${config.episode || ''}`,
       title: config.title,
@@ -250,7 +261,7 @@ export default function PlayerPage() {
 
     const resolveStream = async () => {
       try {
-        const streamPromise = fetchBingrStream({
+        const streamData = await fetchBingrStream({
           srv: currentCandidate.srv || 's70',
           type: config?.category || 'movie',
           id: config?.id,
@@ -258,16 +269,9 @@ export default function PlayerPage() {
           year: config?.year,
           season: config?.season,
           episode: config?.episode,
+          timeoutMs: 1800,
         });
 
-        const langPromise = fetchBingrLanguages({
-          type: config?.category || 'movie',
-          id: config?.id,
-          title: config?.title,
-          year: config?.year,
-        });
-
-        const [streamData, langData] = await Promise.all([streamPromise, langPromise]);
         if (isCancelled) return;
 
         const sources = streamData.sources || [];
@@ -313,31 +317,43 @@ export default function PlayerPage() {
             }
           });
 
-          // Dubbed external audio sources (NetNaija / Vegamovies)
-          if (Array.isArray(langData)) {
-            langData.forEach((langSrc, idx) => {
-              const norm = normalizeAudioLabel(langSrc);
-              const key = norm.cleanName.toLowerCase();
-              if (!seenLangs.has(key)) {
-                seenLangs.add(key);
-                initialAudioTracks.push({
-                  id: `lang-${idx}-${key}`,
-                  name: norm.cleanName,
-                  subtext: langSrc.quality || '1080p',
-                  flag: norm.flag,
-                  url: langSrc.url,
-                  type: langSrc.type,
-                  quality: langSrc.quality || '1080p',
-                });
-              }
-            });
-          }
-
           setAudioTracks(initialAudioTracks);
           setActiveAudioTrackId('primary');
           setDirectStreamUrl(primarySrc.url);
           setHealth({ status: 'online', label: 'Streaming Direct HD' });
           setIsResolvingStream(false);
+
+          // Asynchronously enrich audio tracks with dubbed sources in background without blocking video playback
+          fetchBingrLanguages({
+            type: config?.category || 'movie',
+            id: config?.id,
+            title: config?.title,
+            year: config?.year,
+            timeoutMs: 2500,
+          }).then(langData => {
+            if (isCancelled || !Array.isArray(langData) || langData.length === 0) return;
+            setAudioTracks(prev => {
+              const currentSeen = new Set(prev.map(p => p.name.toLowerCase()));
+              const additional = [];
+              langData.forEach((langSrc, idx) => {
+                const norm = normalizeAudioLabel(langSrc);
+                const key = norm.cleanName.toLowerCase();
+                if (!currentSeen.has(key)) {
+                  currentSeen.add(key);
+                  additional.push({
+                    id: `lang-${idx}-${key}`,
+                    name: norm.cleanName,
+                    subtext: langSrc.quality || '1080p',
+                    flag: norm.flag,
+                    url: langSrc.url,
+                    type: langSrc.type,
+                    quality: langSrc.quality || '1080p',
+                  });
+                }
+              });
+              return additional.length > 0 ? [...prev, ...additional] : prev;
+            });
+          }).catch(() => {});
         } else {
           setIsResolvingStream(false);
           setHealth({ status: 'unreachable', label: 'No stream on server' });
@@ -551,17 +567,24 @@ export default function PlayerPage() {
   const selectProvider = (index, e) => {
     if (e) e.stopPropagation();
     userOverriddenRef.current = true;
+    const target = candidates[index];
     setProviderIndex(index);
     setFrameKey(v => v + 1);
     setIsSourcesMenuOpen(false);
+    setAutoShiftNotice(`⚡ Connected to ${target?.label || `Server ${index + 1}`}`);
+    setTimeout(() => setAutoShiftNotice(null), 2500);
   };
 
   // Next Server quick failover button
   const tryAlternateProvider = (e) => {
     if (e) e.stopPropagation();
     userOverriddenRef.current = true;
-    setProviderIndex(prev => (prev + 1) % candidates.length);
+    const nextIdx = (providerIndex + 1) % candidates.length;
+    const target = candidates[nextIdx];
+    setProviderIndex(nextIdx);
     setFrameKey(v => v + 1);
+    setAutoShiftNotice(`⚡ Switched to ${target?.label || `Server ${nextIdx + 1}`}`);
+    setTimeout(() => setAutoShiftNotice(null), 2500);
   };
 
   // Reload current provider
@@ -705,7 +728,6 @@ export default function PlayerPage() {
           e.stopPropagation();
           navigate(-1);
         }}
-        onPointerDown={(e) => e.stopPropagation()}
         aria-label="Close player"
         title="Close player"
         style={{
@@ -751,7 +773,6 @@ export default function PlayerPage() {
         {hasAlternateProvider && (
           <button
             onClick={tryAlternateProvider}
-            onPointerDown={(e) => e.stopPropagation()}
             aria-label="Next working server"
             title="Switch to next working streaming server"
             style={{
@@ -772,7 +793,7 @@ export default function PlayerPage() {
               pointerEvents: 'auto',
               touchAction: 'manipulation',
               userSelect: 'none',
-              transition: 'transform 0.15s ease, filter 0.15s ease',
+              transition: 'transform 0.1s ease',
             }}
           >
             <Shuffle size={15} />
@@ -786,7 +807,6 @@ export default function PlayerPage() {
             e.stopPropagation();
             setIsSourcesMenuOpen(prev => !prev);
           }}
-          onPointerDown={(e) => e.stopPropagation()}
           title="Click to view & select from Constellation & Web servers"
           aria-label="Stream servers menu"
           style={{
@@ -807,6 +827,7 @@ export default function PlayerPage() {
             pointerEvents: 'auto',
             touchAction: 'manipulation',
             userSelect: 'none',
+            transition: 'transform 0.1s ease',
           }}
         >
           {currentCandidate.id === 'bingr-aphelion' ? (
@@ -829,7 +850,6 @@ export default function PlayerPage() {
         {/* Reload Current Source Button */}
         <button
           onClick={retryCurrentProvider}
-          onPointerDown={(e) => e.stopPropagation()}
           aria-label="Reload stream"
           title="Reload current stream"
           style={{
@@ -846,6 +866,7 @@ export default function PlayerPage() {
             pointerEvents: 'auto',
             touchAction: 'manipulation',
             userSelect: 'none',
+            transition: 'transform 0.1s ease',
           }}
         >
           <RotateCcw size={16} />
@@ -857,7 +878,6 @@ export default function PlayerPage() {
             e.stopPropagation();
             setIsSubtitlesMenuOpen(prev => !prev);
           }}
-          onPointerDown={(e) => e.stopPropagation()}
           aria-label="Audio and Subtitles"
           title="Audio Languages & Subtitles"
           style={{
@@ -878,6 +898,7 @@ export default function PlayerPage() {
             pointerEvents: 'auto',
             touchAction: 'manipulation',
             userSelect: 'none',
+            transition: 'transform 0.1s ease',
           }}
         >
           <Volume2 size={15} className="text-blue-300" />
@@ -1097,18 +1118,38 @@ export default function PlayerPage() {
                           )}
                         </div>
 
-                        {/* Server Name */}
-                        <span style={{ fontSize: 14, fontWeight: 800, flex: 1 }}>
-                          {candidate.label}
-                        </span>
+                        {/* Server Name & Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap' }}>
+                            {candidate.label}
+                          </span>
+                          {candidate.badge && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: 12,
+                                background: candidate.isPrimary ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.08)',
+                                color: candidate.isPrimary ? '#38BDF8' : 'rgba(255,255,255,0.6)',
+                                border: candidate.isPrimary ? '1px solid rgba(56,189,248,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                                letterSpacing: '0.02em',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {candidate.badge}
+                            </span>
+                          )}
+                        </div>
 
                         {/* Ping / Status dot */}
                         <span
                           style={{
-                            width: 6,
-                            height: 6,
+                            width: 7,
+                            height: 7,
                             borderRadius: '50%',
-                            background: isActive ? '#38BDF8' : 'rgba(255,255,255,0.3)',
+                            background: isActive ? '#38BDF8' : 'rgba(255,255,255,0.35)',
+                            boxShadow: isActive ? '0 0 6px #38BDF8' : 'none',
                           }}
                         />
                       </button>
