@@ -121,9 +121,14 @@ dist
 # Video/Large Files
 *.mkv
 *.mp4
+!public/commercial/*.mp4
 *.avi
 *.mov
 *.apk
+
+# Commercial build intermediate temp files
+scripts/commercial/build/
+test_voice.mp3
 
 # Local workspace / scratch files
 .claude/

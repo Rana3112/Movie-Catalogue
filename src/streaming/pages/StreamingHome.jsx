@@ -72,6 +72,16 @@ export default function StreamingHome() {
         {/* Action Controls */}
         <div className="bingr-topbar-actions">
           <button
+            onClick={() => navigate('/commercial')}
+            className="bingr-nav-icon-btn"
+            aria-label="CinePulse Commercial Showcase"
+            title="Watch CinePulse Showcase Trailer"
+            style={{ color: '#00d2ff' }}
+          >
+            <Sparkles size={19} />
+          </button>
+
+          <button
             onClick={() => navigate('/streaming/genres')}
             className="bingr-nav-icon-btn"
             aria-label="Genres & Categories"

@@ -201,6 +201,19 @@ export default function Home() {
               <motion.button
                 whileHover={{ y: -2, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/commercial')}
+                className="time-archive-nav-btn px-3.5 py-2 rounded-full flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/90 hover:border-cyan-500/40 transition-colors"
+                title="Watch CinePulse Showcase Trailer"
+              >
+                <Sparkles size={14} className="text-[#00e5ff]" />
+                <span>Trailer</span>
+              </motion.button>
+            </div>
+
+            <div className="hidden md:inline-flex">
+              <motion.button
+                whileHover={{ y: -2, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleMySpace}
                 className="time-archive-nav-btn myspace-highlight-btn px-4 py-2 rounded-full flex items-center gap-1.5"
                 title="My Space"
