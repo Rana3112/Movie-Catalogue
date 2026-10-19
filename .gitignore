@@ -121,10 +121,10 @@ dist
 # Video/Large Files
 *.mkv
 *.mp4
-!public/commercial/*.mp4
 *.avi
 *.mov
 *.apk
+commercial_video/
 
 # Commercial build intermediate temp files
 scripts/commercial/build/

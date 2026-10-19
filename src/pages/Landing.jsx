@@ -503,10 +503,6 @@ export default function Landing() {
         </div>
 
         <nav className="landing-nav" aria-label="Landing navigation">
-          <button type="button" onClick={() => navigate('/commercial')} style={{ color: '#00d2ff', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <Sparkles size={13} />
-            <span>Trailer</span>
-          </button>
           <button type="button" onClick={handleGuestEntry}>Demo</button>
           <button type="button" onClick={() => navigate('/login')}>Login</button>
           <button type="button" className="is-primary" onClick={() => navigate('/signup')}>Sign Up</button>
@@ -532,15 +528,6 @@ export default function Landing() {
             <Motion.div variants={revealItem} className="landing-cta-row">
               <Motion.button whileTap={{ scale: 0.98 }} type="button" className="landing-primary-cta" onClick={handleGuestEntry}>
                 Explore Demo <ArrowRight size={18} />
-              </Motion.button>
-              <Motion.button
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                className="landing-ghost-cta"
-                onClick={() => navigate('/commercial')}
-                style={{ borderColor: 'rgba(0, 210, 255, 0.4)', color: '#00d2ff' }}
-              >
-                <Play size={14} fill="currentColor" /> Watch Trailer
               </Motion.button>
               <Motion.button whileTap={{ scale: 0.98 }} type="button" className="landing-ghost-cta" onClick={() => navigate('/login')}>
                 Login

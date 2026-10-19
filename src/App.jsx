@@ -16,7 +16,6 @@ import CineBot from './components/CineBot'
 import BottomNav from './components/ui/BottomNav'
 import { ToastProvider } from './components/ui/Toast'
 import Landing from './pages/Landing'
-import CommercialPage from './pages/CommercialPage'
 import PageTransition from './components/ui/PageTransition'
 import StreamingHome from './streaming/pages/StreamingHome'
 import MovieDetail from './streaming/pages/MovieDetail'
@@ -98,7 +97,6 @@ function AnimatedRoutes() {
 
         <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
         <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
-        <Route path="/commercial" element={<PageTransition><CommercialPage /></PageTransition>} />
         <Route path="/shared/:token" element={<PageTransition><SharedCalendar /></PageTransition>} />
 
         {/* Protected Routes (Guests Allowed) */}
