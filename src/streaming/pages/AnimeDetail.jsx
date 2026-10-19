@@ -27,11 +27,16 @@ export default function AnimeDetail() {
   const title = titleOptions[0];
 
   const handleEpisodeSelect = (epNumber) => {
-    const streamUrl = getAnimeEmbedUrl(anime.id, epNumber, { dub: false });
-    const streamCandidates = getAnimeStreamCandidates(anime.id, epNumber, { dub: false });
+    const streamCandidates = getAnimeStreamCandidates(anime.id, epNumber, {
+      dub: false,
+      title,
+      anilistId: anime.id,
+    });
+    const firstCand = streamCandidates[0];
+    const streamUrl = firstCand?.src || getAnimeEmbedUrl(anime.id, epNumber, { dub: false });
     navigate('/streaming/player', {
       state: {
-        mode: 'iframe',
+        mode: firstCand?.isDirectHls ? 'direct' : 'iframe',
         src: streamUrl,
         id: anime.id,
         anilistId: anime.id,
@@ -47,7 +52,7 @@ export default function AnimeDetail() {
 
   const handleEpisodePrewarm = (epNumber) => {
     prewarmStreamUrl(getAnimeEmbedUrl(anime.id, epNumber, { dub: false }));
-    prewarmStreamCandidates(getAnimeStreamCandidates(anime.id, epNumber, { dub: false }));
+    prewarmStreamCandidates(getAnimeStreamCandidates(anime.id, epNumber, { dub: false, title, anilistId: anime.id }));
   };
 
   return (

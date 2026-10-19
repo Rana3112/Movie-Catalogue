@@ -69,6 +69,23 @@ export default async function handler(req, res) {
       }
     }
 
+    if (!bodyPayload || typeof bodyPayload !== 'object' || Object.keys(bodyPayload).length === 0) {
+      bodyPayload = {
+        srv: req.query?.srv || 's70',
+        t: req.query?.t || req.query?.type || 'movie',
+        id: req.query?.id || '',
+        query: {
+          title: req.query?.title || '',
+          year: req.query?.year || '',
+          ...(req.query?.season ? { season: Number(req.query.season) } : {}),
+          ...(req.query?.episode ? { episode: Number(req.query.episode) } : {}),
+        }
+      };
+    }
+
+    const t = bodyPayload.t || bodyPayload.type || (req.query?.type === 'tv' ? 'tv' : 'movie');
+    bodyPayload.t = t;
+
     const { srv = 's70', id = '', query = {} } = bodyPayload || {};
     const cacheKey = `${srv}:${id}:${query.season || ''}:${query.episode || ''}`;
     const masterKey = `s70:${id}:${query.season || ''}:${query.episode || ''}`;
@@ -101,7 +118,7 @@ export default async function handler(req, res) {
             'Referer': 'https://bingr.one/',
             'Origin': 'https://bingr.one',
           },
-          body: JSON.stringify({ ...(bodyPayload || {}), srv: targetSrv }),
+          body: JSON.stringify({ ...(bodyPayload || {}), srv: targetSrv, t }),
           signal: controller.signal,
         });
         clearTimeout(timeoutId);

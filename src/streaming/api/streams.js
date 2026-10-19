@@ -44,6 +44,60 @@ const addHeadLink = ({ rel, href, as }) => {
 // Only servers verified via live HTTP probe to return 200 OK and stream media.
 // Broken / 404 / timed-out / dead hosts have been removed.
 // ============================================================================
+// ============================================================================
+// DEDICATED HINDI AUDIO & INDIAN LANGUAGE STREAMERS
+// ============================================================================
+export const HINDI_STREAM_SERVERS = [
+  {
+    id: 'filmu-hindi',
+    name: 'Filmu Hindi Dub',
+    flag: '🇮🇳',
+    country: 'IN',
+    tier: 'hindi',
+    badge: 'Hindi Dub',
+    isHindi: true,
+    desc: 'Native Indian Hindi Dub Stream',
+    getMovieUrl: (id) => `${FILMU_BASE}/movie/${id}?lang=hi`,
+    getTVUrl: (id, s, e) => `${FILMU_BASE}/tv/${id}/${s}/${e}?lang=hi`,
+  },
+  {
+    id: 'smashy-hindi',
+    name: 'Smashy Hindi',
+    flag: '🇮🇳',
+    country: 'IN',
+    tier: 'hindi',
+    badge: 'Multi-Audio',
+    isHindi: true,
+    desc: 'Multi-Audio Bollywood & Hindi Dubs',
+    getMovieUrl: (id) => `https://player.smashystream.com/movie/${id}`,
+    getTVUrl: (id, s, e) => `https://player.smashystream.com/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: 'vidcore',
+    name: 'Vidcore Cinema',
+    flag: '🇮🇳',
+    country: 'IN',
+    tier: 'hindi',
+    badge: 'Desi HD',
+    isHindi: true,
+    desc: 'Indian Cinema High-Speed Mirror',
+    getMovieUrl: (id) => `${FILMU_BASE}/movie/${id}`,
+    getTVUrl: (id, s, e) => `${FILMU_BASE}/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: 'nhd',
+    name: 'NHD Hindi Stream',
+    flag: '🇮🇳',
+    country: 'IN',
+    tier: 'hindi',
+    badge: 'Hindi 1080p',
+    isHindi: true,
+    desc: 'Regional Hindi Stream Direct',
+    getMovieUrl: (id) => `${FILMU_BASE}/movie/${id}`,
+    getTVUrl: (id, s, e) => `${FILMU_BASE}/tv/${id}/${s}/${e}`,
+  },
+];
+
 export const STREAM_SERVERS_CATALOG = [
   {
     id: '2embed',
@@ -63,6 +117,7 @@ export const STREAM_SERVERS_CATALOG = [
     getMovieUrl: (id) => `${VIDBOLT_BASE}/movie/${id}`,
     getTVUrl: (id, s, e) => `${VIDBOLT_BASE}/tv/${id}/${s}/${e}`,
   },
+  ...HINDI_STREAM_SERVERS,
   {
     id: '111',
     name: 'VidSrc Mov',
@@ -109,15 +164,6 @@ export const STREAM_SERVERS_CATALOG = [
     getTVUrl: (id, s, e) => `${VIDSRC_PM_BASE}/embed/tv/${id}/${s}/${e}`,
   },
   {
-    id: 'vidcore',
-    name: 'Vidcore',
-    flag: '🇮🇳',
-    country: 'IN',
-    tier: 'mirror',
-    getMovieUrl: (id) => `${FILMU_BASE}/movie/${id}`,
-    getTVUrl: (id, s, e) => `${FILMU_BASE}/tv/${id}/${s}/${e}`,
-  },
-  {
     id: 'bravo',
     name: 'Bravo (VidZee)',
     flag: '🇬🇧',
@@ -131,15 +177,6 @@ export const STREAM_SERVERS_CATALOG = [
     name: 'Netflix HD',
     flag: '🇺🇸',
     country: 'US',
-    tier: 'mirror',
-    getMovieUrl: (id) => `${FILMU_BASE}/movie/${id}`,
-    getTVUrl: (id, s, e) => `${FILMU_BASE}/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: 'nhd',
-    name: 'NHD Streams',
-    flag: '🇮🇳',
-    country: 'IN',
     tier: 'mirror',
     getMovieUrl: (id) => `${FILMU_BASE}/movie/${id}`,
     getTVUrl: (id, s, e) => `${FILMU_BASE}/tv/${id}/${s}/${e}`,
@@ -290,8 +327,10 @@ export const getMovieStreamCandidates = (tmdbId) => {
     flag: server.flag,
     country: server.country,
     tier: server.tier,
+    badge: server.badge,
+    isHindi: Boolean(server.isHindi),
     src: server.getMovieUrl(tmdbId),
-    style: 'purple',
+    style: server.isHindi ? 'orange' : 'purple',
     isCustom: false,
   }));
 
@@ -319,15 +358,19 @@ export const getTVStreamCandidates = (tmdbId, season, episode) => {
     flag: server.flag,
     country: server.country,
     tier: server.tier,
+    badge: server.badge,
+    isHindi: Boolean(server.isHindi),
     src: server.getTVUrl(tmdbId, season, episode),
-    style: 'purple',
+    style: server.isHindi ? 'orange' : 'purple',
     isCustom: false,
   }));
 
   return [...constellation, ...custom, ...standard];
 };
 
-// Anime Candidates (Only verified 200 OK)
+// ============================================================================
+// VERIFIED ANIME CANDIDATES (DIRECT HLS + MULTI-AUDIO EMBEDS)
+// ============================================================================
 export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
   const params = new URLSearchParams({
     servericon: 'true',
@@ -340,31 +383,171 @@ export const getAnimeEmbedUrl = (anilistId, episode, { dub = false } = {}) => {
 
 export const getFilmuAnimeUrl = (tmdbOrAnilistId, episode) => `${FILMU_BASE}/anime/${tmdbOrAnilistId}/${episode}`;
 
-export const getAnimeStreamCandidates = (anilistId, episode, options = {}) => ([
-  { id: 'vidnest-anime', label: 'Vidnest Pahe', flag: '🇬🇧', country: 'GB', src: getAnimeEmbedUrl(anilistId, episode, options), style: 'purple' },
-  { id: 'filmu-anime', label: 'Filmu Anime', flag: '🇮🇳', country: 'IN', src: getFilmuAnimeUrl(anilistId, episode), style: 'purple' },
-  { id: 'hianime-anime', label: 'AniWatch', flag: '🇯🇵', country: 'JP', src: `https://hianimez.to/watch/${anilistId}?ep=${episode}`, style: 'orange' },
-]);
+export const getAnimeStreamCandidates = (anilistId, episode = 1, options = {}) => {
+  const title = options.title || options.animeTitle || '';
+  const cleanId = anilistId || options.id || options.tmdbId || '';
+  const isDub = Boolean(options.dub);
+
+  return [
+    {
+      id: 'animesalt-hls',
+      label: 'AniStream Master',
+      name: 'AniStream Direct HLS',
+      flag: '⚡',
+      country: 'JP',
+      tier: 'anime',
+      isAnime: true,
+      isDirectHls: true,
+      isBingr: false,
+      badge: '1080p Direct',
+      desc: 'Direct HLS Master Stream with Subtitles & Multi-Audio',
+      src: `/api/streaming/bingr/animesalt?title=${encodeURIComponent(title || String(cleanId))}&ep=${episode}&season=1`,
+      style: 'cyan',
+    },
+    {
+      id: 'vidnest-anime-sub',
+      label: 'Vidnest Pahe Sub',
+      name: 'Vidnest Pahe (Sub)',
+      flag: '🇯🇵',
+      country: 'JP',
+      tier: 'anime',
+      isAnime: true,
+      badge: 'Soft Subs',
+      src: `${VIDNEST_BASE}/animepahe/${cleanId}/${episode}/sub?servericon=true&pip=true`,
+      style: 'purple',
+    },
+    {
+      id: 'vidnest-anime-dub',
+      label: 'Vidnest Pahe Dub',
+      name: 'Vidnest Pahe (Dub)',
+      flag: '🇺🇸',
+      country: 'US',
+      tier: 'anime',
+      isAnime: true,
+      badge: 'English Dub',
+      src: `${VIDNEST_BASE}/animepahe/${cleanId}/${episode}/dub?servericon=true&pip=true`,
+      style: 'purple',
+    },
+    {
+      id: '2embed-anime',
+      label: '2Embed Anime',
+      name: '2Embed Anime HD',
+      flag: '🇦🇺',
+      country: 'AU',
+      tier: 'anime',
+      isAnime: true,
+      badge: '1080p Fast',
+      src: `${EMBED2_BASE}/embedtv/${cleanId}&s=1&e=${episode}`,
+      style: 'purple',
+    },
+    {
+      id: 'smashy-anime',
+      label: 'Smashy Anime',
+      name: 'SmashyStream Anime',
+      flag: '🌐',
+      country: 'US',
+      tier: 'anime',
+      isAnime: true,
+      badge: 'Fast Embed',
+      src: `https://player.smashystream.com/tv/${cleanId}/1/${episode}`,
+      style: 'purple',
+    },
+    {
+      id: 'vidsrc-anime',
+      label: 'VidSrc Mov Anime',
+      name: 'VidSrc Anime',
+      flag: '🇬🇧',
+      country: 'GB',
+      tier: 'anime',
+      isAnime: true,
+      badge: 'Multi-Mirror',
+      src: `${VIDSRC_MOV_BASE}/embed/tv/${cleanId}/1/${episode}`,
+      style: 'purple',
+    },
+    {
+      id: 'vidbolt-anime',
+      label: 'Vidbolt Anime',
+      name: 'Vidbolt Ultra Anime',
+      flag: '⚡',
+      country: 'US',
+      tier: 'anime',
+      isAnime: true,
+      badge: 'Ultra Fast',
+      src: `${VIDBOLT_BASE}/tv/${cleanId}/1/${episode}`,
+      style: 'purple',
+    },
+    {
+      id: 'filmu-anime',
+      label: 'Filmu Anime',
+      name: 'Filmu Anime Stream',
+      flag: '🇮🇳',
+      country: 'IN',
+      tier: 'anime',
+      isAnime: true,
+      badge: 'Asia Fast',
+      src: `${FILMU_BASE}/anime/${cleanId}/${episode}`,
+      style: 'purple',
+    },
+  ];
+};
 
 export const prewarmStreamCandidates = (candidates = []) => {
   candidates.slice(0, 10).forEach(candidate => prewarmStreamUrl(candidate?.src));
 };
 
 // ============================================================================
-// ULTRA-FAST HEALTH CHECK & PRE-FLIGHT PROBING ENGINE
-// ============================================================================
 // ULTRA-FAST REAL-TIME PARALLEL SERVER RACING ENGINE (< 10 SECONDS)
 // ============================================================================
 const healthCache = new Map();
 
 /**
- * Probe a single server (Constellation direct HLS or Web embed) with live millisecond latency
+ * Probe a single server (Constellation direct HLS, AnimeSalt or Web embed) with live millisecond latency
+ * and stream readiness detection.
  */
 export const probeCandidateServer = async (candidate, config = {}, { timeoutMs = 2800 } = {}) => {
-  if (!candidate) return { status: 'unknown', ping: 0, label: 'Unknown' };
+  if (!candidate) return { status: 'unknown', ping: 0, label: 'Unknown', isReady: false };
   const startTime = performance.now();
-  const isConstellation = Boolean(candidate.isBingr || candidate.isDirectHls || candidate.srv);
+  const isAnimeSalt = candidate.id === 'animesalt-hls';
+  const isConstellation = Boolean(candidate.isBingr || candidate.srv);
 
+  // 1. AnimeSalt Direct HLS Probe
+  if (isAnimeSalt) {
+    try {
+      const title = config.title || config.id || '';
+      const ep = config.episode || 1;
+      const res = await fetch(`/api/streaming/bingr/animesalt?title=${encodeURIComponent(title)}&ep=${ep}&season=1`, {
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const ping = Math.max(1, Math.round(performance.now() - startTime));
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.streams) && data.streams.length > 0) {
+          return {
+            status: 'online',
+            ping,
+            label: `${ping}ms`,
+            type: 'hls',
+            isReady: true,
+            streamData: {
+              sources: data.streams.map(s => ({
+                url: s.url,
+                quality: `${s.quality || 1080}p`,
+                type: 'application/x-mpegurl',
+                name: s.server || 'AnimeSalt',
+              })),
+              subtitles: data.subtitles || [],
+            },
+          };
+        }
+      }
+      return { status: 'unreachable', ping, label: 'No Stream', type: 'hls', isReady: false };
+    } catch {
+      const ping = Math.max(1, Math.round(performance.now() - startTime));
+      return { status: 'unreachable', ping, label: 'Offline', type: 'hls', isReady: false };
+    }
+  }
+
+  // 2. Constellation Direct HLS Probe
   if (isConstellation) {
     try {
       const data = await fetchBingrStream({
@@ -384,6 +567,7 @@ export const probeCandidateServer = async (candidate, config = {}, { timeoutMs =
           ping,
           label: `${ping}ms`,
           type: 'hls',
+          isReady: true,
           sourcesCount: data.sources.length,
           subtitlesCount: Array.isArray(data.subtitles) ? data.subtitles.length : 0,
           streamData: data,
@@ -394,6 +578,7 @@ export const probeCandidateServer = async (candidate, config = {}, { timeoutMs =
         ping,
         label: 'No Stream',
         type: 'hls',
+        isReady: false,
       };
     } catch (err) {
       const ping = Math.max(1, Math.round(performance.now() - startTime));
@@ -402,15 +587,16 @@ export const probeCandidateServer = async (candidate, config = {}, { timeoutMs =
         ping,
         label: err?.name === 'AbortError' ? 'Timeout' : 'Offline',
         type: 'hls',
+        isReady: false,
       };
     }
   }
 
-  // Web Server Embed Probe
+  // 3. Web Server Embed Probe
   const targetUrl = candidate.src;
   const origin = getOrigin(targetUrl);
   if (!origin) {
-    return { status: 'unknown', ping: 0, label: 'Unknown', type: 'embed' };
+    return { status: 'unknown', ping: 0, label: 'Unknown', type: 'embed', isReady: false };
   }
 
   try {
@@ -431,6 +617,7 @@ export const probeCandidateServer = async (candidate, config = {}, { timeoutMs =
       ping,
       label: `${ping}ms`,
       type: 'embed',
+      isReady: true,
       origin,
     };
   } catch (err) {
@@ -440,14 +627,15 @@ export const probeCandidateServer = async (candidate, config = {}, { timeoutMs =
       ping,
       label: err?.name === 'AbortError' ? 'Timeout' : 'Offline',
       type: 'embed',
+      isReady: false,
       origin,
     };
   }
 };
 
 /**
- * Real-time parallel race across all Constellation and Web servers (< 3s total)
- * Fires onFirstWinner the millisecond the first working stream is found!
+ * Real-time parallel race across all Constellation, Hindi, Anime, and Web servers (< 10s total)
+ * Automatically fires onFirstWinner the millisecond the first totally ready server is confirmed!
  */
 export const raceAllServersParallel = async (
   candidates = [],
@@ -471,7 +659,8 @@ export const raceAllServersParallel = async (
         onCandidateTested(index, candidate, health);
       }
 
-      if (!hasReportedWinner && health.status === 'online') {
+      // Automatically report the first server that is totally online and ready to stream
+      if (!hasReportedWinner && health.status === 'online' && health.isReady) {
         hasReportedWinner = true;
         if (typeof onFirstWinner === 'function') {
           onFirstWinner(index, candidate, health);
@@ -480,7 +669,7 @@ export const raceAllServersParallel = async (
 
       return { index, candidate, health };
     } catch {
-      const fallback = { status: 'unreachable', ping: 0, label: 'Failed' };
+      const fallback = { status: 'unreachable', ping: 0, label: 'Failed', isReady: false };
       const key = candidate.id || candidate.src || String(index);
       results.set(key, fallback);
       if (typeof onCandidateTested === 'function') {

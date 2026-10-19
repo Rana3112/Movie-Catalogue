@@ -75,8 +75,12 @@ export default function PlayerPage() {
     let baseList = [];
     if (config?.category === 'tv' && config?.id) {
       baseList = getTVStreamCandidates(config.id, config.season || 1, config.episode || 1);
-    } else if (config?.category === 'anime' && config?.id) {
-      baseList = getAnimeStreamCandidates(config.id, config.episode || 1);
+    } else if (config?.category === 'anime' && (config?.id || config?.anilistId)) {
+      baseList = getAnimeStreamCandidates(config.anilistId || config.id, config.episode || 1, {
+        title: config.title,
+        anilistId: config.anilistId || config.id,
+        dub: config.dub,
+      });
     } else if (config?.id) {
       baseList = getMovieStreamCandidates(config.id);
     } else if (Array.isArray(config?.candidates) && config.candidates.length) {
@@ -98,12 +102,36 @@ export default function PlayerPage() {
   const [health, setHealth] = useState({ status: 'checking', label: 'Checking provider' });
   const [healthMap, setHealthMap] = useState(() => new Map());
   const [isProbingAll, setIsProbingAll] = useState(false);
-  const [serverTab, setServerTab] = useState('constellation'); // 'constellation' | 'web' | 'custom' | 'all'
+  const [serverTab, setServerTab] = useState(() => (config?.category === 'anime' ? 'anime' : 'constellation')); // 'constellation' | 'web' | 'hindi' | 'anime' | 'custom'
+  const [isStreamReady, setIsStreamReady] = useState(false);
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [autoShiftNotice, setAutoShiftNotice] = useState(null);
   const [, setFailedIndices] = useState(new Set());
   const [autoShiftEnabled, setAutoShiftEnabled] = useState(true);
   const [isSourcesMenuOpen, setIsSourcesMenuOpen] = useState(false);
+
+  // Real-Time Playback Readiness Trackers
+  const streamLoadStartRef = useRef(performance.now());
+  const streamReadyNotifiedRef = useRef(false);
+
+  const markStreamAsReady = useCallback((triggerReason = 'media') => {
+    setIsStreamReady(true);
+    if (!streamReadyNotifiedRef.current) {
+      streamReadyNotifiedRef.current = true;
+      const elapsedMs = Math.max(1, Math.round(performance.now() - streamLoadStartRef.current));
+      const curr = candidatesRef.current[providerIndexRef.current];
+      const name = curr?.label || 'Server';
+      setAutoShiftNotice(`⚡ Stream Ready & Live: ${name} • Loaded in ${elapsedMs}ms`);
+      setTimeout(() => setAutoShiftNotice(null), 3200);
+    }
+  }, []);
+
+  // Reset stream readiness on provider / frame reload
+  useEffect(() => {
+    setIsStreamReady(false);
+    streamReadyNotifiedRef.current = false;
+    streamLoadStartRef.current = performance.now();
+  }, [providerIndex, frameKey, directStreamUrl]);
 
   // Direct HLS & Multi-Audio States
   const [directStreamUrl, setDirectStreamUrl] = useState(null);
@@ -314,21 +342,42 @@ export default function PlayerPage() {
 
     const resolveStream = async () => {
       try {
-        const streamData = await fetchBingrStream({
-          srv: currentCandidate.srv || 's70',
-          type: config?.category || 'movie',
-          id: config?.id,
-          title: config?.title,
-          year: config?.year,
-          season: config?.season,
-          episode: config?.episode,
-          timeoutMs: 1800,
-        });
+        let streamData = null;
+        if (currentCandidate.id === 'animesalt-hls') {
+          const title = config?.title || config?.id || '';
+          const ep = config?.episode || 1;
+          const res = await fetch(`/api/streaming/bingr/animesalt?title=${encodeURIComponent(title)}&ep=${ep}&season=1`);
+          if (res.ok) {
+            const anData = await res.json();
+            if (anData && Array.isArray(anData.streams) && anData.streams.length > 0) {
+              streamData = {
+                sources: anData.streams.map(s => ({
+                  url: s.url,
+                  quality: `${s.quality || 1080}p`,
+                  type: 'application/x-mpegurl',
+                  name: s.server || 'AnimeSalt',
+                })),
+                subtitles: anData.subtitles || [],
+              };
+            }
+          }
+        } else {
+          streamData = await fetchBingrStream({
+            srv: currentCandidate.srv || 's70',
+            type: config?.category || 'movie',
+            id: config?.id,
+            title: config?.title,
+            year: config?.year,
+            season: config?.season,
+            episode: config?.episode,
+            timeoutMs: 1800,
+          });
+        }
 
         if (isCancelled) return;
 
-        const sources = streamData.sources || [];
-        const subtitles = streamData.subtitles || [];
+        const sources = streamData?.sources || [];
+        const subtitles = streamData?.subtitles || [];
 
         if (sources.length > 0) {
           setBingrSources(sources);
@@ -456,6 +505,7 @@ export default function PlayerPage() {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.playbackRate = playbackSpeed;
         video.play().catch(() => {});
+        markStreamAsReady('hls-manifest');
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -480,6 +530,7 @@ export default function PlayerPage() {
       video.src = directStreamUrl;
       video.playbackRate = playbackSpeed;
       video.play().catch(() => {});
+      markStreamAsReady('native-video');
     }
 
     return () => {
@@ -524,19 +575,23 @@ export default function PlayerPage() {
     };
   }, [sourceUrl, isBingrCandidate, triggerAutoShift]);
 
-  // Watchdog timer for iframe embeds
+  // Stream Readiness Auto-Failover Watchdog:
+  // If a server has NOT loaded and started streaming within 7.5 seconds, auto-shift to next verified ready server!
   useEffect(() => {
     if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     setShowSlowHint(false);
 
     loadTimeoutRef.current = setTimeout(() => {
       setShowSlowHint(true);
-    }, 8500);
+      if (!isStreamReady && autoShiftEnabledRef.current && !userOverriddenRef.current && candidatesRef.current.length > 1) {
+        triggerAutoShift('stream slow to load');
+      }
+    }, 7500);
 
     return () => {
       if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     };
-  }, [sourceUrl, frameKey]);
+  }, [sourceUrl, frameKey, isStreamReady, triggerAutoShift]);
 
   // Subtitle Cue Sync Timer
   useEffect(() => {
@@ -748,10 +803,16 @@ export default function PlayerPage() {
   // Filter candidates by category tabs
   const displayedCandidates = useMemo(() => {
     if (serverTab === 'constellation') {
-      return candidates.filter(c => c.tier === 'constellation' || c.isBingr || c.isDirectHls);
+      return candidates.filter(c => c.tier === 'constellation' || c.isBingr || (c.isDirectHls && !c.isAnime));
     }
     if (serverTab === 'web') {
-      return candidates.filter(c => c.tier === 'primary' || c.tier === 'mirror' || (!c.isBingr && !c.isCustom));
+      return candidates.filter(c => (c.tier === 'primary' || c.tier === 'mirror') && !c.isHindi && !c.isAnime);
+    }
+    if (serverTab === 'hindi') {
+      return candidates.filter(c => c.tier === 'hindi' || c.isHindi || c.id === 'bingr-bastion' || c.id === 'bingr-polaris');
+    }
+    if (serverTab === 'anime') {
+      return candidates.filter(c => c.tier === 'anime' || c.isAnime || c.id?.includes('anime'));
     }
     if (serverTab === 'custom') {
       return candidates.filter(c => c.isCustom || c.id?.startsWith('custom-'));
@@ -894,9 +955,10 @@ export default function PlayerPage() {
               width: 8,
               height: 8,
               borderRadius: '50%',
-              backgroundColor: health.status === 'online' ? '#10B981' : health.status === 'degraded' ? '#FBBF24' : '#EF4444',
-              boxShadow: health.status === 'online' ? '0 0 6px #10B981' : 'none',
+              backgroundColor: isStreamReady ? '#10B981' : health.status === 'online' ? '#38BDF8' : health.status === 'degraded' ? '#FBBF24' : '#EF4444',
+              boxShadow: isStreamReady ? '0 0 8px #10B981' : health.status === 'online' ? '0 0 6px #38BDF8' : 'none',
             }}
+            title={isStreamReady ? 'Stream Ready & Loaded' : health.label || 'Checking'}
           />
         </button>
 
@@ -1010,64 +1072,104 @@ export default function PlayerPage() {
           >
             {/* Drawer Header with Category Tabs & Close */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setServerTab('constellation')}
                   style={{
-                    padding: '6px 14px',
+                    padding: '6px 12px',
                     borderRadius: 20,
                     border: '1px solid ' + (serverTab === 'constellation' ? '#38BDF8' : 'rgba(255,255,255,0.1)'),
                     background: serverTab === 'constellation' ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.04)',
                     color: serverTab === 'constellation' ? '#38BDF8' : 'rgba(255,255,255,0.7)',
                     fontWeight: 800,
-                    fontSize: 12,
+                    fontSize: 11,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 5,
                   }}
                 >
-                  <Sparkles size={13} />
+                  <Sparkles size={12} />
                   <span>Constellation</span>
                 </button>
 
                 <button
                   onClick={() => setServerTab('web')}
                   style={{
-                    padding: '6px 14px',
+                    padding: '6px 12px',
                     borderRadius: 20,
                     border: '1px solid ' + (serverTab === 'web' ? '#A855F7' : 'rgba(255,255,255,0.1)'),
                     background: serverTab === 'web' ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)',
                     color: serverTab === 'web' ? '#A855F7' : 'rgba(255,255,255,0.7)',
                     fontWeight: 800,
-                    fontSize: 12,
+                    fontSize: 11,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 5,
                   }}
                 >
-                  <Globe size={13} />
-                  <span>Web Servers</span>
+                  <Globe size={12} />
+                  <span>Web</span>
+                </button>
+
+                <button
+                  onClick={() => setServerTab('hindi')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    border: '1px solid ' + (serverTab === 'hindi' ? '#F97316' : 'rgba(255,255,255,0.1)'),
+                    background: serverTab === 'hindi' ? 'rgba(249,115,22,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: serverTab === 'hindi' ? '#FB923C' : 'rgba(255,255,255,0.7)',
+                    fontWeight: 800,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <span>🇮🇳</span>
+                  <span>Hindi Audio</span>
+                </button>
+
+                <button
+                  onClick={() => setServerTab('anime')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    border: '1px solid ' + (serverTab === 'anime' ? '#EC4899' : 'rgba(255,255,255,0.1)'),
+                    background: serverTab === 'anime' ? 'rgba(236,72,153,0.18)' : 'rgba(255,255,255,0.04)',
+                    color: serverTab === 'anime' ? '#F472B6' : 'rgba(255,255,255,0.7)',
+                    fontWeight: 800,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <Zap size={12} />
+                  <span>Anime</span>
                 </button>
 
                 <button
                   onClick={() => setServerTab('custom')}
                   style={{
-                    padding: '6px 14px',
+                    padding: '6px 12px',
                     borderRadius: 20,
                     border: '1px solid ' + (serverTab === 'custom' ? '#10B981' : 'rgba(255,255,255,0.1)'),
-                    background: serverTab === 'custom' ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)',
+                    background: serverTab === 'custom' ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)',
                     color: serverTab === 'custom' ? '#10B981' : 'rgba(255,255,255,0.7)',
                     fontWeight: 800,
-                    fontSize: 12,
+                    fontSize: 11,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 5,
                   }}
                 >
-                  <Sliders size={13} />
+                  <Sliders size={12} />
                   <span>Custom</span>
                 </button>
               </div>
@@ -1891,6 +1993,9 @@ export default function PlayerPage() {
             playsInline
             controlsList="nodownload"
             poster={config.posterUrl}
+            onLoadedData={() => markStreamAsReady('video-loadeddata')}
+            onCanPlay={() => markStreamAsReady('video-canplay')}
+            onPlaying={() => markStreamAsReady('video-playing')}
             style={{
               position: 'absolute',
               inset: 0,
@@ -1918,6 +2023,7 @@ export default function PlayerPage() {
           src={sourceUrl}
           loading="eager"
           fetchPriority="high"
+          onLoad={() => markStreamAsReady('iframe-onload')}
           style={{
             position: 'absolute',
             inset: 0,
