@@ -1,15 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Calendar, ListVideo } from 'lucide-react';
+import { ArrowLeft, Star, Calendar, ListVideo, Download } from 'lucide-react';
 import { useAnimeDetail } from '../hooks/useAnime';
 import { getAnimeEmbedUrl, getAnimeStreamCandidates, preconnectStreamingProviders, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
 import StreamCalendarButton from '../components/StreamCalendarButton';
+import StreamDownloadModal from '../components/StreamDownloadModal';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
 
 export default function AnimeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [selectedEpisode, setSelectedEpisode] = useState(1);
   const { data: anime, isLoading } = useAnimeDetail(id);
 
   useEffect(() => {
@@ -96,6 +99,18 @@ export default function AnimeDetail() {
           </div>
 
           <div className="streaming-detail-actions">
+            <button
+              onClick={() => {
+                setSelectedEpisode(1);
+                setIsDownloadOpen(true);
+              }}
+              className="streaming-secondary-button"
+              style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700 }}
+              title="Download anime on any resolution"
+            >
+              <Download size={18} /> Download
+            </button>
+
             <WatchlistButton
               item={{
                 id: anime.id,
@@ -153,6 +168,19 @@ export default function AnimeDetail() {
           </div>
         </section>
       </main>
+
+      <StreamDownloadModal
+        isOpen={isDownloadOpen}
+        onClose={() => setIsDownloadOpen(false)}
+        media={{
+          id: anime.id,
+          title,
+          category: 'anime',
+          episode: selectedEpisode,
+          posterUrl: anime.coverImage?.extraLarge,
+          year: anime.seasonYear,
+        }}
+      />
     </div>
   );
 }

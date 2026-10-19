@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play } from 'lucide-react';
+import { Play, Download } from 'lucide-react';
 import { imageUrl } from '../api/tmdb';
 import {
   getAnimeEmbedUrl,
@@ -13,10 +13,12 @@ import {
   prewarmStreamUrl,
 } from '../api/streams';
 import WatchlistButton from './WatchlistButton';
+import StreamDownloadModal from './StreamDownloadModal';
 import { HeroSkeleton } from './LoadingSkeletons';
 
 export default function HeroSection({ items = [], activeTab }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -135,6 +137,15 @@ export default function HeroSection({ items = [], activeTab }) {
           >
             <Play size={18} fill="#fff" /> Watch Now
           </button>
+
+          <button
+            onClick={() => setIsDownloadOpen(true)}
+            className="streaming-secondary-button"
+            style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700 }}
+            title="Download on any resolution"
+          >
+            <Download size={18} /> Download
+          </button>
           
           <WatchlistButton 
             item={{
@@ -156,6 +167,20 @@ export default function HeroSection({ items = [], activeTab }) {
           />
         ))}
       </div>
+
+      {item && (
+        <StreamDownloadModal
+          isOpen={isDownloadOpen}
+          onClose={() => setIsDownloadOpen(false)}
+          media={{
+            id: item.id,
+            title,
+            category: activeTab,
+            posterUrl: isAnime ? item.coverImage?.extraLarge : imageUrl(item.poster_path, 'w500'),
+            year: releaseYear,
+          }}
+        />
+      )}
     </div>
   );
 }

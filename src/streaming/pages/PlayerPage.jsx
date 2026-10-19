@@ -8,6 +8,7 @@ import {
   Captions,
   Check,
   Clock,
+  Download,
   FileText,
   Globe,
   Minus,
@@ -24,6 +25,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import StreamDownloadModal from '../components/StreamDownloadModal';
 import { useStreamingStore } from '../store/useStreamingStore';
 import {
   checkStreamProviderHealth,
@@ -161,6 +163,7 @@ export default function PlayerPage() {
   const [, setFailedIndices] = useState(new Set());
   const [autoShiftEnabled, setAutoShiftEnabled] = useState(true);
   const [isSourcesMenuOpen, setIsSourcesMenuOpen] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   // Subtitle States
   const [isSubtitlesMenuOpen, setIsSubtitlesMenuOpen] = useState(false);
@@ -1129,6 +1132,39 @@ export default function PlayerPage() {
         >
           <Volume2 size={15} className="text-blue-300" />
           <span>{activeSubtitle ? 'CC On' : 'Audio & Subs'}</span>
+        </button>
+
+        {/* Download Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsDownloadModalOpen(true);
+          }}
+          aria-label="Download Media"
+          title="Download movie or episode on any resolution"
+          style={{
+            height: 40,
+            background: 'linear-gradient(135deg, #10B981, #059669)',
+            border: '1px solid rgba(255,255,255,0.22)',
+            borderRadius: 24,
+            padding: '0 15px',
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            cursor: 'pointer',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 4px 14px rgba(16,185,129,0.4)',
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
+            userSelect: 'none',
+            transition: 'transform 0.1s ease',
+          }}
+        >
+          <Download size={15} />
+          <span>Download</span>
         </button>
       </div>
 
@@ -2148,6 +2184,21 @@ export default function PlayerPage() {
           allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         />
       )}
+
+      {/* Universal Resolution Download Modal */}
+      <StreamDownloadModal
+        isOpen={isDownloadModalOpen}
+        onClose={() => setIsDownloadModalOpen(false)}
+        media={{
+          id: config?.id || config?.anilistId,
+          title: config?.title,
+          category: config?.category || 'movie',
+          season: config?.season || 1,
+          episode: config?.episode || 1,
+          posterUrl: config?.posterUrl,
+          year: config?.year,
+        }}
+      />
     </div>
   );
 }

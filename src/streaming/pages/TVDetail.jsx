@@ -1,17 +1,20 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Calendar, Tv } from 'lucide-react';
+import { ArrowLeft, Star, Calendar, Tv, Download } from 'lucide-react';
 import { useTVDetail } from '../hooks/useTVShows';
 import { imageUrl } from '../api/tmdb';
 import { getTVEmbedUrl, getTVStreamCandidates, preconnectStreamingProviders, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
 import StreamCalendarButton from '../components/StreamCalendarButton';
+import StreamDownloadModal from '../components/StreamDownloadModal';
 import EpisodeList from '../components/EpisodeList';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
 
 export default function TVDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [downloadEpisode, setDownloadEpisode] = useState({ season: 1, episode: 1 });
   const { data: tv, isLoading } = useTVDetail(id);
 
   const getEpisodeStreamUrl = useCallback((season, episode) => (
@@ -90,6 +93,18 @@ export default function TVDetail() {
           </div>
 
           <div className="streaming-detail-actions">
+            <button
+              onClick={() => {
+                setDownloadEpisode({ season: 1, episode: 1 });
+                setIsDownloadOpen(true);
+              }}
+              className="streaming-secondary-button"
+              style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700 }}
+              title="Download TV series on any resolution"
+            >
+              <Download size={18} /> Download
+            </button>
+
             <WatchlistButton
               item={{
                 id: tv.id,
@@ -127,8 +142,26 @@ export default function TVDetail() {
           seasons={tv.seasons}
           onEpisodeSelect={handleEpisodeSelect}
           onEpisodePrewarm={handleEpisodePrewarm}
+          onEpisodeDownload={(season, ep) => {
+            setDownloadEpisode({ season, episode: ep });
+            setIsDownloadOpen(true);
+          }}
         />
       </main>
+
+      <StreamDownloadModal
+        isOpen={isDownloadOpen}
+        onClose={() => setIsDownloadOpen(false)}
+        media={{
+          id: tv.id,
+          title: tv.name,
+          category: 'tv',
+          season: downloadEpisode.season,
+          episode: downloadEpisode.episode,
+          posterUrl: imageUrl(tv.poster_path, 'w500'),
+          year: tv.first_air_date?.slice(0, 4),
+        }}
+      />
     </div>
   );
 }

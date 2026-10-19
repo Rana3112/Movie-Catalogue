@@ -1,16 +1,18 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Star, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Play, Star, Calendar, Clock, Download } from 'lucide-react';
 import { useMovieDetail } from '../hooks/useMovies';
 import { imageUrl } from '../api/tmdb';
 import { getMovieEmbedUrl, getMovieStreamCandidates, prewarmStreamCandidates, prewarmStreamUrl } from '../api/streams';
 import WatchlistButton from '../components/WatchlistButton';
 import StreamCalendarButton from '../components/StreamCalendarButton';
+import StreamDownloadModal from '../components/StreamDownloadModal';
 import { DetailSkeleton } from '../components/LoadingSkeletons';
 
 export default function MovieDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const { data: movie, isLoading } = useMovieDetail(id);
   const streamUrl = useMemo(() => getMovieEmbedUrl(id), [id]);
   const streamCandidates = useMemo(() => getMovieStreamCandidates(id), [id]);
@@ -86,6 +88,15 @@ export default function MovieDetail() {
               <Play size={19} fill="#fff" /> Play Movie
             </button>
 
+            <button
+              onClick={() => setIsDownloadOpen(true)}
+              className="streaming-secondary-button"
+              style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700 }}
+              title="Download movie on any resolution"
+            >
+              <Download size={18} /> Download
+            </button>
+
             <WatchlistButton
               item={{
                 id: movie.id,
@@ -125,6 +136,18 @@ export default function MovieDetail() {
           ))}
         </div>
       </main>
+
+      <StreamDownloadModal
+        isOpen={isDownloadOpen}
+        onClose={() => setIsDownloadOpen(false)}
+        media={{
+          id: movie.id,
+          title: movie.title,
+          category: 'movie',
+          posterUrl: imageUrl(movie.poster_path, 'w500'),
+          year: movie.release_date?.slice(0, 4),
+        }}
+      />
     </div>
   );
 }

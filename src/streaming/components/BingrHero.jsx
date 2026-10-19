@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Info, Star, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Play, Info, Star, Volume2, VolumeX, Sparkles, Download } from 'lucide-react';
 import { imageUrl } from '../api/tmdb';
 import {
   getAnimeEmbedUrl,
@@ -14,6 +14,7 @@ import {
 } from '../api/streams';
 import { fetchBingrTrailer } from '../api/bingrApi';
 import WatchlistButton from './WatchlistButton';
+import StreamDownloadModal from './StreamDownloadModal';
 import { HeroSkeleton } from './LoadingSkeletons';
 
 export default function BingrHero({ items = [], activeTab }) {
@@ -21,6 +22,7 @@ export default function BingrHero({ items = [], activeTab }) {
   const [trailerUrl, setTrailerUrl] = useState(null);
   const [isMuted, setIsMuted] = useState(true);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const navigate = useNavigate();
   const videoRef = useRef(null);
 
@@ -248,6 +250,15 @@ export default function BingrHero({ items = [], activeTab }) {
             <span>Details</span>
           </button>
 
+          <button
+            onClick={() => setIsDownloadOpen(true)}
+            className="bingr-secondary-btn"
+            title="Download on any resolution"
+          >
+            <Download size={18} />
+            <span>Download</span>
+          </button>
+
           {trailerUrl && videoLoaded && (
             <button
               onClick={() => setIsMuted(prev => !prev)}
@@ -271,6 +282,21 @@ export default function BingrHero({ items = [], activeTab }) {
           />
         ))}
       </div>
+
+      {/* Universal Stream Download Modal */}
+      {item && (
+        <StreamDownloadModal
+          isOpen={isDownloadOpen}
+          onClose={() => setIsDownloadOpen(false)}
+          media={{
+            id: item.id,
+            title,
+            category: activeTab,
+            posterUrl: isAnime ? item.coverImage?.extraLarge : imageUrl(item.poster_path, 'w500'),
+            year: releaseYear,
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -789,4 +789,374 @@ router.get('/bingr/animesalt', async (req, res) => {
     }
 });
 
+// ============================================================================
+// UNIVERSAL STREAM DOWNLOAD ENGINE (MOVIES, TV, ANIME ON ANY RESOLUTION)
+// ============================================================================
+router.get('/download-options', async (req, res) => {
+    try {
+        const { id, type = 'movie', season = 1, episode = 1, title = 'Media', year = '', format = 'mkv' } = req.query;
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
+        let rawSources = [];
+        if (type === 'anime') {
+            try {
+                const aRes = await fetch(`https://hianime.filmu.in/animesalt/streams?title=${encodeURIComponent(title)}&ep=${episode}&season=${season}`);
+                if (aRes.ok) {
+                    const anData = await aRes.json();
+                    if (Array.isArray(anData?.streams)) {
+                        rawSources = anData.streams.map(s => ({
+                            name: s.server || 'AnimeSalt',
+                            quality: s.quality || '1080p',
+                            url: s.url,
+                            type: 'application/x-mpegurl',
+                        }));
+                    }
+                }
+            } catch {}
+        } else if (id) {
+            try {
+                const bRes = await fetch('https://api.bingr.one/api/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                        'Referer': 'https://bingr.one/',
+                        'Origin': 'https://bingr.one',
+                    },
+                    body: JSON.stringify({
+                        srv: 's70',
+                        t: type === 'tv' ? 'tv' : 'movie',
+                        id: String(id),
+                        query: {
+                            title: title || '',
+                            year: year ? String(year) : '',
+                            ...(type === 'tv' ? { season: Number(season) || 1, episode: Number(episode) || 1 } : {}),
+                        },
+                    }),
+                });
+                if (bRes.ok) {
+                    const bData = await bRes.json();
+                    if (Array.isArray(bData?.sources)) {
+                        rawSources = bData.sources;
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching download sources from Bingr:', err.message);
+            }
+        }
+
+        const RESOLUTION_META = [
+            { quality: '1080p', label: '1080p Full HD', resolution: '1920x1080', size: '1.6 GB', badge: 'Crystal Clear', recommended: true },
+            { quality: '720p', label: '720p HD', resolution: '1280x720', size: '850 MB', badge: 'Standard HD', recommended: false },
+            { quality: '480p', label: '480p SD', resolution: '854x480', size: '420 MB', badge: 'Data Saver', recommended: false },
+            { quality: '360p', label: '360p Mobile', resolution: '640x360', size: '210 MB', badge: 'Fast Download', recommended: false },
+        ];
+
+        const hasAnySources = rawSources.length > 0;
+
+        const qualities = RESOLUTION_META.map(meta => {
+            // Prioritize direct binary video file that supports HTTP Range multi-threaded acceleration
+            const directMatch = rawSources.find(s => {
+                const qStr = String(s.quality || '').toLowerCase();
+                const isDirect = s.type === 'video/mp4' || s.isMP4 || s.url?.includes('.mp4');
+                return isDirect && (qStr.includes(meta.quality) || qStr.includes(meta.quality.replace('p', '')));
+            });
+
+            const anyMatch = rawSources.find(s => {
+                const qStr = String(s.quality || '').toLowerCase();
+                return qStr.includes(meta.quality) || qStr.includes(meta.quality.replace('p', ''));
+            });
+
+            const matchedSrc = directMatch || anyMatch || (hasAnySources ? rawSources[0] : null);
+            const directStream = matchedSrc?.url || null;
+
+            const downloadApiUrl = `/api/streaming/download-media?id=${encodeURIComponent(id || '')}&type=${type}&season=${season}&episode=${episode}&quality=${meta.quality}&title=${encodeURIComponent(title)}&format=${format}${year ? `&year=${encodeURIComponent(year)}` : ''}${directStream ? `&url=${encodeURIComponent(directStream)}` : ''}`;
+
+            return {
+                ...meta,
+                format: format === 'mp4' ? 'Direct MP4' : 'Direct MKV (Fast)',
+                downloadUrl: downloadApiUrl,
+                directStreamUrl: directStream,
+                hasDirectSource: Boolean(directStream),
+            };
+        });
+
+        // Fast External Mirrors for alternative 1-click MKV downloads
+        const mirrors = [];
+        const encodedTitle = encodeURIComponent(title || 'Video');
+        if (type === 'movie' && id) {
+            mirrors.push(
+                { name: 'Pahe Fast MKV (x265)', url: `https://pahe.ink/?s=${encodedTitle}`, flag: '⚡', desc: 'Ultra-fast 1080p/720p MKV cloud mirrors' },
+                { name: 'VegaMovies Dual Audio MKV', url: `https://vegamovies.im/?s=${encodedTitle}`, flag: '🇮🇳', desc: 'Hindi Dub + English 1080p MKV files' },
+                { name: 'Smashy Direct CDN', url: `https://player.smashystream.com/movie/${id}`, flag: '⚡', desc: 'Direct unthrottled streaming mirror' },
+                { name: 'MoviesDrive MKV Hub', url: `https://moviesdrive.im/?s=${encodedTitle}`, flag: '⚡', desc: 'High-speed GDrive & Pixeldrain MKV' },
+                { name: 'Filmu Indian DL', url: `https://embed.filmu.in/movie/${id}?lang=hi`, flag: '🇮🇳', desc: 'Hindi & regional multi-audio' },
+                { name: '2Embed Cinema DL', url: `https://www.2embed.cc/embed/${id}`, flag: '🇦🇺', desc: 'Ultra-fast streaming mirror' },
+            );
+        } else if (type === 'tv' && id) {
+            mirrors.push(
+                { name: 'Pahe Series MKV', url: `https://pahe.ink/?s=${encodedTitle}`, flag: '⚡', desc: 'Compact x265 MKV episodes' },
+                { name: 'VegaMovies Series Dual Audio', url: `https://vegamovies.im/?s=${encodedTitle}`, flag: '🇮🇳', desc: 'Hindi Dub + English MKV episodes' },
+                { name: 'Smashy TV Direct', url: `https://player.smashystream.com/tv/${id}/${season}/${episode}`, flag: '⚡', desc: 'Direct episode download' },
+                { name: 'MoviesDrive Series Hub', url: `https://moviesdrive.im/?s=${encodedTitle}`, flag: '⚡', desc: 'High-speed TV seasons MKV' },
+                { name: 'Filmu TV Hindi', url: `https://embed.filmu.in/tv/${id}/${season}/${episode}?lang=hi`, flag: '🇮🇳', desc: 'Hindi episode mirror' },
+                { name: '2Embed TV HD', url: `https://www.2embed.cc/embedtv/${id}&s=${season}&e=${episode}`, flag: '🇦🇺', desc: 'Fast episode mirror' },
+            );
+        } else if (type === 'anime') {
+            mirrors.push(
+                { name: 'AnimePahe Direct MKV', url: `https://animepahe.ru/?q=${encodedTitle}`, flag: '🇯🇵', desc: 'Pahe sub & dub MKV download mirror' },
+                { name: 'Smashy Anime DL', url: `https://player.smashystream.com`, flag: '⚡', desc: 'High-speed anime mirror' },
+            );
+        }
+
+        res.json({
+            title,
+            type,
+            format,
+            season: Number(season),
+            episode: Number(episode),
+            qualities,
+            mirrors,
+            totalSources: rawSources.length,
+            isAvailable: hasAnySources,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message || 'Failed to fetch download options' });
+    }
+});
+
+router.get('/download-media', async (req, res) => {
+    try {
+        const { url, id, type = 'movie', season = 1, episode = 1, quality = '1080p', title = 'video', year = '', format = 'mkv' } = req.query;
+
+        let targetUrl = url;
+
+        // If targetUrl not supplied, resolve stream from Bingr or AnimeSalt
+        if (!targetUrl && id) {
+            if (type === 'anime') {
+                try {
+                    const animeRes = await fetch(`https://hianime.filmu.in/animesalt/streams?title=${encodeURIComponent(title)}&ep=${episode}&season=${season}`);
+                    if (animeRes.ok) {
+                        const anData = await animeRes.json();
+                        if (Array.isArray(anData?.streams) && anData.streams.length > 0) {
+                            const match = anData.streams.find(s => String(s.quality).includes(quality.replace('p', ''))) || anData.streams[0];
+                            targetUrl = match?.url;
+                        }
+                    }
+                } catch {}
+            } else {
+                try {
+                    const upstream = await fetch('https://api.bingr.one/api/stream', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                            'Referer': 'https://bingr.one/',
+                            'Origin': 'https://bingr.one',
+                        },
+                        body: JSON.stringify({
+                            srv: 's70',
+                            t: type === 'tv' ? 'tv' : 'movie',
+                            id: String(id),
+                            query: {
+                                title: title || '',
+                                year: year ? String(year) : '',
+                                ...(type === 'tv' ? { season: Number(season) || 1, episode: Number(episode) || 1 } : {}),
+                            },
+                        }),
+                    });
+                    if (upstream.ok) {
+                        const bData = await upstream.json();
+                        if (Array.isArray(bData?.sources) && bData.sources.length > 0) {
+                            const direct = bData.sources.find(s => (s.type === 'video/mp4' || s.isMP4 || s.url?.includes('.mp4')) && String(s.quality).includes(quality.replace('p', '')));
+                            const fallback = bData.sources.find(s => String(s.quality).includes(quality.replace('p', ''))) || bData.sources[0];
+                            targetUrl = (direct || fallback)?.url;
+                        }
+                    }
+                } catch {}
+            }
+        }
+
+        if (!targetUrl) {
+            return res.status(404).send('Stream source for download not found or title not yet digitally released.');
+        }
+
+        const ext = format === 'mp4' ? 'mp4' : 'mkv';
+        const contentType = ext === 'mkv' ? 'video/x-matroska' : 'video/mp4';
+
+        const safeTitle = (title || 'Video')
+            .replace(/[^a-zA-Z0-9_\- ]/g, '')
+            .trim()
+            .replace(/\s+/g, '.');
+
+        const epSuffix = (type === 'tv' || type === 'anime')
+            ? `.S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')}`
+            : '';
+
+        const fileName = `${safeTitle}${epSuffix}.${quality || 'HD'}.${ext}`;
+
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Accept-Ranges', 'bytes');
+
+        const isHls = targetUrl.includes('.m3u8') || targetUrl.includes('mpegurl');
+
+        if (!isHls) {
+            // Direct video stream with full Range request acceleration support
+            const rangeHeader = req.headers.range;
+            const upstreamHeaders = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Referer': 'https://bingr.one/',
+                'Origin': 'https://bingr.one',
+            };
+            if (rangeHeader) {
+                upstreamHeaders['Range'] = rangeHeader;
+            }
+
+            const upstream = await fetch(targetUrl, { headers: upstreamHeaders });
+
+            if (!upstream.ok && upstream.status !== 206) {
+                return res.status(upstream.status).send('Upstream download failed');
+            }
+
+            if (upstream.status === 206) {
+                res.status(206);
+                const contentRange = upstream.headers.get('content-range');
+                if (contentRange) res.setHeader('Content-Range', contentRange);
+            }
+
+            const contentLength = upstream.headers.get('content-length');
+            if (contentLength) res.setHeader('Content-Length', contentLength);
+            res.setHeader('Content-Type', contentType);
+
+            if (upstream.body) {
+                return Readable.fromWeb(upstream.body).pipe(res);
+            }
+            const buffer = Buffer.from(await upstream.arrayBuffer());
+            return res.send(buffer);
+        }
+
+        // For HLS .m3u8 playlist: fetch playlist and stream segments with high-speed sliding-window prefetching
+        const plRes = await fetch(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Referer': 'https://bingr.one/',
+                'Origin': 'https://bingr.one',
+            }
+        });
+
+        if (!plRes.ok) {
+            return res.status(plRes.status).send('Upstream playlist request failed');
+        }
+
+        let playlistText = await plRes.text();
+        let basePlaylistUrl = targetUrl;
+
+        // If it's a master playlist with multiple variant streams, select the best matching stream
+        if (playlistText.includes('#EXT-X-STREAM-INF')) {
+            const lines = playlistText.split('\n');
+            let matchedVariantUrl = null;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('#EXT-X-STREAM-INF')) {
+                    const nextLine = lines[i + 1]?.trim();
+                    if (nextLine && !nextLine.startsWith('#')) {
+                        if (line.includes(quality.replace('p', '')) || !matchedVariantUrl) {
+                            matchedVariantUrl = nextLine.startsWith('http')
+                                ? nextLine
+                                : new URL(nextLine, basePlaylistUrl).toString();
+                        }
+                    }
+                }
+            }
+            if (matchedVariantUrl) {
+                basePlaylistUrl = matchedVariantUrl;
+                const vRes = await fetch(matchedVariantUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                        'Referer': 'https://bingr.one/',
+                    }
+                });
+                if (vRes.ok) {
+                    playlistText = await vRes.text();
+                }
+            }
+        }
+
+        // Extract segment URLs
+        const segmentLines = playlistText
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l => l && !l.startsWith('#'));
+
+        if (segmentLines.length === 0) {
+            return res.status(404).send('No video segments found in stream');
+        }
+
+        res.setHeader('Content-Type', contentType);
+
+        // High-throughput sliding-window concurrent prefetching
+        const CONCURRENCY = 6;
+        let nextIndexToFetch = 0;
+        let nextIndexToWrite = 0;
+        const inFlight = new Map();
+
+        const fetchSegmentBuffer = async (segUrl) => {
+            const fullUrl = segUrl.startsWith('http') ? segUrl : new URL(segUrl, basePlaylistUrl).toString();
+            try {
+                const segRes = await fetch(fullUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                        'Referer': 'https://bingr.one/',
+                    }
+                });
+                if (segRes.ok) {
+                    return Buffer.from(await segRes.arrayBuffer());
+                }
+            } catch (segErr) {
+                console.error('Error fetching segment:', segErr.message);
+            }
+            return null;
+        };
+
+        const fillWindow = () => {
+            while (inFlight.size < CONCURRENCY && nextIndexToFetch < segmentLines.length) {
+                const idx = nextIndexToFetch++;
+                inFlight.set(idx, fetchSegmentBuffer(segmentLines[idx]));
+            }
+        };
+
+        fillWindow();
+
+        while (nextIndexToWrite < segmentLines.length) {
+            if (res.writableEnded || res.destroyed) break;
+
+            const p = inFlight.get(nextIndexToWrite);
+            if (!p) {
+                fillWindow();
+                continue;
+            }
+
+            const buf = await p;
+            inFlight.delete(nextIndexToWrite);
+            nextIndexToWrite++;
+
+            fillWindow();
+
+            if (buf && buf.length > 0) {
+                if (!res.write(buf)) {
+                    await new Promise(r => res.once('drain', r));
+                }
+            }
+        }
+
+        res.end();
+    } catch (err) {
+        console.error('Download media error:', err);
+        if (!res.headersSent) {
+            res.status(500).send('Download processing failed');
+        }
+    }
+});
+
 module.exports = router;
