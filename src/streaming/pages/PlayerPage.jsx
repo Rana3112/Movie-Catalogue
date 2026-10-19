@@ -61,7 +61,33 @@ const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 export default function PlayerPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const config = location.state;
+  const locationState = location.state;
+
+  // Restore active config from location state or session storage to survive page reload / refresh
+  const [config, setConfig] = useState(() => {
+    if (locationState) {
+      try {
+        sessionStorage.setItem('streamzone_active_config', JSON.stringify(locationState));
+      } catch {}
+      return locationState;
+    }
+    try {
+      const saved = sessionStorage.getItem('streamzone_active_config');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (locationState) {
+      setConfig(locationState);
+      try {
+        sessionStorage.setItem('streamzone_active_config', JSON.stringify(locationState));
+      } catch {}
+    }
+  }, [locationState]);
+
   const addToHistory = useStreamingStore(s => s.addToHistory);
 
   const [customServerList, setCustomServerList] = useState(() => getCustomServers());
@@ -97,43 +123,7 @@ export default function PlayerPage() {
     }));
   }, [config]);
 
-  const [providerIndex, setProviderIndex] = useState(0);
-  const [frameKey, setFrameKey] = useState(0);
-  const [health, setHealth] = useState({ status: 'checking', label: 'Checking provider' });
-  const [healthMap, setHealthMap] = useState(() => new Map());
-  const [isProbingAll, setIsProbingAll] = useState(false);
-  const [serverTab, setServerTab] = useState(() => (config?.category === 'anime' ? 'anime' : 'constellation')); // 'constellation' | 'web' | 'hindi' | 'anime' | 'custom'
-  const [isStreamReady, setIsStreamReady] = useState(false);
-  const [showSlowHint, setShowSlowHint] = useState(false);
-  const [autoShiftNotice, setAutoShiftNotice] = useState(null);
-  const [, setFailedIndices] = useState(new Set());
-  const [autoShiftEnabled, setAutoShiftEnabled] = useState(true);
-  const [isSourcesMenuOpen, setIsSourcesMenuOpen] = useState(false);
-
-  // Real-Time Playback Readiness Trackers
-  const streamLoadStartRef = useRef(performance.now());
-  const streamReadyNotifiedRef = useRef(false);
-
-  const markStreamAsReady = useCallback((triggerReason = 'media') => {
-    setIsStreamReady(true);
-    if (!streamReadyNotifiedRef.current) {
-      streamReadyNotifiedRef.current = true;
-      const elapsedMs = Math.max(1, Math.round(performance.now() - streamLoadStartRef.current));
-      const curr = candidatesRef.current[providerIndexRef.current];
-      const name = curr?.label || 'Server';
-      setAutoShiftNotice(`⚡ Stream Ready & Live: ${name} • Loaded in ${elapsedMs}ms`);
-      setTimeout(() => setAutoShiftNotice(null), 3200);
-    }
-  }, []);
-
-  // Reset stream readiness on provider / frame reload
-  useEffect(() => {
-    setIsStreamReady(false);
-    streamReadyNotifiedRef.current = false;
-    streamLoadStartRef.current = performance.now();
-  }, [providerIndex, frameKey, directStreamUrl]);
-
-  // Direct HLS & Multi-Audio States
+  // Direct HLS & Multi-Audio States (Declared BEFORE any effects)
   const [directStreamUrl, setDirectStreamUrl] = useState(null);
   const [bingrSources, setBingrSources] = useState([]);
   const [bingrSubtitles, setBingrSubtitles] = useState([]);
@@ -142,6 +132,35 @@ export default function PlayerPage() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isResolvingStream, setIsResolvingStream] = useState(false);
   const hlsInstanceRef = useRef(null);
+
+  // Initialize providerIndex to match requested src or first verified web embed if mode is iframe
+  const [providerIndex, setProviderIndex] = useState(() => {
+    if (config?.src && Array.isArray(candidates) && candidates.length > 0) {
+      const matchIdx = candidates.findIndex(c => c.src === config.src);
+      if (matchIdx !== -1) return matchIdx;
+    }
+    if (config?.mode === 'iframe' && Array.isArray(candidates) && candidates.length > 0) {
+      const firstWeb = candidates.findIndex(c => !c.isBingr && !c.isDirectHls && c.src && !c.src.startsWith('/api/'));
+      if (firstWeb !== -1) return firstWeb;
+    }
+    return 0;
+  });
+
+  const [frameKey, setFrameKey] = useState(0);
+  const [health, setHealth] = useState({ status: 'checking', label: 'Checking provider' });
+  const [healthMap, setHealthMap] = useState(() => new Map());
+  const [isProbingAll, setIsProbingAll] = useState(false);
+  const [serverTab, setServerTab] = useState(() => {
+    if (config?.category === 'anime') return 'anime';
+    if (config?.mode === 'iframe') return 'web';
+    return 'constellation';
+  });
+  const [isStreamReady, setIsStreamReady] = useState(false);
+  const [showSlowHint, setShowSlowHint] = useState(false);
+  const [autoShiftNotice, setAutoShiftNotice] = useState(null);
+  const [, setFailedIndices] = useState(new Set());
+  const [autoShiftEnabled, setAutoShiftEnabled] = useState(true);
+  const [isSourcesMenuOpen, setIsSourcesMenuOpen] = useState(false);
 
   // Subtitle States
   const [isSubtitlesMenuOpen, setIsSubtitlesMenuOpen] = useState(false);
@@ -167,14 +186,52 @@ export default function PlayerPage() {
   const healthMapRef = useRef(healthMap);
   healthMapRef.current = healthMap;
 
+  // Real-Time Playback Readiness Trackers
+  const streamLoadStartRef = useRef(performance.now());
+  const streamReadyNotifiedRef = useRef(false);
+
+  const markStreamAsReady = useCallback((triggerReason = 'media') => {
+    setIsStreamReady(true);
+    if (!streamReadyNotifiedRef.current) {
+      streamReadyNotifiedRef.current = true;
+      const elapsedMs = Math.max(1, Math.round(performance.now() - streamLoadStartRef.current));
+      const curr = candidatesRef.current[providerIndexRef.current];
+      const name = curr?.label || 'Server';
+      setAutoShiftNotice(`⚡ Stream Ready & Live: ${name} • Loaded in ${elapsedMs}ms`);
+      setTimeout(() => setAutoShiftNotice(null), 3200);
+    }
+  }, []);
+
+  // Reset stream readiness on provider / frame reload
+  useEffect(() => {
+    setIsStreamReady(false);
+    streamReadyNotifiedRef.current = false;
+    streamLoadStartRef.current = performance.now();
+  }, [providerIndex, frameKey, directStreamUrl]);
+
   const currentCandidate = candidates[providerIndex] || { label: 'Source 1' };
   const isBingrCandidate = Boolean(currentCandidate?.isBingr || currentCandidate?.isDirectHls);
   const hasAlternateProvider = candidates.length > 1;
 
-  const sourceUrl = useMemo(
-    () => directStreamUrl || candidates[providerIndex]?.src || config?.src || config?.embedUrl || '',
-    [candidates, config, providerIndex, directStreamUrl]
-  );
+  // Dedicated safe embed URL for <iframe> elements.
+  // NEVER passes M3U8 direct stream or /api/streaming/bingr/* endpoint to an iframe.
+  const embedUrl = useMemo(() => {
+    const curr = candidates[providerIndex];
+    if (curr && !curr.isBingr && !curr.isDirectHls && curr.src && !curr.src.startsWith('/api/')) {
+      return curr.src;
+    }
+    const firstWeb = candidates.find(c => !c.isBingr && !c.isDirectHls && c.src && !c.src.startsWith('/api/'));
+    if (firstWeb?.src) return firstWeb.src;
+    if (config?.src && !config.src.startsWith('/api/')) return config.src;
+    if (config?.embedUrl) return config.embedUrl;
+    if (config?.category === 'tv' && config?.id) {
+      return `https://www.2embed.cc/embedtv/${config.id}&s=${config.season || 1}&e=${config.episode || 1}`;
+    }
+    if (config?.id) {
+      return `https://www.2embed.cc/embed/${config.id}`;
+    }
+    return '';
+  }, [candidates, config, providerIndex]);
 
   // Function to swiftly auto-shift to next healthy, lowest-latency verified provider
   const triggerAutoShift = useCallback((reason = 'unreachable') => {
@@ -550,15 +607,15 @@ export default function PlayerPage() {
 
   // Fallback Provider Health Check (for iframe embed servers)
   useEffect(() => {
-    if (isBingrCandidate || !sourceUrl) return undefined;
+    if (isBingrCandidate || !embedUrl) return undefined;
     let cancelled = false;
 
     setHealth({ status: 'checking', label: 'Connecting to provider...' });
 
-    checkStreamProviderHealth(sourceUrl, { timeoutMs: 3000 }).then(result => {
+    checkStreamProviderHealth(embedUrl, { timeoutMs: 3000 }).then(result => {
       if (cancelled) return;
       setHealth(result);
-      setHealthMap(prev => new Map(prev).set(sourceUrl, result));
+      setHealthMap(prev => new Map(prev).set(embedUrl, result));
 
       if (
         result.status === 'unreachable' &&
@@ -573,7 +630,7 @@ export default function PlayerPage() {
     return () => {
       cancelled = true;
     };
-  }, [sourceUrl, isBingrCandidate, triggerAutoShift]);
+  }, [embedUrl, isBingrCandidate, triggerAutoShift]);
 
   // Stream Readiness Auto-Failover Watchdog:
   // If a server has NOT loaded and started streaming within 7.5 seconds, auto-shift to next verified ready server!
@@ -591,7 +648,7 @@ export default function PlayerPage() {
     return () => {
       if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     };
-  }, [sourceUrl, frameKey, isStreamReady, triggerAutoShift]);
+  }, [embedUrl, directStreamUrl, frameKey, isStreamReady, triggerAutoShift]);
 
   // Subtitle Cue Sync Timer
   useEffect(() => {
@@ -820,7 +877,61 @@ export default function PlayerPage() {
     return candidates;
   }, [candidates, serverTab]);
 
-  if (!config) return null;
+  if (!config) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: '#0B0F19',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          zIndex: 99999,
+          padding: 24,
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 20,
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
+            color: '#60A5FA',
+          }}
+        >
+          <Server size={32} />
+        </div>
+        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>No Stream Selected</h2>
+        <p style={{ color: '#9CA3AF', fontSize: 14, maxWidth: 360, marginBottom: 24, lineHeight: 1.5 }}>
+          Please select a movie, TV show, or anime title to launch the StreamZone video player.
+        </p>
+        <button
+          onClick={() => navigate('/streaming')}
+          style={{
+            padding: '10px 24px',
+            backgroundColor: '#2563EB',
+            color: '#fff',
+            borderRadius: 12,
+            fontWeight: 600,
+            fontSize: 14,
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Return to Browse
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -1953,7 +2064,7 @@ export default function PlayerPage() {
       )}
 
       {/* Video Surface: Direct HLS Video or Iframe Embed */}
-      {isBingrCandidate ? (
+      {isBingrCandidate && (directStreamUrl || isResolvingStream) ? (
         <div style={{ position: 'absolute', inset: 0, background: '#000' }}>
           {isResolvingStream && (
             <div
@@ -1992,7 +2103,7 @@ export default function PlayerPage() {
             controls
             playsInline
             controlsList="nodownload"
-            poster={config.posterUrl}
+            poster={config?.posterUrl}
             onLoadedData={() => markStreamAsReady('video-loadeddata')}
             onCanPlay={() => markStreamAsReady('video-canplay')}
             onPlaying={() => markStreamAsReady('video-playing')}
@@ -2019,8 +2130,8 @@ export default function PlayerPage() {
       ) : (
         <iframe
           key={`iframe-${providerIndex}-${frameKey}`}
-          title={config.title || 'StreamZone player'}
-          src={sourceUrl}
+          title={config?.title || 'StreamZone player'}
+          src={embedUrl}
           loading="eager"
           fetchPriority="high"
           onLoad={() => markStreamAsReady('iframe-onload')}

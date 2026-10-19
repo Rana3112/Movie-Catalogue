@@ -390,21 +390,6 @@ export const getAnimeStreamCandidates = (anilistId, episode = 1, options = {}) =
 
   return [
     {
-      id: 'animesalt-hls',
-      label: 'AniStream Master',
-      name: 'AniStream Direct HLS',
-      flag: '⚡',
-      country: 'JP',
-      tier: 'anime',
-      isAnime: true,
-      isDirectHls: true,
-      isBingr: false,
-      badge: '1080p Direct',
-      desc: 'Direct HLS Master Stream with Subtitles & Multi-Audio',
-      src: `/api/streaming/bingr/animesalt?title=${encodeURIComponent(title || String(cleanId))}&ep=${episode}&season=1`,
-      style: 'cyan',
-    },
-    {
       id: 'vidnest-anime-sub',
       label: 'Vidnest Pahe Sub',
       name: 'Vidnest Pahe (Sub)',
@@ -451,6 +436,21 @@ export const getAnimeStreamCandidates = (anilistId, episode = 1, options = {}) =
       badge: 'Fast Embed',
       src: `https://player.smashystream.com/tv/${cleanId}/1/${episode}`,
       style: 'purple',
+    },
+    {
+      id: 'animesalt-hls',
+      label: 'AniStream Master',
+      name: 'AniStream Direct HLS',
+      flag: '⚡',
+      country: 'JP',
+      tier: 'anime',
+      isAnime: true,
+      isDirectHls: true,
+      isBingr: false,
+      badge: '1080p Direct',
+      desc: 'Direct HLS Master Stream with Subtitles & Multi-Audio',
+      src: `/api/streaming/bingr/animesalt?title=${encodeURIComponent(title || String(cleanId))}&ep=${episode}&season=1`,
+      style: 'cyan',
     },
     {
       id: 'vidsrc-anime',

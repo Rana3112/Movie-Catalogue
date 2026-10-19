@@ -138,7 +138,7 @@ function AnimatedRoutes() {
         <Route path="/streaming/movie/:id" element={<ProtectedRoute><PageTransition><MovieDetail /></PageTransition></ProtectedRoute>} />
         <Route path="/streaming/tv/:id" element={<ProtectedRoute><PageTransition><TVDetail /></PageTransition></ProtectedRoute>} />
         <Route path="/streaming/anime/:id" element={<ProtectedRoute><PageTransition><AnimeDetail /></PageTransition></ProtectedRoute>} />
-        <Route path="/streaming/player" element={<ProtectedRoute><PageTransition><PlayerPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/streaming/player" element={<ProtectedRoute><PlayerPage /></ProtectedRoute>} />
         <Route path="/streaming/search" element={<ProtectedRoute><PageTransition><SearchPage /></PageTransition></ProtectedRoute>} />
         <Route path="/streaming/list/:category/:collection" element={<ProtectedRoute><PageTransition><StreamingListPage /></PageTransition></ProtectedRoute>} />
         <Route path="/streaming/genres" element={<ProtectedRoute><PageTransition><GenresPage /></PageTransition></ProtectedRoute>} />
